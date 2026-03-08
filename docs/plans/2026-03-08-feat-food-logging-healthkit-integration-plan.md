@@ -17,6 +17,17 @@ linear_issues:
 **Sections enhanced:** Phase 2 (HealthKit Import), Phase 3 (Claude API), Security, Performance, Architecture
 **Research agents used:** HealthKit best-practices-researcher, Claude Vision API researcher, iOS Keychain researcher, Swift Charts framework-docs-researcher, architecture-strategist, security-sentinel, performance-oracle, Context7 HealthKit docs, Context7 Anthropic API docs
 
+**Deepened on:** 2026-03-08 (third pass — Phase 3 deep research)
+**Sections enhanced:** Phase 3 (Claude API structured outputs GA, model IDs, Keychain deep dive, camera/photo patterns, App Store 5.1.2(i) enforcement details, SubstanceEntry model with HealthKit Medications API, error handling with rate limit headers, cost verification)
+**Key new findings:**
+1. Structured outputs are GA — beta header no longer needed, `output_config.format` is the correct parameter
+2. WWDC 2025 introduced `HKMedicationDoseEvent` + `HKUserAnnotatedMedication` — can read medication doses from HealthKit (iOS 26+)
+3. Zero Data Retention (ZDR) for structured outputs — strengthens App Store 5.1.2(i) consent language
+4. SwiftUI still has no native camera API — need `PhotosPicker` + `UIImagePickerController` wrapper
+5. `effort` parameter removed from `output_config` — it controls extended thinking, not speed/cost
+6. Biometric protection for API key NOT recommended — would trigger Face ID on every food photo
+7. Anthropic 429 responses include `retry-after` header — use it directly, no exponential backoff needed for BYOK
+
 ### Key Improvements (Second Pass)
 1. **Modern HealthKit API** — Use `HKAnchoredObjectQueryDescriptor` (iOS 15.4+ async/await) instead of callback-based API
 2. **Anchor persistence** — Store `HKQueryAnchor` as NSSecureCoding Data in UserDefaults (invalidated anchors gracefully return full dataset)
@@ -57,7 +68,7 @@ DOSBTS currently shows glucose and insulin data but has no food/meal context. Us
 Three-phase approach, each independently shippable:
 
 1. **Phase 1 (MVP — DMNC-425):** ✅ COMPLETE — Manual meal logging with GRDB storage and chart markers
-2. **Phase 2 (DMNC-426):** HealthKit import of nutrition, exercise, and heart rate data from other apps
+2. **Phase 2 (DMNC-426):** ✅ COMPLETE — HealthKit import of nutrition, exercise, and heart rate data from other apps
 3. **Phase 3 (DMNC-427):** Claude API integration for food photo analysis and glucose correlation insights
 
 ---
@@ -436,21 +447,21 @@ ForEach(exerciseSeries) { exercise in
 
 > **Action required:** Debounce `updateSeriesMetadata()` calls in ChartView before adding more data series. Currently each `onChange` handler triggers it independently. With 6-7 series, parallel loads cause redundant recalculations.
 
-### Acceptance Criteria (Phase 2)
+### Acceptance Criteria (Phase 2) — ✅ COMPLETE
 
-- [ ] HealthKit import middleware with anchored queries (`HKAnchoredObjectQueryDescriptor`)
-- [ ] Import nutrition samples (carbs, calories, protein, fat)
-- [ ] Handle both food correlations AND standalone flat samples
-- [ ] Import workout/exercise sessions as ExerciseEntry in GRDB
-- [ ] Heart rate overlay on chart (on-demand query, not persisted, hourly `HKStatisticsCollectionQuery`)
-- [ ] Background delivery with `com.apple.developer.healthkit.background-delivery` entitlement
-- [ ] Foreground refresh on app `.active` as primary sync mechanism
-- [ ] Import/export dedup: bundle ID filtering + sync identifier + timestamp fuzzy match
-- [ ] Source app attribution on imported entries (`HKSourceQuery`)
-- [ ] Settings toggle for HealthKit import (separate from export)
-- [ ] Updated privacy strings in Info.plist
-- [ ] Imported meals shown alongside manual meals on chart
-- [ ] Debounce chart series metadata recalculation
+- [x] HealthKit import middleware with anchored queries (`HKAnchoredObjectQueryDescriptor`)
+- [x] Import nutrition samples (carbs, calories, protein, fat)
+- [x] Handle both food correlations AND standalone flat samples
+- [x] Import workout/exercise sessions as ExerciseEntry in GRDB
+- [x] Heart rate overlay on chart (on-demand query, not persisted, hourly `HKStatisticsCollectionQuery`)
+- [x] Background delivery with `com.apple.developer.healthkit.background-delivery` entitlement
+- [x] Foreground refresh on app `.active` as primary sync mechanism
+- [x] Import/export dedup: bundle ID filtering + sync identifier + timestamp fuzzy match
+- [x] Source app attribution on imported entries (`HKSourceQuery`)
+- [x] Settings toggle for HealthKit import (separate from export)
+- [x] Updated privacy strings in Info.plist
+- [x] Imported meals shown alongside manual meals on chart
+- [x] Debounce chart series metadata recalculation
 
 ### Files to Create/Modify (Phase 2)
 
@@ -475,6 +486,8 @@ ForEach(exerciseSeries) { exercise in
 
 ## Phase 3: AI-Powered Analysis (DMNC-427)
 
+**Deepened on:** 2026-03-08 (third pass — deep research on Claude API, App Store compliance, Keychain, camera patterns, substance model, error handling)
+
 ### Claude API Integration
 
 #### Architecture: BYOK (Bring Your Own Key)
@@ -488,7 +501,47 @@ ForEach(exerciseSeries) { exercise in
 
 > **Architecture review:** The Claude API integration should be a standalone `ClaudeService` class (not a middleware). Middlewares are for action-reactive flows; API calls are user-initiated and async with complex error handling. The middleware dispatches actions to trigger analysis, but the actual API work lives in the service. Pattern: middleware receives `.analyzeFood(image:)` → calls `ClaudeService.analyzeFood()` → dispatches `.setFoodAnalysisResult(result:)`.
 
+#### Keychain Storage for API Key: Deep Dive
+
+> **Research finding (2026-03-08):** The existing `KeychainService` plan (Pre-Phase 2 section) uses `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly` which is correct for an API key that may be needed shortly after app launch. Key considerations:
+
+**Recommended `kSecAttrAccessible` values by use case:**
+| Value | When accessible | Backup behavior | Best for |
+|-------|----------------|-----------------|----------|
+| `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` | Only when unlocked | Not in backups | Highest security, but fails if app accesses key in background |
+| `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly` | After first unlock until reboot | Not in backups | **API keys (our choice)** — accessible in background, not in backups |
+| `kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly` | Only with passcode set | Not in backups | Forces passcode, but risky if user removes passcode |
+
+**Why NOT add biometric protection (Face ID/Touch ID) for the API key:**
+- API keys are not high-value secrets like banking credentials — they are user-provided, revocable, and rate-limited
+- Biometric prompts on every API call would destroy UX (imagine Face ID every time you photograph food)
+- `kSecAccessControlBiometryAny` / `.userPresence` flags require `LAContext` evaluation before every Keychain read
+- If biometrics fail (wet fingers, mask), the entire AI feature becomes unusable
+- **Decision:** Use `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly` WITHOUT biometric access control. The API key is adequately protected by device encryption + Keychain isolation. Offer a "Reveal API Key" button in Settings that uses `LAContext.evaluatePolicy(.deviceOwnerAuthentication)` for viewing only.
+
+**Additional Keychain best practices to implement:**
+- Use `kSecAttrSynchronizable: false` explicitly (prevent iCloud Keychain sync of API key)
+- The existing `KeychainService` plan's update-then-add pattern is correct (avoids delete race condition)
+- Store only the API key string, never JSON blobs — Keychain is not a general-purpose store
+
 #### API Request Format (Direct URLSession)
+
+> **Research finding (2026-03-08):** Verified against current Anthropic API docs. Key updates:
+> - `output_config.format` is the GA parameter (not `output_format`, which was beta-only and is deprecated)
+> - The beta header `structured-outputs-2025-11-13` is **no longer required** — structured outputs are GA
+> - `anthropic-version: 2023-06-01` remains the current stable version header (unchanged since launch)
+> - All current Claude models support vision (text + image input)
+> - Supported image formats: JPEG, PNG, GIF, WebP
+> - **IMPORTANT:** Verify `media_type` matches actual image data — mismatches cause API errors
+
+**Current model IDs (verified March 2026):**
+| Model | API ID (pinned) | API Alias (latest) |
+|-------|----------------|---------------------|
+| Claude Haiku 4.5 | `claude-haiku-4-5-20251001` | `claude-haiku-4-5` |
+| Claude Sonnet 4.6 | (use alias) | `claude-sonnet-4-6` |
+| Claude Opus 4.6 | (use alias) | `claude-opus-4-6` |
+
+> **Decision:** Use `claude-haiku-4-5-20251001` (pinned) in code for reproducibility. Haiku 4.5 is the only pinned model — Sonnet and Opus use aliases that auto-update.
 
 ```swift
 struct ClaudeService {
@@ -501,23 +554,23 @@ struct ClaudeService {
         request.setValue("application/json", forHTTPHeaderField: "content-type")
         request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
         request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        // NOTE: No beta header needed — structured outputs are GA
 
         let base64Image = imageData.base64EncodedString()
         let body: [String: Any] = [
-            "model": "claude-haiku-4-5-20251001",
+            "model": "claude-haiku-4-5-20251001",  // Pinned for reproducibility
             "max_tokens": 1024,
             "messages": [
                 ["role": "user", "content": [
                     ["type": "image", "source": [
                         "type": "base64",
-                        "media_type": "image/jpeg",
+                        "media_type": "image/jpeg",  // Must match actual format
                         "data": base64Image
                     ]],
                     ["type": "text", "text": "Analyze this meal photo. Identify each food item and estimate nutritional content."]
                 ]]
             ],
             "output_config": [
-                "effort": "low",  // Fast, cheap — food photos are constrained
                 "format": [
                     "type": "json_schema",
                     "schema": nutritionSchema
@@ -539,9 +592,13 @@ struct ClaudeService {
 }
 ```
 
+> **Removed `"effort": "low"` from `output_config`:** The `effort` parameter is for extended thinking control, not general speed/cost optimization. For Haiku 4.5, which does not support adaptive thinking, this parameter is irrelevant. Haiku is inherently fast and cheap — no tuning needed.
+
 #### Structured Output via JSON Schema
 
-> **Research finding:** Use `output_config.format.json_schema` (newer API, replaces deprecated `response_format`). This guarantees valid JSON matching the schema.
+> **Research finding (updated 2026-03-08):** Structured outputs are now **Generally Available** (GA). Use `output_config.format` with `type: "json_schema"`. The old `output_format` parameter and `structured-outputs-2025-11-13` beta header are deprecated but still work during the transition period. GA guarantees valid JSON matching the schema. The JSON schema itself is temporarily cached by Anthropic for up to 24 hours for optimization, but **no prompt or response data is retained** (Zero Data Retention for structured outputs). This is important for the App Store disclosure — we can truthfully state images are not stored.
+
+> **Schema best practice:** Include `"additionalProperties": false` at the top level to prevent unexpected fields in the response. This matches the official examples in the Anthropic docs.
 
 ```swift
 let nutritionSchema: [String: Any] = [
@@ -555,21 +612,58 @@ let nutritionSchema: [String: Any] = [
                 "carbs_g": ["type": "number"],
                 "protein_g": ["type": "number"],
                 "fat_g": ["type": "number"],
-                "calories": ["type": "number"]
+                "calories": ["type": "number"],
+                "fiber_g": ["type": "number"],
+                "serving_size": ["type": "string", "description": "Estimated portion size"]
             ],
-            "required": ["name", "carbs_g"]
+            "required": ["name", "carbs_g"],
+            "additionalProperties": false
         ]],
         "total_carbs_g": ["type": "number"],
         "total_calories": ["type": "number"],
-        "confidence": ["type": "string", "enum": ["high", "medium", "low"]]
+        "confidence": ["type": "string", "enum": ["high", "medium", "low"]],
+        "confidence_notes": ["type": "string", "description": "Why confidence is high/medium/low"]
     ],
-    "required": ["description", "items", "total_carbs_g", "confidence"]
+    "required": ["description", "items", "total_carbs_g", "confidence"],
+    "additionalProperties": false
 ]
 ```
+
+> **Schema additions:** Added `fiber_g` (relevant for net carb calculation for diabetes), `serving_size` (helps user verify portion accuracy), and `confidence_notes` (explains why the model is uncertain, e.g. "photo is blurry" or "portion size difficult to estimate from angle").
 
 #### Image Preparation
 
 > **Research finding:** Resize food photos to max 1024px on the longest edge before base64 encoding. Full-res iPhone photos (4032x3024) are 5-10MB; resized to 1024px at JPEG quality 0.7 → ~150-250KB. This reduces API token usage and upload time on cellular.
+
+> **Camera vs Photo Library (2026-03-08 research):** SwiftUI still has NO native camera API. Two approaches needed:
+> - **Photo library:** Use `PhotosPicker` (SwiftUI native, iOS 16+) — no UIKit bridge needed, returns `PhotosPickerItem`, no NSPhotoLibraryUsageDescription required (out-of-process picker)
+> - **Camera capture:** Must wrap `UIImagePickerController` via `UIViewControllerRepresentable` — requires `NSCameraUsageDescription` in Info.plist
+> - **AVFoundation** is overkill for our use case (simple photo capture, no video, no custom UI)
+> - **Decision:** Use `PhotosPicker` for library + `UIImagePickerController` wrapper for camera. Keep the wrapper minimal — just capture and return `UIImage`.
+
+```swift
+// Photo Library (SwiftUI native — no permissions prompt needed)
+import PhotosUI
+
+struct MealPhotoButton: View {
+    @State private var selectedItem: PhotosPickerItem?
+
+    var body: some View {
+        PhotosPicker(selection: $selectedItem, matching: .images) {
+            Label("Choose Photo", systemImage: "photo")
+        }
+        .onChange(of: selectedItem) { item in
+            // Load and resize
+        }
+    }
+}
+
+// Camera (requires UIKit bridge + NSCameraUsageDescription)
+struct CameraView: UIViewControllerRepresentable {
+    // Wrap UIImagePickerController with .sourceType = .camera
+    // Return UIImage via completion handler / binding
+}
+```
 
 ```swift
 extension UIImage {
@@ -585,18 +679,41 @@ extension UIImage {
 }
 ```
 
-#### Cost Estimates (Current 2026 Pricing)
+> **Info.plist addition required:** `NSCameraUsageDescription` — "DOSBTS uses your camera to photograph meals for nutritional analysis." This is only needed for the camera path, not for PhotosPicker.
+
+#### Cost Estimates (Verified March 2026 Pricing)
+
+> **Pricing verified 2026-03-08 against [platform.claude.com/docs/en/about-claude/pricing](https://platform.claude.com/docs/en/about-claude/pricing).** The prices in the original plan were correct.
+
+**Per-call estimate breakdown (Haiku 4.5):**
+- Input: ~1,500 tokens (image ~1,200 tokens at 1024px + prompt ~300 tokens) = $0.0015
+- Output: ~200 tokens (JSON nutrition response) = $0.001
+- **Total: ~$0.0025/call** (slightly less than the $0.003 estimate — conservative rounding is fine)
 
 | Model | Input/MTok | Output/MTok | Est. per food photo | Monthly (3 meals/day) |
 |-------|-----------|-------------|--------------------|-----------------------|
 | Haiku 4.5 | $1 | $5 | ~$0.003 | ~$0.27 |
 | Sonnet 4.6 | $3 | $15 | ~$0.01 | ~$0.90 |
+| Opus 4.6 | $5 | $25 | ~$0.016 | ~$1.44 |
 
-> Haiku 4.5 is the clear choice for food photos — a constrained visual task where speed matters more than deep reasoning.
+**Correlation analysis (Feature 2) cost estimate:**
+- Input: ~2,000 tokens (summarized glucose stats + meal data for 7 days) = $0.002
+- Output: ~500 tokens (pattern analysis text) = $0.0025
+- **Total: ~$0.005/call** — user might run this weekly = ~$0.02/month
+
+**User communication:** Display estimated cost in the AI Settings screen: "Estimated cost: less than $0.01 per analysis. At 3 meals/day, roughly $0.30/month."
+
+> Haiku 4.5 is the clear choice for food photos — a constrained visual task where speed matters more than deep reasoning. All current Claude models support vision; no special vision-specific model or flag needed.
 
 #### App Store Compliance: Guideline 5.1.2(i)
 
 > **CRITICAL — Apple updated App Review Guidelines November 2025:** Section 5.1.2(i) now requires explicit disclosure when sharing personal data with third-party AI services. This applies directly to Phase 3.
+
+> **Research finding (2026-03-08):** Multiple apps have been rejected under this guideline since November 2025. The guideline covers ALL external AI services: LLMs, traditional ML, and any external reasoning services. "Third-party AI" is now a regulated category in Apple's review process. Key takeaways from real rejections reported on Apple Developer Forums and tech press:
+> - Apps rejected for saying "AI service" without naming the specific provider
+> - Apps rejected for bundling AI consent into general terms of service acceptance
+> - The guideline is enforced **immediately** — no grace period
+> - Scope is broad: applies to OpenAI, Google Gemini, Anthropic Claude, and any other external AI
 
 **Requirements:**
 1. **Name the AI provider explicitly** — "Your food photo and meal description will be sent to Anthropic (Claude AI) for nutritional analysis." Generic "AI service" is insufficient.
@@ -604,26 +721,104 @@ extension UIImage {
 3. **Explain data types, storage, model training** — Must state whether Anthropic stores the data, uses it for training (they don't with API), and for how long.
 4. **Cannot rely on privacy policy links alone** — Must use pop-ups or other visible interaction methods.
 
+> **Zero Data Retention (ZDR) strengthens our position:** Anthropic's structured output API operates under ZDR — the JSON schema is cached up to 24 hours for optimization, but NO prompt or response data (including images) is retained. This is a strong factual claim for the consent dialog.
+
 **Implementation:**
 ```swift
 // On first tap of "Analyze with AI" button:
 struct AIConsentView: View {
     var body: some View {
-        VStack {
+        VStack(spacing: 16) {
             Text("Food Photo Analysis")
-            Text("Your food photo will be sent to Anthropic (Claude AI) to estimate nutritional content.")
-            Text("• Only the photo and a text prompt are sent")
-            Text("• No glucose or health data is included")
-            Text("• Anthropic does not store your images or use them for model training")
-            Text("• You can revoke access anytime in Settings")
-            Button("Allow") { /* store consent, proceed */ }
+                .font(.headline)
+            Text("Your food photo will be sent to **Anthropic (Claude AI)** to estimate nutritional content.")
+            VStack(alignment: .leading, spacing: 8) {
+                Text("• Only the photo and a text prompt are sent")
+                Text("• No glucose or health data is included")
+                Text("• Anthropic does not store your images or use them for model training (Zero Data Retention)")
+                Text("• Data is transmitted securely via HTTPS/TLS")
+                Text("• You can revoke access anytime in Settings")
+            }
+            .font(.subheadline)
+            Link("Anthropic Privacy Policy",
+                 destination: URL(string: "https://www.anthropic.com/privacy")!)
+                .font(.caption)
+            Button("Allow Food Photo Analysis") { /* store consent, proceed */ }
+                .buttonStyle(.borderedProminent)
             Button("Not Now") { /* dismiss */ }
+                .buttonStyle(.bordered)
         }
+        .padding()
     }
 }
 ```
 
-> **For correlation analysis (Feature 2):** A SEPARATE consent prompt is needed because glucose data IS sent. This is health data and must be disclosed distinctly: "Your glucose readings, meal logs, and exercise data will be sent to Anthropic (Claude AI) for pattern analysis."
+> **Consent persistence:** Store consent state in UserDefaults (not Keychain — this is a preference, not a secret). Key: `aiConsentFoodPhoto` (Bool) and `aiConsentCorrelation` (Bool). Check before every API call. Provide "Revoke AI Access" in Settings that clears both flags.
+
+> **For correlation analysis (Feature 2):** A SEPARATE consent prompt is needed because glucose data IS sent. This is health data and must be disclosed distinctly: "Your glucose readings, meal logs, and exercise data will be sent to Anthropic (Claude AI) for pattern analysis. This includes health-related data."
+
+> **App Privacy Nutrition Label:** Update the App Store privacy declarations to include "Data Linked to You" → "Photos" (food photos sent to AI) and "Health & Fitness" (if correlation analysis sends glucose data). These must be declared in App Store Connect before submission.
+
+#### Technical Review Findings (Incorporated)
+
+> **From `/ce:review` — 16 findings across P1/P2/P3. Items already covered by deepen-plan research are marked ✅.**
+
+**P1 — Critical (must address before implementation):**
+
+1. **Combine/async bridge gap** — `ClaudeService` uses `async/await` but middleware returns `AnyPublisher`. Need a `Future` wrapper:
+```swift
+// In ClaudeMiddleware — bridge async ClaudeService into Combine publisher
+case .analyzeFood(let imageData):
+    return Future<DirectAction, DirectError> { promise in
+        Task {
+            do {
+                let result = try await service.value.analyzeFood(imageData: imageData)
+                promise(.success(.setFoodAnalysisResult(result: result)))
+            } catch {
+                promise(.success(.setFoodAnalysisError(error: error.localizedDescription)))
+            }
+        }
+    }
+    .eraseToAnyPublisher()
+```
+This matches how `appleHealthImportMiddleware` bridges async HealthKit queries.
+
+2. **API key must never appear in logs** — The log middleware at `Log.swift` logs action descriptions. Add `.setClaudeAPIKey` to the exclusion list alongside `.setNightscoutURL` and `.setNightscoutSecret`. Also: never include the API key in error messages or crash reports.
+
+3. ✅ **Consent persistence model** — Already addressed above: UserDefaults keys `aiConsentFoodPhoto` (Bool) and `aiConsentCorrelation` (Bool), checked before every API call, "Revoke AI Access" in Settings.
+
+4. ✅ **`output_config` verified** — Deepen-plan confirmed `output_config.format` is GA, no beta header needed.
+
+**P2 — Important (should address):**
+
+5. ✅ **Rate limiting** — Error handling section covers 429 with `retry-after` header, countdown display.
+
+6. **Image format verification** — Don't hardcode `"image/jpeg"`. Detect actual format from data header bytes:
+```swift
+func detectMediaType(data: Data) -> String {
+    let bytes = [UInt8](data.prefix(4))
+    if bytes.starts(with: [0xFF, 0xD8, 0xFF]) { return "image/jpeg" }
+    if bytes.starts(with: [0x89, 0x50, 0x4E, 0x47]) { return "image/png" }
+    if bytes.starts(with: [0x47, 0x49, 0x46]) { return "image/gif" }
+    return "image/jpeg" // fallback after resize (always JPEG)
+}
+```
+Since we resize to JPEG ourselves, this is mainly needed if the user selects a photo that we pass through without resizing.
+
+7. ✅ **Offline handling** — `NWPathMonitor` pre-check already planned in error handling section.
+
+8. ✅ **SubstanceEntry model** — Enhanced with category enum, dose/unit, isFromHealthKit, rationale documented.
+
+9. **ClaudeService concurrency** — Mark `ClaudeService` as `actor` or use a serial `DispatchQueue` to prevent concurrent API calls from the same user action (e.g., double-tap on "Analyze"). Simple approach: disable the button during analysis via `@State private var isAnalyzing = false`.
+
+10. ✅ **Camera permissions** — `NSCameraUsageDescription` already in acceptance criteria and Info.plist changes.
+
+**P3 — Nice-to-have:**
+
+11. Display cost estimate per-call in AI Settings (already planned: "less than $0.01 per analysis")
+12. Store timestamps in UTC, display in local timezone (follow existing `SensorGlucose` pattern)
+13. Add test strategy: mock `ClaudeService` protocol for unit tests, use recorded API responses
+14. Add medical disclaimer at bottom of correlation analysis view (not just inline)
 
 #### Feature 1: Food Photo → Carb Estimation
 
@@ -651,39 +846,158 @@ Add a `SubstanceEntry` model for tracking:
 - Supplements (vitamins, mushroom supplements)
 - Caffeine, alcohol
 
-Simple model: name, dose, timestamp. Display as chart markers. HealthKit doesn't have standard types for supplements, so this is local-only (GRDB).
+> **MAJOR FINDING (2026-03-08): Apple announced a HealthKit Medications API at WWDC 2025.** New types `HKUserAnnotatedMedication` and `HKMedicationDoseEvent` are available in iOS 26+. This changes the design:
+>
+> **`HKMedicationDoseEvent` properties:**
+> - `status`: `.taken`, `.skipped`, `.missed`, `.delayed`
+> - `doseQuantity`: HKQuantity (amount taken, can be 0)
+> - `startDate`: time the dose was logged
+> - `scheduledDate`: when the dose was scheduled
+> - `scheduledQuantity`: expected dose amount
+> - `medicationConceptIdentifier`: links to `HKUserAnnotatedMedication`
+>
+> **`HKUserAnnotatedMedication` properties:**
+> - Medication name, form (tablet, capsule, etc.)
+> - RxNorm code (standard drug identifier)
+> - `isArchived`: medication no longer being taken
+> - `hasSchedule`: reminder notifications configured
+>
+> **Impact on design:** For medications tracked in Apple Health (metformin, insulin), we can READ dose events from HealthKit instead of requiring manual entry. Query via `HKUserAnnotatedMedicationQueryDescriptor`. However, the API is **read-only for third-party apps** — users log doses in the Health app, and we display them as chart overlays.
+>
+> **For supplements/caffeine/alcohol:** These are NOT covered by the HealthKit Medications API (no RxNorm codes for supplements). Keep local GRDB storage for these.
+
+**Enhanced `SubstanceEntry` model (local GRDB):**
+
+```swift
+struct SubstanceEntry: Codable, FetchableRecord, PersistableRecord {
+    var id: UUID
+    var timestamp: Date
+    var name: String                    // "Vitamin D", "Coffee", "Metformin"
+    var category: SubstanceCategory     // .medication, .supplement, .caffeine, .alcohol
+    var dose: Double?                   // Amount taken
+    var doseUnit: String?               // "mg", "mcg", "IU", "ml", "cups"
+    var notes: String?                  // Optional user notes
+    var isFromHealthKit: Bool           // true if imported from HKMedicationDoseEvent
+
+    enum SubstanceCategory: String, Codable, CaseIterable {
+        case medication     // Prescription drugs (metformin, insulin, etc.)
+        case supplement     // Vitamins, minerals, mushroom supplements
+        case caffeine       // Coffee, tea, energy drinks
+        case alcohol        // Beer, wine, spirits
+        case other
+    }
+}
+```
+
+> **Model design rationale:**
+> - `dose` + `doseUnit` as separate fields (not a single string) — enables future chart overlays showing dose trends
+> - `category` enum for filtering and chart color-coding (medications in blue, supplements in green, etc.)
+> - `isFromHealthKit` flag prevents re-exporting imported data and distinguishes manual vs imported entries
+> - `notes` kept optional — MVP can hide this field, add later
+> - **Omitted from MVP:** Schedule/frequency fields, reminders, refill tracking — these belong in a dedicated medication app, not a CGM overlay. Keep it simple: log what you took and when.
+
+Display as chart markers (vertical lines or dots at the timestamp, color-coded by category).
+
+#### Error Handling: Rate Limits, Network Failures, Invalid API Key
+
+> **Research finding (2026-03-08):** Anthropic API returns specific headers and error formats that enable precise error handling.
+
+**429 Rate Limit Response:**
+- Returns `retry-after` header with exact seconds to wait
+- Response headers include `anthropic-ratelimit-requests-remaining`, `anthropic-ratelimit-tokens-remaining`, and corresponding `-reset` timestamps (RFC 3339)
+- Haiku 4.5 Tier 1 limits: 50 RPM, 50,000 ITPM, 10,000 OTPM — more than adequate for personal use (a BYOK user will be on Tier 1-2)
+
+**Error handling strategy for `ClaudeService`:**
+
+```swift
+enum ClaudeError: LocalizedError {
+    case invalidAPIKey              // 401
+    case rateLimited(retryAfter: TimeInterval)  // 429
+    case overloaded                 // 529 (Anthropic overloaded)
+    case networkUnavailable         // No connectivity
+    case requestTimeout             // URLSession timeout
+    case apiError(statusCode: Int, message: String)  // Other 4xx/5xx
+    case invalidResponse            // Cannot parse response
+    case imageTooLarge              // Pre-flight check failed
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidAPIKey:
+            return "Invalid API key. Check your key in Settings."
+        case .rateLimited(let seconds):
+            return "Rate limited. Try again in \(Int(seconds)) seconds."
+        case .overloaded:
+            return "Anthropic servers are busy. Try again in a moment."
+        case .networkUnavailable:
+            return "No internet connection."
+        case .requestTimeout:
+            return "Request timed out. Check your connection."
+        case .apiError(let code, let msg):
+            return "API error (\(code)): \(msg)"
+        case .invalidResponse:
+            return "Unexpected response from AI service."
+        case .imageTooLarge:
+            return "Image too large. Try a different photo."
+        }
+    }
+}
+```
+
+**Retry strategy:**
+- **429 (rate limited):** Respect `retry-after` header exactly. Show countdown to user. Do NOT auto-retry — a BYOK personal user hitting rate limits means they should wait.
+- **529 (overloaded):** Retry once after 30 seconds with user-facing "Servers busy, retrying..." message. If second attempt fails, show error.
+- **401 (invalid key):** Do NOT retry. Prompt user to check their API key in Settings. Clear the `isAPIKeyValid` state flag.
+- **Network errors (no connectivity, timeout):** Use `NWPathMonitor` to detect connectivity state BEFORE making the API call. Show "No internet connection" immediately rather than waiting for timeout. Set `URLRequest.timeoutInterval` to 30 seconds (food analysis should complete in 2-5 seconds on Haiku).
+- **No exponential backoff needed:** This is a user-initiated, low-frequency action (a few times per day). Simple single-retry for 529 is sufficient. Exponential backoff is for server-side high-throughput scenarios.
+
+**API key validation on entry:**
+- Send a minimal test request: `{"model": "claude-haiku-4-5-20251001", "max_tokens": 10, "messages": [{"role": "user", "content": "hi"}]}`
+- Valid key: 200 response → show green checkmark, save to Keychain
+- Invalid key: 401 → show "Invalid API key" error, do not save
+- Rate limited: 429 → key is valid (you only get rate limited with a valid key), save it
+- Network error → show "Could not verify key. Saved — will verify on first use."
 
 ### Acceptance Criteria (Phase 3)
 
-- [ ] BYOK API key entry in Settings (SecureField + Keychain storage via `KeychainService`)
-- [ ] API key validation on entry (lightweight test call)
-- [ ] Food photo → carb estimation via Claude Vision (Haiku 4.5)
-- [ ] Image resized to 1024px JPEG before sending
-- [ ] Structured response parsing via `output_config.format.json_schema`
-- [ ] User confirmation step before saving AI estimates (pre-filled editable form)
-- [ ] Confidence level displayed (high/medium/low)
-- [ ] App Store 5.1.2(i) compliance: named provider disclosure, per-feature opt-in consent
-- [ ] Separate consent for correlation analysis (sends glucose data)
-- [ ] Glucose correlation analysis view with data minimization (aggregated stats, not raw readings)
-- [ ] Disclaimer on all AI outputs: "informational only"
-- [ ] Substance/supplement tracking model and UI
-- [ ] Error handling: rate limits, network failures, invalid API key
+- [x] BYOK API key entry in Settings (SecureField + Keychain storage via `KeychainService`)
+- [x] API key validation on entry (lightweight test call — handle 200, 401, 429, network error)
+- [x] Food photo capture: `PhotosPicker` for library + `UIImagePickerController` wrapper for camera
+- [x] `NSCameraUsageDescription` added to Info.plist
+- [x] Food photo → carb estimation via Claude Vision (Haiku 4.5, model ID `claude-haiku-4-5-20251001`)
+- [x] Image resized to 1024px JPEG before sending, media_type verified to match actual format
+- [x] Structured response parsing via `output_config.format` with `json_schema` (GA, no beta header)
+- [x] Schema includes `additionalProperties: false`, `fiber_g`, `serving_size`, `confidence_notes`
+- [x] User confirmation step before saving AI estimates (pre-filled editable form)
+- [x] Confidence level displayed (high/medium/low) with confidence notes
+- [x] App Store 5.1.2(i) compliance: named provider "Anthropic (Claude AI)", per-feature opt-in consent, ZDR disclosure
+- [ ] Separate consent for correlation analysis (sends glucose data — separate 5.1.2(i) prompt) — **future: 3.7**
+- [ ] App Store privacy nutrition label updated (Photos, Health & Fitness)
+- [ ] Glucose correlation analysis view with data minimization (aggregated stats, not raw readings) — **future: 3.7**
+- [x] Disclaimer on all AI outputs: "informational only"
+- [ ] SubstanceEntry model with category enum, dose/unit fields, isFromHealthKit flag — **future: 3.8**
+- [ ] HealthKit Medications API integration (read `HKMedicationDoseEvent` for chart overlay, iOS 26+) — **future: 3.8**
+- [x] Error handling: 429 with `retry-after` respect, 401 key invalidation, 529 single retry, `NWPathMonitor` pre-check
+- [x] Consent state stored in UserDefaults with "Revoke AI Access" in Settings
 
 ### Files to Create/Modify (Phase 3)
 
 | Action | File | Description |
 |--------|------|-------------|
-| CREATE | `App/Modules/Claude/ClaudeService.swift` | API client (URLSession, no SDK) |
+| CREATE | `App/Modules/Claude/ClaudeService.swift` | API client (URLSession, no SDK), error handling, retry |
 | CREATE | `App/Modules/Claude/ClaudeMiddleware.swift` | Action handler for AI features |
-| CREATE | `App/Views/AddViews/FoodPhotoAnalysisView.swift` | Photo capture + AI results |
+| CREATE | `App/Modules/Claude/ClaudeError.swift` | Error enum with LocalizedError conformance |
+| CREATE | `App/Views/AddViews/FoodPhotoAnalysisView.swift` | PhotosPicker + camera + AI results |
+| CREATE | `App/Views/AddViews/CameraView.swift` | UIImagePickerController wrapper (UIViewControllerRepresentable) |
+| CREATE | `App/Views/AddViews/AIConsentView.swift` | 5.1.2(i) compliant consent dialog |
 | CREATE | `App/Views/Analysis/CorrelationAnalysisView.swift` | AI insight display |
-| CREATE | `App/Views/Settings/AISettingsView.swift` | API key entry, consent management |
-| CREATE | `Library/Content/SubstanceEntry.swift` | Substance data model |
+| CREATE | `App/Views/Settings/AISettingsView.swift` | API key entry, consent management, cost estimate |
+| CREATE | `Library/Content/SubstanceEntry.swift` | Substance data model with category enum |
 | CREATE | `App/Modules/DataStore/SubstanceStore.swift` | GRDB store + middleware |
 | MODIFY | `Library/DirectAction.swift` | Add AI + substance actions |
-| MODIFY | `Library/DirectState.swift` | Add AI state properties |
+| MODIFY | `Library/DirectState.swift` | Add AI state properties + consent flags |
 | MODIFY | `App/AppState.swift` | Implement new state |
 | MODIFY | `App/App.swift` | Register Claude + substance middlewares |
+| MODIFY | `App/Info.plist` | Add `NSCameraUsageDescription` |
 
 ---
 
@@ -728,8 +1042,11 @@ Phase 2 background HealthKit delivery requires adding `com.apple.developer.healt
 - Swift Charts requires iOS 16+ — already the effective minimum
 - `HKAnchoredObjectQueryDescriptor` requires iOS 15.4+ — no issue
 - `HKStatisticsCollectionQuery` available since iOS 8
-- `output_config` in Claude API — current API version
+- `output_config` in Claude API — GA, current API version (`anthropic-version: 2023-06-01`)
 - Keychain APIs available since iOS 2
+- `PhotosPicker` requires iOS 16+ — no issue (already minimum)
+- `HKMedicationDoseEvent` / `HKUserAnnotatedMedication` require **iOS 26+** (WWDC 2025) — gate behind `#available(iOS 26, *)`, make medication import optional
+- `NWPathMonitor` requires iOS 12+ — no issue
 
 ### HealthKit Entitlements
 
@@ -784,19 +1101,19 @@ Pre-Phase 2: Security Fixes — ~1 session
 Phase 1 (MVP) — ✅ COMPLETE
 ├── [x] All items shipped to TestFlight
 
-Phase 2 (HealthKit Import) — ~3-4 sessions
-├── 2.1 AppleHealthImport middleware + NutritionSyncManager service
-├── 2.2 HealthKit read permissions + privacy strings + entitlements
-├── 2.3 Nutrition import (anchored queries, food correlations + flat samples)
-├── 2.4 Import/export dedup (bundle ID + sync ID + fuzzy match)
-├── 2.5 ExerciseEntry model + GRDB store + exercise import
-├── 2.6 Heart rate chart overlay (HKStatisticsCollectionQuery, normalized Y-axis)
-├── 2.7 Exercise chart bars (RectangleMark)
-├── 2.8 Debounce chart updateSeriesMetadata()
-├── 2.9 Background delivery + entitlement
-├── 2.10 Source filtering UI (HKSourceQuery)
-├── 2.11 Settings toggle for import
-└── 2.12 HealthKit carb export for manual meals
+Phase 2 (HealthKit Import) — ✅ COMPLETE
+├── [x] 2.1 AppleHealthImport middleware + NutritionSyncManager service
+├── [x] 2.2 HealthKit read permissions + privacy strings + entitlements
+├── [x] 2.3 Nutrition import (anchored queries, food correlations + flat samples)
+├── [x] 2.4 Import/export dedup (bundle ID + sync ID + fuzzy match)
+├── [x] 2.5 ExerciseEntry model + GRDB store + exercise import
+├── [x] 2.6 Heart rate chart overlay (HKStatisticsCollectionQuery, normalized Y-axis)
+├── [x] 2.7 Exercise chart bars (RectangleMark)
+├── [x] 2.8 Debounce chart updateSeriesMetadata()
+├── [x] 2.9 Background delivery + entitlement
+├── [x] 2.10 Source filtering UI (HKSourceQuery)
+├── [x] 2.11 Settings toggle for import
+└── [x] 2.12 HealthKit carb export for manual meals
 
 Phase 3 (AI) — ~3-4 sessions
 ├── 3.1 BYOK API key settings + Keychain + validation
@@ -852,6 +1169,13 @@ Phase 3 (AI) — ~3-4 sessions
 - Apple App Store Review Guidelines 5.1.2(i): [Third-party AI data sharing](https://developer.apple.com/app-store/review/guidelines/#data-collection-and-storage)
 - Anthropic API Messages: [Messages API reference](https://docs.anthropic.com/en/api/messages)
 - Anthropic Vision: [Vision image input](https://docs.anthropic.com/en/docs/build-with-claude/vision)
+- Anthropic Structured Outputs (GA): [Structured outputs docs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs)
+- Anthropic Model IDs & Pricing: [Models overview](https://platform.claude.com/docs/en/about-claude/models/overview) | [Pricing](https://platform.claude.com/docs/en/about-claude/pricing)
+- Anthropic Rate Limits: [Rate limits & headers](https://platform.claude.com/docs/en/api/rate-limits)
+- Apple App Store 5.1.2(i) enforcement: [TechCrunch coverage](https://techcrunch.com/2025/11/13/apples-new-app-review-guidelines-clamp-down-on-apps-sharing-personal-data-with-third-party-ai/)
+- WWDC 2025 HealthKit Medications API: [Meet the HealthKit Medications API](https://developer.apple.com/videos/play/wwdc2025/321/)
+- Apple HKMedicationDoseEvent: [API docs](https://developer.apple.com/documentation/healthkit/hkmedicationdoseevent)
+- Apple PhotosPicker (SwiftUI): [Bringing Photos picker to your SwiftUI app](https://developer.apple.com/documentation/photokit/bringing-photos-picker-to-your-swiftui-app)
 
 ### Known Bugs to Fix
 - ~~`AppleHealthExport.swift:220` — `deleteGlucose` uses `self.insulinType` instead of `self.glucoseType`~~ FIXED
