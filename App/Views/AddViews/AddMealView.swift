@@ -18,9 +18,8 @@ struct AddMealView: View {
 
     var body: some View {
         NavigationView {
-            HStack {
-                Form {
-                    Section(content: {
+            Form {
+                Section(content: {
                         HStack {
                             Text("Description")
 
@@ -46,19 +45,20 @@ struct AddMealView: View {
                                 displayedComponents: [.date, .hourAndMinute]
                             )
                         }
-                    }, footer: {
-                        Text("Log meals to see them as markers on your glucose chart.")
-                    })
-                }
+                }, footer: {
+                    Text("Log meals to see them as markers on your glucose chart.")
+                })
             }
             .navigationTitle("Meal")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Add") {
-                        if !mealDescription.isEmpty {
-                            addCallback(timestamp, mealDescription, carbsGrams)
-                            dismiss()
-                        }
+                        let trimmed = mealDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !trimmed.isEmpty else { return }
+                        let clampedDescription = String(trimmed.prefix(200))
+                        let clampedCarbs = carbsGrams.flatMap { $0 >= 0 && $0 <= 1000 ? $0 : nil }
+                        addCallback(timestamp, clampedDescription, clampedCarbs)
+                        dismiss()
                     }
                 }
                 ToolbarItem(placement: .navigationBarLeading) {

@@ -260,12 +260,12 @@ struct ChartView: View {
             ForEach(mealSeries) { value in
                 PointMark(
                     x: .value("Time", value.time),
-                    y: .value("Meal", alarmHigh + (alarmHigh * 0.15))
+                    y: .value("Meal", chartMinimum * 0.85)
                 )
                 .symbolSize(Config.symbolSize)
                 .symbol(.diamond)
                 .annotation(position: .top) {
-                    Text(value.carbs != nil ? "\(Int(value.carbs!))g" : value.label)
+                    Text(value.carbs != nil ? "\(Int(value.carbs!))g" : String(value.label.prefix(20)))
                         .foregroundStyle(AmberTheme.cgaGreen)
                         .padding(.horizontal, 2.5)
                         .background(Color.black.opacity(0.5))
@@ -715,14 +715,7 @@ struct ChartView: View {
 
     private func updateMealSeries() {
         DirectLog.info("updateMealSeries()")
-
-        calculationQueue.async {
-            let mealSeries = store.state.mealEntryValues.map { $0.toDatapoint() }
-
-            DispatchQueue.main.async {
-                self.mealSeries = mealSeries
-            }
-        }
+        self.mealSeries = store.state.mealEntryValues.map { $0.toDatapoint() }
     }
 
     private func populateValues(glucoseValues: [InsulinDelivery]) -> [InsulinDatapoint] {
