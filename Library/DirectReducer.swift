@@ -28,7 +28,10 @@ func directReducer(state: inout DirectState, action: DirectAction) {
         
     case .addInsulinDelivery(insulinDeliveryValues: let insulinDeliveryValues):
         state.latestInsulinDelivery = insulinDeliveryValues.last
-        
+
+    case .addMealEntry(mealEntryValues: let mealEntryValues):
+        state.latestMealEntry = mealEntryValues.last
+
     case .addSensorGlucose(glucoseValues: let glucoseValues):
         state.latestSensorGlucose = glucoseValues.last
         state.connectionError = nil
@@ -186,7 +189,10 @@ func directReducer(state: inout DirectState, action: DirectAction) {
         
     case .setInsulinDeliveryValues(insulinDeliveryValues: let insulinDeliveryValues):
         state.insulinDeliveryValues = insulinDeliveryValues
-        
+
+    case .setMealEntryValues(mealEntryValues: let mealEntryValues):
+        state.mealEntryValues = mealEntryValues
+
     case .setSensorGlucoseValues(glucoseValues: let glucoseValues):
         state.sensorGlucoseValues = glucoseValues
         

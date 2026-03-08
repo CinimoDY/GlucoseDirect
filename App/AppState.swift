@@ -90,6 +90,7 @@ struct AppState: DirectState {
     var bloodGlucoseHistory: [BloodGlucose] = []
     var bloodGlucoseValues: [BloodGlucose] = []
     var insulinDeliveryValues: [InsulinDelivery] = []
+    var mealEntryValues: [MealEntry] = []
     var connectionError: String?
     var connectionErrorTimestamp: Date?
     var connectionInfos: [SensorConnectionInfo] = []
@@ -134,6 +135,7 @@ struct AppState: DirectState {
     var latestSensorError: SensorError? { didSet { UserDefaults.shared.latestSensorError = latestSensorError } }
     var latestSensorGlucose: SensorGlucose? { didSet { UserDefaults.shared.latestSensorGlucose = latestSensorGlucose } }
     var latestInsulinDelivery: InsulinDelivery? { didSet { UserDefaults.shared.latestInsulinDelivery = latestInsulinDelivery } }
+    var latestMealEntry: MealEntry?
     var lowGlucoseAlarmSound: NotificationSound { didSet { UserDefaults.standard.lowGlucoseAlarmSound = lowGlucoseAlarmSound } }
     var nightscoutApiSecret: String { didSet { UserDefaults.standard.nightscoutApiSecret = nightscoutApiSecret } }
     var nightscoutUpload: Bool { didSet { UserDefaults.standard.nightscoutUpload = nightscoutUpload } }

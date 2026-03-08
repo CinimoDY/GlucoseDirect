@@ -21,7 +21,9 @@ enum DirectAction {
     case clearSensorGlucoseValues
     case connectConnection
     case deleteBloodGlucose(glucose: BloodGlucose)
+    case addMealEntry(mealEntryValues: [MealEntry])
     case deleteInsulinDelivery(insulinDelivery: InsulinDelivery)
+    case deleteMealEntry(mealEntry: MealEntry)
     case deleteCalibration(calibration: CustomCalibration)
     case deleteLogs
     case deleteSensorError(error: SensorError)
@@ -31,6 +33,7 @@ enum DirectAction {
     case exportToGlooko
     case exportToTidepool
     case loadBloodGlucoseValues
+    case loadMealEntryValues
     case loadInsulinDeliveryValues
     case loadSensorErrorValues
     case loadSensorGlucoseValues
@@ -60,6 +63,7 @@ enum DirectAction {
     case setBellmanConnectionState(connectionState: BellmanConnectionState)
     case setBellmanNotification(enabled: Bool)
     case setBloodGlucoseValues(glucoseValues: [BloodGlucose])
+    case setMealEntryValues(mealEntryValues: [MealEntry])
     case setInsulinDeliveryValues(insulinDeliveryValues: [InsulinDelivery])
     case setMinSelectedDate(minSelectedDate: Date)
     case setSelectedDate(selectedDate: Date?)

@@ -257,6 +257,25 @@ struct ChartView: View {
                 }
             }
 
+            ForEach(mealSeries) { value in
+                PointMark(
+                    x: .value("Time", value.time),
+                    y: .value("Meal", alarmHigh + (alarmHigh * 0.15))
+                )
+                .symbolSize(Config.symbolSize)
+                .symbol(.diamond)
+                .annotation(position: .top) {
+                    Text(value.carbs != nil ? "\(Int(value.carbs!))g" : value.label)
+                        .foregroundStyle(AmberTheme.cgaGreen)
+                        .padding(.horizontal, 2.5)
+                        .background(Color.black.opacity(0.5))
+                        .cornerRadius(2)
+                        .bold()
+                        .font(DOSTypography.caption)
+                }
+                .foregroundStyle(AmberTheme.cgaGreen)
+            }
+
             if showUnsmoothedValues, store.state.showSmoothedGlucose {
                 if !rawSensorGlucoseSeries.isEmpty {
                     ForEach(rawSensorGlucoseSeries) { value in
@@ -364,6 +383,14 @@ struct ChartView: View {
                 updateInsulinSeries()
             }
 
+        }.onChange(of: store.state.mealEntryValues) { _ in
+            if shouldRefresh {
+                DirectLog.info("onChange: mealEntryValues")
+
+                updateSeriesMetadata()
+                updateMealSeries()
+            }
+
         }.onChange(of: store.state.chartZoomLevel) { _ in
             if shouldRefresh {
                 DirectLog.info("onChange: chartZoomLevel")
@@ -395,6 +422,7 @@ struct ChartView: View {
             updateSensorSeries()
             updateBloodSeries()
             updateInsulinSeries()
+            updateMealSeries()
 
         }.chartOverlay { overlayProxy in
             GeometryReader { geometryProxy in
@@ -459,6 +487,7 @@ struct ChartView: View {
     @State private var rawSensorGlucoseSeries: [GlucoseDatapoint] = []
     @State private var bloodGlucoseSeries: [GlucoseDatapoint] = []
     @State private var insulinSeries: [InsulinDatapoint] = []
+    @State private var mealSeries: [MealDatapoint] = []
 
     @State private var smoothSensorPointInfos: [Date: GlucoseDatapoint] = [:]
     @State private var rawSensorPointInfos: [Date: GlucoseDatapoint] = [:]
@@ -684,6 +713,18 @@ struct ChartView: View {
         }
     }
 
+    private func updateMealSeries() {
+        DirectLog.info("updateMealSeries()")
+
+        calculationQueue.async {
+            let mealSeries = store.state.mealEntryValues.map { $0.toDatapoint() }
+
+            DispatchQueue.main.async {
+                self.mealSeries = mealSeries
+            }
+        }
+    }
+
     private func populateValues(glucoseValues: [InsulinDelivery]) -> [InsulinDatapoint] {
         glucoseValues.map { value in
             value.toDatapoint(minDate: startMarker ?? Date(), maxDate: endMarker ?? Date())
@@ -756,6 +797,24 @@ private struct InsulinDatapoint: Identifiable {
     let value: Double
     let type: InsulinType
     let info: String
+}
+
+private struct MealDatapoint: Identifiable {
+    let id: String
+    let time: Date
+    let label: String
+    let carbs: Double?
+}
+
+private extension MealEntry {
+    func toDatapoint() -> MealDatapoint {
+        return MealDatapoint(
+            id: id.uuidString,
+            time: timestamp,
+            label: mealDescription,
+            carbs: carbsGrams
+        )
+    }
 }
 
 private extension InsulinDelivery {
