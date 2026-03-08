@@ -27,6 +27,17 @@ struct ListsView: View {
                 }
             }
 
+            Button("Add meal", action: {
+                showingAddMealView = true
+            }).sheet(isPresented: $showingAddMealView, onDismiss: {
+                showingAddMealView = false
+            }) {
+                AddMealView { time, description, carbs in
+                    let mealEntry = MealEntry(timestamp: time, mealDescription: description, carbsGrams: carbs)
+                    store.dispatch(.addMealEntry(mealEntryValues: [mealEntry]))
+                }
+            }
+
             Button("Add blood glucose", action: {
                 showingAddBloodGlucoseView = true
             }).sheet(isPresented: $showingAddBloodGlucoseView, onDismiss: {
@@ -43,6 +54,8 @@ struct ListsView: View {
             if DirectConfig.bloodGlucoseInput {
                 BloodGlucoseListView()
             }
+
+            MealEntryListView()
 
             if DirectConfig.showInsulinInput, store.state.showInsulinInput {
                 InsulinDeliveryListView()
@@ -61,5 +74,6 @@ struct ListsView: View {
     // MARK: Private
 
     @State private var showingAddInsulinView = false
+    @State private var showingAddMealView = false
     @State private var showingAddBloodGlucoseView = false
 }

@@ -123,3 +123,21 @@ extension InsulinDelivery: FetchableRecord, PersistableRecord {
         case timegroup
     }
 }
+
+// MARK: - MealEntry + FetchableRecord, PersistableRecord
+
+extension MealEntry: FetchableRecord, PersistableRecord {
+    static let databaseUUIDEncodingStrategy = DatabaseUUIDEncodingStrategy.uppercaseString
+
+    static var Table: String {
+        "MealEntry"
+    }
+
+    enum Columns: String, ColumnExpression {
+        case id
+        case timestamp
+        case mealDescription
+        case carbsGrams
+        case timegroup
+    }
+}

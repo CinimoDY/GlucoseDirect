@@ -41,6 +41,7 @@ protocol DirectState {
     var ignoreMute: Bool { get set }
     var isConnectionPaired: Bool { get set }
     var insulinDeliveryValues: [InsulinDelivery] { get set }
+    var mealEntryValues: [MealEntry] { get set }
     var latestBloodGlucose: BloodGlucose? { get set }
     var latestInsulinDelivery: InsulinDelivery? { get set }
     var latestSensorGlucose: SensorGlucose? { get set }

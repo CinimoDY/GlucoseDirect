@@ -90,6 +90,7 @@ struct AppState: DirectState {
     var bloodGlucoseHistory: [BloodGlucose] = []
     var bloodGlucoseValues: [BloodGlucose] = []
     var insulinDeliveryValues: [InsulinDelivery] = []
+    var mealEntryValues: [MealEntry] = []
     var connectionError: String?
     var connectionErrorTimestamp: Date?
     var connectionInfos: [SensorConnectionInfo] = []
