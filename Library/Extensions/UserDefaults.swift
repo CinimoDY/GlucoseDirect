@@ -57,6 +57,8 @@ private enum Keys: String {
     case showAnnotations = "libre-direct.settings.show-annotations"
     case showSmoothedGlucose = "libre-direct.settings.smooth-chart-values"
     case showInsulinInput = "libre-direct.settings.show-insulin-delivery-input"
+    case aiConsentFoodPhoto = "libre-direct.settings.ai-consent-food-photo"
+    case claudeAPIKeyValid = "libre-direct.settings.claude-api-key-valid"
 }
 
 extension UserDefaults {
@@ -689,6 +691,24 @@ extension UserDefaults {
         }
         set {
             set(newValue, forKey: Keys.showInsulinInput.rawValue)
+        }
+    }
+
+    var aiConsentFoodPhoto: Bool {
+        get {
+            return bool(forKey: Keys.aiConsentFoodPhoto.rawValue)
+        }
+        set {
+            set(newValue, forKey: Keys.aiConsentFoodPhoto.rawValue)
+        }
+    }
+
+    var claudeAPIKeyValid: Bool {
+        get {
+            return bool(forKey: Keys.claudeAPIKeyValid.rawValue)
+        }
+        set {
+            set(newValue, forKey: Keys.claudeAPIKeyValid.rawValue)
         }
     }
 }
