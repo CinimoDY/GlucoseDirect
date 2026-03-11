@@ -36,6 +36,12 @@ View dispatches Action -> Store.dispatch() -> Reducer mutates State
 
 **State persistence:** `AppState` (`App/AppState.swift`) implements `DirectState` and persists most properties to `UserDefaults`.
 
+**Architecture gotchas:**
+- **Traditional Xcode project** (NOT `fileSystemSynchronized`) — new files require manual `pbxproj` entries
+- **Two middleware arrays** in `App.swift` (device + simulator) — both must be updated when adding middleware
+- **Deployment target is iOS 15.0** — watch for iOS 16+/17+ only APIs (e.g. `PhotosPicker` needs `@available` guard + fallback)
+- **Deploy to TestFlight:** `./deploy.sh` (uses ASC API key)
+
 ## Project Structure
 
 ```
@@ -43,8 +49,8 @@ App/
   App.swift                    # @main DOSBTSApp entry point
   AppState.swift               # DirectState implementation (UserDefaults-backed)
   DesignSystem/
-    Colors/AmberTheme.swift    # eiDotter CGA amber color tokens
-    Typography/DOSTypography.swift
+    Components/DOSButtonStyle.swift  # App-only button styles
+    Modifiers/DOSModifiers.swift     # App-only view modifiers
   Modules/                     # Feature middlewares
     SensorConnector/           # BLE/NFC sensor connections
       SensorConnector.swift    # Main middleware + glucose filtering
@@ -62,6 +68,7 @@ App/
     ReadAloud/
     WidgetCenter/
     ScreenLock/
+    Claude/                    # AI food photo analysis (Claude Haiku)
     Log/
     Debug/
   Views/
@@ -81,6 +88,10 @@ Library/
   DirectStore.swift            # DirectStore typealias
   DirectNotifications.swift
   Content/                     # Domain models (Sensor, SensorGlucose, BloodGlucose, etc.)
+  DesignSystem/                # Shared design tokens (both targets)
+    AmberTheme.swift           # CGA amber color tokens
+    DOSTypography.swift        # SF Mono font styles
+    DOSSpacing.swift           # 8px grid spacing
   Extensions/                  # Swift type extensions
 ```
 
@@ -106,7 +117,7 @@ Connections emit `DirectAction`s through a `PassthroughSubject`. Available conne
 
 ## Design System: DOS Amber CGA
 
-Source: eiDotter design system. Defined in `App/DesignSystem/Colors/AmberTheme.swift`.
+Source: eiDotter design system. Shared tokens in `Library/DesignSystem/` (`AmberTheme.swift`, `DOSTypography.swift`, `DOSSpacing.swift`). App-only components in `App/DesignSystem/` (`Components/DOSButtonStyle.swift`, `Modifiers/DOSModifiers.swift`).
 
 Key colors:
 - **Primary amber:** `#ffb000` (P3 phosphor 602nm)
@@ -149,6 +160,7 @@ Key constraints from `docs/development-rules.md`:
 - **HealthKit is source of truth** for health data
 - **Privacy by design** — no PII in logs/metadata
 - **Offline-first** — core functionality works without network
+- **No secrets in Redux actions** — never put API keys or tokens in action associated values; use Keychain as a side channel
 - Conventional commits: `type(scope): subject` (feat, fix, docs, style, refactor, test, chore)
 
 ## Docs
