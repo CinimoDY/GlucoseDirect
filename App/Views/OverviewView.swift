@@ -118,6 +118,7 @@ private struct QuickActionButton: View {
             VStack(spacing: DOSSpacing.xs) {
                 Image(systemName: icon)
                     .font(DOSTypography.bodyLarge)
+                    .frame(height: 20)
                 Text(title)
                     .font(DOSTypography.caption)
             }
