@@ -16,7 +16,7 @@ private func claudeMiddleware(service: LazyService<ClaudeService>) -> Middleware
     return { state, action, _ in
         switch action {
         case .analyzeFood(let imageData):
-            guard state.aiConsentFoodPhoto, !state.foodAnalysisLoading else {
+            guard state.aiConsentFoodPhoto else {
                 return Empty().eraseToAnyPublisher()
             }
 
