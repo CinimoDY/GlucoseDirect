@@ -99,7 +99,7 @@ private func appleHealthExportMiddleware(service: LazyService<AppleHealthExportS
                 break
             }
 
-            service.value.addMealCarbs(meals: mealEntryValues)
+            service.value.addMealNutrition(meals: mealEntryValues)
 
         case .addSensorGlucose(glucoseValues: let glucoseValues):
             guard state.appleHealthExport else {
@@ -162,8 +162,24 @@ private class AppleHealthExportService {
         HKObjectType.quantityType(forIdentifier: .dietaryCarbohydrates)!
     }
 
+    var proteinType: HKQuantityType {
+        HKObjectType.quantityType(forIdentifier: .dietaryProtein)!
+    }
+
+    var fatType: HKQuantityType {
+        HKObjectType.quantityType(forIdentifier: .dietaryFatTotal)!
+    }
+
+    var calorieType: HKQuantityType {
+        HKObjectType.quantityType(forIdentifier: .dietaryEnergyConsumed)!
+    }
+
+    var fiberType: HKQuantityType {
+        HKObjectType.quantityType(forIdentifier: .dietaryFiber)!
+    }
+
     var requiredPermissions: Set<HKSampleType> {
-        Set([glucoseType, insulinType, carbType])
+        Set([glucoseType, insulinType, carbType, proteinType, fatType, calorieType, fiberType])
     }
     
     var healthStoreAvailable: Bool {
@@ -221,13 +237,12 @@ private class AppleHealthExportService {
         }
     }
     
-    func addMealCarbs(meals: [MealEntry]) {
+    func addMealNutrition(meals: [MealEntry]) {
         guard let healthStore = healthStore else {
             return
         }
 
-        let mealsWithCarbs = meals.filter { $0.carbsGrams != nil }
-        guard !mealsWithCarbs.isEmpty else { return }
+        guard !meals.isEmpty else { return }
 
         healthStore.requestAuthorization(toShare: requiredPermissions, read: nil) { granted, error in
             guard granted else {
@@ -235,25 +250,68 @@ private class AppleHealthExportService {
                 return
             }
 
-            let samples = mealsWithCarbs.map { meal in
-                HKQuantitySample(
-                    type: self.carbType,
-                    quantity: HKQuantity(unit: .gram(), doubleValue: meal.carbsGrams!),
-                    start: meal.timestamp,
-                    end: meal.timestamp,
-                    metadata: [
-                        HKMetadataKeyExternalUUID: meal.id.uuidString,
-                        HKMetadataKeySyncIdentifier: meal.id.uuidString,
-                        HKMetadataKeySyncVersion: 1,
-                        HKMetadataKeyFoodType: meal.mealDescription,
-                        HKMetadataKeyWasUserEntered: true
-                    ]
-                )
+            var samples: [HKQuantitySample] = []
+
+            for meal in meals {
+                let metadata: [String: Any] = [
+                    HKMetadataKeyExternalUUID: meal.id.uuidString,
+                    HKMetadataKeySyncIdentifier: meal.id.uuidString,
+                    HKMetadataKeySyncVersion: 1,
+                    HKMetadataKeyFoodType: meal.mealDescription,
+                    HKMetadataKeyWasUserEntered: true,
+                ]
+
+                if let carbs = meal.carbsGrams {
+                    samples.append(HKQuantitySample(
+                        type: self.carbType,
+                        quantity: HKQuantity(unit: .gram(), doubleValue: carbs),
+                        start: meal.timestamp, end: meal.timestamp,
+                        metadata: metadata
+                    ))
+                }
+
+                if let protein = meal.proteinGrams {
+                    samples.append(HKQuantitySample(
+                        type: self.proteinType,
+                        quantity: HKQuantity(unit: .gram(), doubleValue: protein),
+                        start: meal.timestamp, end: meal.timestamp,
+                        metadata: metadata
+                    ))
+                }
+
+                if let fat = meal.fatGrams {
+                    samples.append(HKQuantitySample(
+                        type: self.fatType,
+                        quantity: HKQuantity(unit: .gram(), doubleValue: fat),
+                        start: meal.timestamp, end: meal.timestamp,
+                        metadata: metadata
+                    ))
+                }
+
+                if let cal = meal.calories {
+                    samples.append(HKQuantitySample(
+                        type: self.calorieType,
+                        quantity: HKQuantity(unit: .kilocalorie(), doubleValue: cal),
+                        start: meal.timestamp, end: meal.timestamp,
+                        metadata: metadata
+                    ))
+                }
+
+                if let fiber = meal.fiberGrams {
+                    samples.append(HKQuantitySample(
+                        type: self.fiberType,
+                        quantity: HKQuantity(unit: .gram(), doubleValue: fiber),
+                        start: meal.timestamp, end: meal.timestamp,
+                        metadata: metadata
+                    ))
+                }
             }
+
+            guard !samples.isEmpty else { return }
 
             healthStore.save(samples) { success, error in
                 if !success {
-                    DirectLog.info("Guard: Writing carb data to apple health store failed, error: \(error?.localizedDescription)")
+                    DirectLog.info("Guard: Writing nutrition data to apple health store failed, error: \(error?.localizedDescription)")
                 }
             }
         }

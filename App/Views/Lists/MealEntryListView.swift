@@ -27,7 +27,7 @@ struct MealEntryListView: View {
                 } else {
                     ForEach(mealEntryValues) { mealEntry in
                         HStack {
-                            VStack(alignment: .leading) {
+                            VStack(alignment: .leading, spacing: 2) {
                                 Text(verbatim: mealEntry.timestamp.toLocalDateTime())
                                     .monospacedDigit()
 
@@ -38,9 +38,25 @@ struct MealEntryListView: View {
 
                             Spacer()
 
-                            if let carbs = mealEntry.carbsGrams {
-                                Text(verbatim: "\(Int(carbs))g carbs")
-                                    .monospacedDigit()
+                            VStack(alignment: .trailing, spacing: 2) {
+                                if let carbs = mealEntry.carbsGrams {
+                                    Text(verbatim: "\(Int(carbs))g carbs")
+                                        .monospacedDigit()
+                                }
+
+                                HStack(spacing: DOSSpacing.xs) {
+                                    if let p = mealEntry.proteinGrams {
+                                        Text(verbatim: "\(Int(p))g P")
+                                    }
+                                    if let f = mealEntry.fatGrams {
+                                        Text(verbatim: "\(Int(f))g F")
+                                    }
+                                    if let cal = mealEntry.calories {
+                                        Text(verbatim: "\(Int(cal)) kcal")
+                                    }
+                                }
+                                .font(DOSTypography.caption)
+                                .foregroundStyle(AmberTheme.amberDark)
                             }
                         }
                     }.onDelete { offsets in

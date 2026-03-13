@@ -159,6 +159,10 @@ extension MealEntry: FetchableRecord, PersistableRecord {
         case timestamp
         case mealDescription
         case carbsGrams
+        case proteinGrams
+        case fatGrams
+        case calories
+        case fiberGrams
         case timegroup
     }
 }

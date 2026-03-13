@@ -21,6 +21,21 @@ struct NutritionEstimate: Codable {
         case low
     }
 
+    var totalProteinG: Double? {
+        let values = items.compactMap(\.proteinG)
+        return values.isEmpty ? nil : values.reduce(0, +)
+    }
+
+    var totalFatG: Double? {
+        let values = items.compactMap(\.fatG)
+        return values.isEmpty ? nil : values.reduce(0, +)
+    }
+
+    var totalFiberG: Double? {
+        let values = items.compactMap(\.fiberG)
+        return values.isEmpty ? nil : values.reduce(0, +)
+    }
+
     enum CodingKeys: String, CodingKey {
         case description
         case items

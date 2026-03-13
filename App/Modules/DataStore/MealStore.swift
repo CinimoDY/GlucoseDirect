@@ -95,6 +95,23 @@ private extension DataStore {
             } catch {
                 DirectLog.error("\(error)")
             }
+
+            var migrator = DatabaseMigrator()
+
+            migrator.registerMigration("Add nutrition columns to MealEntry") { db in
+                try db.alter(table: MealEntry.Table) { t in
+                    t.add(column: MealEntry.Columns.proteinGrams.name, .double)
+                    t.add(column: MealEntry.Columns.fatGrams.name, .double)
+                    t.add(column: MealEntry.Columns.calories.name, .double)
+                    t.add(column: MealEntry.Columns.fiberGrams.name, .double)
+                }
+            }
+
+            do {
+                try migrator.migrate(dbQueue)
+            } catch {
+                DirectLog.error("\(error)")
+            }
         }
     }
 

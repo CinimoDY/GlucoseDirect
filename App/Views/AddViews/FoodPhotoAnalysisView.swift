@@ -49,7 +49,22 @@ struct FoodPhotoAnalysisView: View {
     // Editable fields for confirmation
     @State private var editDescription = ""
     @State private var editCarbs: Double?
+    @State private var editProtein: Double?
+    @State private var editFat: Double?
+    @State private var editCalories: Double?
+    @State private var editFiber: Double?
     @State private var editTimestamp = Date()
+
+    // Progress animation
+    @State private var analysisPhase = 0
+    @State private var progressTimer: Timer?
+
+    private let analysisPhases = [
+        "Identifying foods...",
+        "Estimating portions...",
+        "Calculating nutrition...",
+        "Finalizing results...",
+    ]
 
     private var consentSection: some View {
         Section {
@@ -78,19 +93,52 @@ struct FoodPhotoAnalysisView: View {
         }
     }
 
+    // MARK: - Loading with progress phases
+
     private var loadingSection: some View {
         Section {
-            VStack(spacing: 12) {
+            VStack(spacing: DOSSpacing.md) {
                 ProgressView()
                     .tint(AmberTheme.amber)
-                Text("Analyzing meal photo...")
+
+                Text(analysisPhases[analysisPhase])
                     .font(DOSTypography.body)
-                    .foregroundStyle(AmberTheme.amberDark)
+                    .foregroundStyle(AmberTheme.amber)
+                    .animation(.easeInOut(duration: 0.3), value: analysisPhase)
+
+                dosProgressBar
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 24)
+            .onAppear { startProgressTimer() }
+            .onDisappear { stopProgressTimer() }
         }
     }
+
+    private var dosProgressBar: some View {
+        let filled = analysisPhase + 1
+        let total = analysisPhases.count
+        let bar = String(repeating: "=", count: filled * 3) + String(repeating: " ", count: (total - filled) * 3)
+        return Text("[\(bar)]")
+            .font(DOSTypography.caption)
+            .foregroundStyle(AmberTheme.amberDark)
+    }
+
+    private func startProgressTimer() {
+        analysisPhase = 0
+        progressTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
+            if analysisPhase < analysisPhases.count - 1 {
+                analysisPhase += 1
+            }
+        }
+    }
+
+    private func stopProgressTimer() {
+        progressTimer?.invalidate()
+        progressTimer = nil
+    }
+
+    // MARK: - Photo picker
 
     private var photoPickerSection: some View {
         Section(
@@ -149,6 +197,8 @@ struct FoodPhotoAnalysisView: View {
         }
     }
 
+    // MARK: - Error
+
     private func errorSection(_ error: String) -> some View {
         Section {
             VStack(spacing: 12) {
@@ -172,20 +222,16 @@ struct FoodPhotoAnalysisView: View {
         }
     }
 
+    // MARK: - Results with full nutritional breakdown
+
     private func resultsSection(_ result: NutritionEstimate) -> some View {
         Group {
+            // Meal details
             Section(
                 content: {
                     HStack {
                         Text("Description")
                         TextField("", text: $editDescription)
-                            .multilineTextAlignment(.trailing)
-                    }
-
-                    HStack {
-                        Text("Carbs (g)")
-                        TextField("", value: $editCarbs, format: .number)
-                            .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
                     }
 
@@ -200,8 +246,27 @@ struct FoodPhotoAnalysisView: View {
             .onAppear {
                 editDescription = result.description
                 editCarbs = result.totalCarbsG
+                editProtein = result.totalProteinG
+                editFat = result.totalFatG
+                editCalories = result.totalCalories
+                editFiber = result.totalFiberG
             }
 
+            // Nutrition totals
+            Section(
+                content: {
+                    macroRow(label: "Carbs", value: $editCarbs, unit: "g")
+                    macroRow(label: "Protein", value: $editProtein, unit: "g")
+                    macroRow(label: "Fat", value: $editFat, unit: "g")
+                    macroRow(label: "Calories", value: $editCalories, unit: "kcal")
+                    macroRow(label: "Fiber", value: $editFiber, unit: "g")
+                },
+                header: {
+                    Label("Nutrition totals", systemImage: "chart.bar")
+                }
+            )
+
+            // Per-item breakdown
             Section(
                 content: {
                     ForEach(result.items) { item in
@@ -210,15 +275,27 @@ struct FoodPhotoAnalysisView: View {
                                 Text(item.name)
                                     .font(DOSTypography.body)
                                 Spacer()
-                                Text("\(item.carbsG, specifier: "%.0f")g carbs")
-                                    .font(DOSTypography.caption)
-                                    .foregroundStyle(AmberTheme.amberDark)
+                                if let serving = item.servingSize {
+                                    Text(serving)
+                                        .font(DOSTypography.caption)
+                                        .foregroundStyle(AmberTheme.amberDark)
+                                }
                             }
 
-                            if let serving = item.servingSize {
-                                Text(serving)
-                                    .font(DOSTypography.caption)
-                                    .foregroundStyle(AmberTheme.amberDark)
+                            HStack(spacing: DOSSpacing.sm) {
+                                macroTag("\(Int(item.carbsG))g C", color: AmberTheme.amber)
+
+                                if let p = item.proteinG {
+                                    macroTag("\(Int(p))g P", color: AmberTheme.amberLight)
+                                }
+
+                                if let f = item.fatG {
+                                    macroTag("\(Int(f))g F", color: AmberTheme.amberDark)
+                                }
+
+                                if let cal = item.calories {
+                                    macroTag("\(Int(cal)) kcal", color: AmberTheme.amberDark)
+                                }
                             }
                         }
                     }
@@ -228,6 +305,7 @@ struct FoodPhotoAnalysisView: View {
                 }
             )
 
+            // Confidence
             Section(
                 content: {
                     confidenceRow(result.confidence)
@@ -263,6 +341,27 @@ struct FoodPhotoAnalysisView: View {
         }
     }
 
+    private func macroRow(label: String, value: Binding<Double?>, unit: String) -> some View {
+        HStack {
+            Text(label)
+            Spacer()
+            TextField("--", value: value, format: .number)
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .frame(width: 80)
+            Text(unit)
+                .font(DOSTypography.caption)
+                .foregroundStyle(AmberTheme.amberDark)
+                .frame(width: 36, alignment: .leading)
+        }
+    }
+
+    private func macroTag(_ text: String, color: Color) -> some View {
+        Text(text)
+            .font(DOSTypography.caption)
+            .foregroundStyle(color)
+    }
+
     private func confidenceRow(_ confidence: NutritionEstimate.Confidence) -> some View {
         HStack {
             Text("Level")
@@ -280,6 +379,8 @@ struct FoodPhotoAnalysisView: View {
             }
         }
     }
+
+    // MARK: - Actions
 
     @available(iOS 16.0, *)
     private func handlePhotoSelection(_ item: PhotosPickerItem) {
@@ -312,13 +413,20 @@ struct FoodPhotoAnalysisView: View {
         let trimmed = editDescription.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         let clampedDescription = String(trimmed.prefix(200))
-        let clampedCarbs = editCarbs.flatMap { $0 >= 0 && $0 <= 1000 ? $0 : nil }
+
+        func clamp(_ value: Double?) -> Double? {
+            value.flatMap { $0 >= 0 && $0 <= 10000 ? $0 : nil }
+        }
 
         let meal = MealEntry(
             id: UUID(),
             timestamp: editTimestamp,
             mealDescription: clampedDescription,
-            carbsGrams: clampedCarbs
+            carbsGrams: clamp(editCarbs),
+            proteinGrams: clamp(editProtein),
+            fatGrams: clamp(editFat),
+            calories: clamp(editCalories),
+            fiberGrams: clamp(editFiber)
         )
 
         store.dispatch(.addMealEntry(mealEntryValues: [meal]))
