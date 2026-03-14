@@ -1,8 +1,8 @@
 # Food Analysis Improvements Session
 
-**Date:** 2026-03-13
-**Duration:** ~2 hours
-**Builds deployed:** 14, 15, 16, 17, 18
+**Date:** 2026-03-13 to 2026-03-14
+**Duration:** ~4 hours across 2 sessions
+**Builds deployed:** 14, 15, 16, 17, 18, 19, 20
 
 ## The Problem
 
@@ -23,11 +23,13 @@ The fix: removed `!state.foodAnalysisLoading` from the middleware guard. The vie
 
 ## Changes Made
 
-### 1. Bug Fix — Middleware Race Condition
+### Session 1 (2026-03-13)
+
+#### 1. Bug Fix — Middleware Race Condition
 - **File:** `ClaudeMiddleware.swift`
 - Removed the `!state.foodAnalysisLoading` guard condition
 
-### 2. Full Nutritional Breakdown
+#### 2. Full Nutritional Breakdown
 - **`MealEntry.swift`** — Added `proteinGrams`, `fatGrams`, `calories`, `fiberGrams` (all optional)
 - **`DataStore.swift`** — Added new columns to GRDB `Columns` enum
 - **`MealStore.swift`** — Added `DatabaseMigrator` to `ALTER TABLE` for existing databases
@@ -38,20 +40,20 @@ The fix: removed `!state.foodAnalysisLoading` from the middleware guard. The vie
   - Save passes all macros through to MealEntry
 - **`MealEntryListView.swift`** — Shows protein/fat/calories alongside carbs in meal history
 
-### 3. Progress Animation
+#### 3. Progress Animation
 - **`FoodPhotoAnalysisView.swift`** — Timer-driven phased messages:
   - "Identifying foods..." → "Estimating portions..." → "Calculating nutrition..." → "Finalizing results..."
   - DOS-style progress bar: `[===         ]`
   - Timer properly invalidated on dismiss/cancel
 
-### 4. HealthKit Nutrition Export
+#### 4. HealthKit Nutrition Export
 - **`AppleHealthExport.swift`** — Added `proteinType`, `fatType`, `calorieType`, `fiberType` HKQuantityTypes
   - All added to `requiredPermissions` (triggers re-authorization for new types)
   - Replaced `addMealCarbs` with `addMealNutrition` — writes all available macros as separate `HKQuantitySample`s
   - Uses same sync identifier pattern for deduplication
   - Calories use `.kilocalorie()` unit; protein/fat/fiber use `.gram()`
 
-### 5. Quick Actions Button Redesign
+#### 5. Quick Actions Button Redesign
 - **`OverviewView.swift`** — Iterative UI refinement:
   - MANUAL (fork.knife) and PHOTO (camera.viewfinder) combined as a pair with 1px gap
   - INSULIN button on the right, separated by larger gap
@@ -59,9 +61,30 @@ The fix: removed `!state.foodAnalysisLoading` from the middleware guard. The vie
   - Fixed icon height (20px) for pixel-perfect alignment
   - Added horizontal padding to button section
 
-### 6. Deploy Infrastructure Fix
+#### 6. Deploy Infrastructure Fix
 - **`ExportOptions.plist`** — Switched from manual signing (hardcoded profile UUIDs) to automatic signing
   - Old profiles weren't installed on machine; automatic signing lets Xcode resolve them
+
+### Session 2 (2026-03-14)
+
+#### 7. AI Photo Reset Bug (DMNC-526)
+- **`DirectAction.swift`** — Made `setFoodAnalysisResult` parameter optional (`NutritionEstimate?`)
+- **`FoodPhotoAnalysisView.swift`** — Cancel button and `saveAnalysis()` now dispatch `.setFoodAnalysisResult(result: nil)` to clear stale results before dismissing
+- Bug: after viewing results and pressing Cancel, re-opening showed stale results instead of photo picker. Root cause was `foodAnalysisResult` persisting in Redux state after dismiss.
+
+#### 8. Thumb Calibration for Portion Sizing (DMNC-527)
+- **State layer** — Added `thumbCalibrationMM: Double?` across DirectState/AppState/UserDefaults/Reducer (standard 4-file pattern)
+- **`AISettingsView.swift`** — New "Portion size calibration" section with thumb width input in mm and clear instructions: "Measure the widest part of your thumb at the joint just below the nail"
+- **`ClaudeService.swift`** — New `buildPrompt(thumbWidthMM:)` method dynamically adds thumb size context to the Claude prompt when calibrated
+- **`ClaudeMiddleware.swift`** — Passes `state.thumbCalibrationMM` through to service
+- **`FoodPhotoAnalysisView.swift`** — Green hint in photo picker: "Hold your thumb next to the food for better portion accuracy"
+- Design decision: manual entry (user measures with ruler) instead of computer vision — much simpler, no camera view needed, just a numeric field in Settings
+
+#### 9. Sensor Buttons Side-by-Side (DMNC-456)
+- **`ConnectionView.swift`** — "Scan sensor" and "Disconnect" now in an `HStack(spacing: DOSSpacing.sm)` with equal widths
+- Renamed "Disconnect sensor"/"Disconnect transmitter" to just "Disconnect"
+- Disconnect placed on the right
+- Transmitter buttons unchanged (separate flow)
 
 ## Architecture Decisions
 
@@ -71,6 +94,10 @@ The fix: removed `!state.foodAnalysisLoading` from the middleware guard. The vie
 
 - **Progress animation:** Timer-based phases rather than API streaming. Streaming would require significant refactoring of the middleware/Combine pipeline for marginal benefit — the API call typically completes in 2-5 seconds.
 
+- **Thumb calibration as manual entry:** No computer vision or camera needed. User measures their thumb at the widest joint (below nail) with a ruler and enters the width in mm. Simple numeric input in AI Settings, persisted to UserDefaults. The measurement is injected into the Claude prompt only when present.
+
+- **Optional action parameter for clearing state:** Made `setFoodAnalysisResult(result:)` accept `NutritionEstimate?` instead of adding a separate clear action — simpler, reuses existing infrastructure.
+
 ## Learnings
 
 - **Redux middleware guard ordering matters:** The Store runs reducer first, THEN passes new state to middlewares. If the reducer changes state that the middleware guards against, the middleware will never fire.
@@ -78,3 +105,7 @@ The fix: removed `!state.foodAnalysisLoading` from the middleware guard. The vie
 - **SF Symbols have inconsistent intrinsic sizes:** `camera.viewfinder` renders slightly shorter than `fork.knife` at the same font size. Fixed with `.frame(height: 20)` on the icon.
 
 - **ExportOptions.plist with manual signing requires specific profile UUIDs:** Switching to `automatic` signing style removes this dependency entirely.
+
+- **Redux state must be explicitly cleared on view dismiss:** SwiftUI sheet dismiss doesn't reset Redux state — stale results persist and confuse the view's conditional rendering on next open.
+
+- **Thumb width at first joint is the most consistent anatomical landmark:** Easy to identify, naturally placed flat against food, minimal variance.

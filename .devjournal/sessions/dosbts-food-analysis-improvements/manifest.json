@@ -1,9 +1,9 @@
 {
   "project": "DOSBTS",
   "session": "dosbts-food-analysis-improvements",
-  "title": "Food Analysis Bug Fix, Nutrition Breakdown & HealthKit Export",
+  "title": "Food Analysis Bug Fix, Nutrition Breakdown, HealthKit Export & Thumb Calibration",
   "started": "2026-03-13T18:00:00+01:00",
-  "completed": "2026-03-13T20:15:00+01:00",
+  "completed": "2026-03-14T14:30:00+01:00",
   "context": {
     "app": "DOSBTS (formerly GlucoseDirect)",
     "description": "Continuous glucose monitoring (CGM) app for iOS with DOS amber CGA aesthetic",
@@ -41,6 +41,16 @@
       "hash": "44d50961",
       "date": "2026-03-13T20:10:00+01:00",
       "message": "fix(ui): fixed icon height for consistent button sizing"
+    },
+    {
+      "hash": "56712cb1",
+      "date": "2026-03-14T09:00:00+01:00",
+      "message": "fix(claude): clear stale food analysis results on dismiss (DMNC-526)"
+    },
+    {
+      "hash": "3f4163ef",
+      "date": "2026-03-14T13:25:00+01:00",
+      "message": "feat(claude,ui): thumb calibration for portion sizing, sensor button layout (DMNC-527, DMNC-456)"
     }
   ],
   "milestones": [
@@ -63,14 +73,29 @@
       "title": "Quick Actions UI Redesign",
       "date": "2026-03-13T20:10:00+01:00",
       "description": "MANUAL and PHOTO buttons combined as a pair, INSULIN on the right, consistent sizing"
+    },
+    {
+      "title": "AI Photo Reset Bug Fixed",
+      "date": "2026-03-14T09:00:00+01:00",
+      "description": "Stale foodAnalysisResult cleared on dismiss/save so re-opening shows photo picker instead of old results (DMNC-526)"
+    },
+    {
+      "title": "Thumb Calibration for Portion Sizing",
+      "date": "2026-03-14T13:25:00+01:00",
+      "description": "User enters thumb width in mm in AI Settings; Claude prompt includes thumb size context when analyzing food photos with thumb as scale reference (DMNC-527)"
+    },
+    {
+      "title": "Sensor Buttons Side-by-Side",
+      "date": "2026-03-14T13:25:00+01:00",
+      "description": "Scan sensor and Disconnect buttons placed side by side in an HStack, Disconnect renamed and placed on right (DMNC-456)"
     }
   ],
   "stats": {
-    "filesChanged": 11,
-    "insertions": 312,
-    "deletions": 84,
+    "filesChanged": 22,
+    "insertions": 437,
+    "deletions": 112,
     "newFiles": [],
-    "testFlightBuilds": [14, 15, 16, 17, 18]
+    "testFlightBuilds": [14, 15, 16, 17, 18, 19, 20]
   },
   "tags": [
     "bug-fix",
@@ -78,6 +103,9 @@
     "healthkit",
     "ui-redesign",
     "food-analysis",
+    "thumb-calibration",
+    "portion-estimation",
+    "sensor-ui",
     "ios",
     "swiftui",
     "testflight"
