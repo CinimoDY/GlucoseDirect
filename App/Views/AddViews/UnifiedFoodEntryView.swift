@@ -23,9 +23,9 @@ struct UnifiedFoodEntryView: View {
                     favoritesSection
                 }
 
-                recentsSection
-
                 actionsSection
+
+                recentsSection
             }
             .listStyle(.grouped)
             .searchable(text: $searchText, prompt: "Search foods...")
@@ -54,6 +54,16 @@ struct UnifiedFoodEntryView: View {
                     toastView(meal: meal)
                 }
             }
+            .sheet(isPresented: $showingAddMealView) {
+                AddMealView { time, description, carbs in
+                    let mealEntry = MealEntry(timestamp: time, mealDescription: description, carbsGrams: carbs)
+                    store.dispatch(.addMealEntry(mealEntryValues: [mealEntry]))
+                }
+            }
+        }
+        .sheet(isPresented: $showingFoodPhotoView) {
+            FoodPhotoAnalysisView()
+                .environmentObject(store)
         }
         .onAppear {
             store.dispatch(.loadFavoriteFoodValues)
@@ -178,12 +188,6 @@ struct UnifiedFoodEntryView: View {
                     .frame(maxWidth: .infinity)
                     .foregroundColor(AmberTheme.amberDark)
                 }
-                .sheet(isPresented: $showingAddMealView) {
-                    AddMealView { time, description, carbs in
-                        let mealEntry = MealEntry(timestamp: time, mealDescription: description, carbsGrams: carbs)
-                        store.dispatch(.addMealEntry(mealEntryValues: [mealEntry]))
-                    }
-                }
 
                 if store.state.claudeAPIKeyValid || store.state.aiConsentFoodPhoto {
                     Button {
@@ -197,10 +201,6 @@ struct UnifiedFoodEntryView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .foregroundColor(AmberTheme.amberDark)
-                    }
-                    .sheet(isPresented: $showingFoodPhotoView) {
-                        FoodPhotoAnalysisView()
-                            .environmentObject(store)
                     }
                 }
             }
