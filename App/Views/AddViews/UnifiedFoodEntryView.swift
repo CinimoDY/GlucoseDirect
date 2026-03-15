@@ -54,16 +54,16 @@ struct UnifiedFoodEntryView: View {
                     toastView(meal: meal)
                 }
             }
-            .sheet(isPresented: $showingAddMealView) {
-                AddMealView { time, description, carbs in
-                    let mealEntry = MealEntry(timestamp: time, mealDescription: description, carbsGrams: carbs)
-                    store.dispatch(.addMealEntry(mealEntryValues: [mealEntry]))
-                }
+            .sheet(isPresented: $showingFoodPhotoView) {
+                FoodPhotoAnalysisView()
+                    .environmentObject(store)
             }
         }
-        .sheet(isPresented: $showingFoodPhotoView) {
-            FoodPhotoAnalysisView()
-                .environmentObject(store)
+        .sheet(isPresented: $showingAddMealView) {
+            AddMealView { time, description, carbs in
+                let mealEntry = MealEntry(timestamp: time, mealDescription: description, carbsGrams: carbs)
+                store.dispatch(.addMealEntry(mealEntryValues: [mealEntry]))
+            }
         }
         .onAppear {
             store.dispatch(.loadFavoriteFoodValues)
