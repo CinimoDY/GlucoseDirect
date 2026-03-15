@@ -67,7 +67,7 @@ struct UnifiedFoodEntryView: View {
     private var favoritesSection: some View {
         Section {
             ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: DOSSpacing.xs) {
+                HStack(spacing: DOSSpacing.xs) {
                     ForEach(filteredFavorites.prefix(8)) { favorite in
                         Button {
                             logFavorite(favorite)
