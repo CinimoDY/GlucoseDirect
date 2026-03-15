@@ -45,6 +45,13 @@ func favoriteFoodStoreMiddleware() -> Middleware<DirectState, DirectAction> {
                 .setFailureType(to: DirectError.self)
                 .eraseToAnyPublisher()
 
+        case .reorderFavoriteFoods(favoriteFoodValues: let favoriteFoodValues):
+            DataStore.shared.reorderFavoriteFoods(favoriteFoodValues)
+
+            return Just(DirectAction.loadFavoriteFoodValues)
+                .setFailureType(to: DirectError.self)
+                .eraseToAnyPublisher()
+
         case .loadFavoriteFoodValues:
             guard state.appState == .active else {
                 return Empty().eraseToAnyPublisher()
@@ -55,22 +62,14 @@ func favoriteFoodStoreMiddleware() -> Middleware<DirectState, DirectAction> {
             }.eraseToAnyPublisher()
 
         case .logFavoriteFood(favoriteFood: let favoriteFood):
-            let mealEntry = MealEntry(
-                timestamp: Date(),
-                mealDescription: favoriteFood.mealDescription,
-                carbsGrams: favoriteFood.carbsGrams,
-                proteinGrams: favoriteFood.proteinGrams,
-                fatGrams: favoriteFood.fatGrams,
-                calories: favoriteFood.calories,
-                fiberGrams: favoriteFood.fiberGrams
-            )
-
+            // Only updates lastUsed timestamp. The view creates the MealEntry
+            // and dispatches .addMealEntry directly (same UUID for toast undo).
             DataStore.shared.updateFavoriteFoodLastUsed(favoriteFood)
 
-            return Just(DirectAction.addMealEntry(mealEntryValues: [mealEntry]))
-                .setFailureType(to: DirectError.self)
-                .eraseToAnyPublisher()
+            return Empty().eraseToAnyPublisher()
 
+        // Cross-middleware listening: these actions are "owned" by mealEntryStoreMiddleware,
+        // but we listen here to reload recents when meals change.
         case .addMealEntry, .deleteMealEntry:
             return Just(DirectAction.loadRecentMealEntries)
                 .setFailureType(to: DirectError.self)
@@ -162,8 +161,11 @@ private extension DataStore {
             // Add index on MealEntry.mealDescription for recents query
             var migrator = DatabaseMigrator()
 
-            migrator.registerMigration("Add index on MealEntry mealDescription") { db in
-                try db.execute(sql: "CREATE INDEX IF NOT EXISTS MealEntry_mealDescription ON MealEntry(mealDescription COLLATE NOCASE)")
+            migrator.registerMigration("Add composite index on MealEntry for recents") { db in
+                try db.execute(sql: """
+                    CREATE INDEX IF NOT EXISTS MealEntry_description_timestamp
+                    ON MealEntry(mealDescription COLLATE NOCASE, timestamp DESC)
+                """)
             }
 
             do {
@@ -224,6 +226,24 @@ private extension DataStore {
         }
     }
 
+    func reorderFavoriteFoods(_ values: [FavoriteFood]) {
+        if let dbQueue = dbQueue {
+            do {
+                try dbQueue.write { db in
+                    for value in values {
+                        do {
+                            try value.update(db)
+                        } catch {
+                            DirectLog.error("\(error)")
+                        }
+                    }
+                }
+            } catch {
+                DirectLog.error("\(error)")
+            }
+        }
+    }
+
     func updateFavoriteFoodLastUsed(_ value: FavoriteFood) {
         if let dbQueue = dbQueue {
             do {
@@ -273,12 +293,12 @@ private extension DataStore {
                         let result = try MealEntry.fetchAll(db, sql: """
                             SELECT m.*
                             FROM \(MealEntry.Table) m
-                            INNER JOIN (
-                                SELECT mealDescription, MAX(timestamp) as maxTimestamp
-                                FROM \(MealEntry.Table)
-                                GROUP BY mealDescription COLLATE NOCASE
-                            ) latest ON m.mealDescription = latest.mealDescription COLLATE NOCASE
-                                   AND m.timestamp = latest.maxTimestamp
+                            WHERE m.id = (
+                                SELECT m2.id FROM \(MealEntry.Table) m2
+                                WHERE m2.mealDescription = m.mealDescription COLLATE NOCASE
+                                ORDER BY m2.timestamp DESC
+                                LIMIT 1
+                            )
                             ORDER BY m.timestamp DESC
                             LIMIT 20
                         """)

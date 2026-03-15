@@ -14,7 +14,7 @@ struct UnifiedFoodEntryView: View {
     @State private var showingFoodPhotoView = false
     @State private var showingFavoriteManagement = false
     @State private var toastMealEntry: MealEntry?
-    @State private var toastTimer: Timer?
+    @State private var toastWorkItem: DispatchWorkItem?
 
     var body: some View {
         NavigationView {
@@ -257,60 +257,35 @@ struct UnifiedFoodEntryView: View {
     // MARK: - Actions
 
     private func logFavorite(_ favorite: FavoriteFood) {
+        let mealEntry = favorite.toMealEntry()
+        store.dispatch(.addMealEntry(mealEntryValues: [mealEntry]))
         store.dispatch(.logFavoriteFood(favoriteFood: favorite))
-
-        // Find the created meal entry for undo (use description match since it was just created)
-        let mealEntry = MealEntry(
-            timestamp: Date(),
-            mealDescription: favorite.mealDescription,
-            carbsGrams: favorite.carbsGrams,
-            proteinGrams: favorite.proteinGrams,
-            fatGrams: favorite.fatGrams,
-            calories: favorite.calories,
-            fiberGrams: favorite.fiberGrams
-        )
         showToast(for: mealEntry)
     }
 
     private func logRecent(_ meal: MealEntry) {
-        let newEntry = MealEntry(
-            timestamp: Date(),
-            mealDescription: meal.mealDescription,
-            carbsGrams: meal.carbsGrams,
-            proteinGrams: meal.proteinGrams,
-            fatGrams: meal.fatGrams,
-            calories: meal.calories,
-            fiberGrams: meal.fiberGrams
-        )
+        let newEntry = FavoriteFood.from(mealEntry: meal).toMealEntry()
         store.dispatch(.addMealEntry(mealEntryValues: [newEntry]))
         showToast(for: newEntry)
     }
 
     private func addToFavorites(_ meal: MealEntry) {
-        let favorite = FavoriteFood(
-            mealDescription: meal.mealDescription,
-            carbsGrams: meal.carbsGrams,
-            proteinGrams: meal.proteinGrams,
-            fatGrams: meal.fatGrams,
-            calories: meal.calories,
-            fiberGrams: meal.fiberGrams
-        )
-        store.dispatch(.addFavoriteFoodValues(favoriteFoodValues: [favorite]))
+        store.dispatch(.addFavoriteFoodValues(favoriteFoodValues: [FavoriteFood.from(mealEntry: meal)]))
     }
 
     private func showToast(for meal: MealEntry) {
         withAnimation(.linear(duration: 0.2)) {
             toastMealEntry = meal
         }
-        toastTimer?.invalidate()
-        toastTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { _ in
-            dismissToast()
-        }
+        toastWorkItem?.cancel()
+        let workItem = DispatchWorkItem { dismissToast() }
+        toastWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0, execute: workItem)
     }
 
     private func dismissToast() {
-        toastTimer?.invalidate()
-        toastTimer = nil
+        toastWorkItem?.cancel()
+        toastWorkItem = nil
         withAnimation(.linear(duration: 0.2)) {
             toastMealEntry = nil
         }
@@ -398,8 +373,8 @@ struct FavoriteManagementView: View {
         var favorites = store.state.favoriteFoodValues
         favorites.move(fromOffsets: source, toOffset: destination)
 
-        for (index, favorite) in favorites.enumerated() {
-            let updated = FavoriteFood(
+        let reordered = favorites.enumerated().map { index, favorite in
+            FavoriteFood(
                 id: favorite.id,
                 mealDescription: favorite.mealDescription,
                 carbsGrams: favorite.carbsGrams,
@@ -411,8 +386,8 @@ struct FavoriteManagementView: View {
                 isHypoTreatment: favorite.isHypoTreatment,
                 lastUsed: favorite.lastUsed
             )
-            store.dispatch(.updateFavoriteFood(favoriteFood: updated))
         }
+        store.dispatch(.reorderFavoriteFoods(favoriteFoodValues: reordered))
     }
 }
 
@@ -481,14 +456,23 @@ struct EditFavoriteView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
+                        let trimmed = mealDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !trimmed.isEmpty else { return }
+                        let clampedDescription = String(trimmed.prefix(200))
+                        let clampedCarbs = carbsGrams.flatMap { $0 >= 0 && $0 <= 1000 ? $0 : nil }
+                        let clampedProtein = proteinGrams.flatMap { $0 >= 0 && $0 <= 1000 ? $0 : nil }
+                        let clampedFat = fatGrams.flatMap { $0 >= 0 && $0 <= 1000 ? $0 : nil }
+                        let clampedCalories = calories.flatMap { $0 >= 0 && $0 <= 10000 ? $0 : nil }
+                        let clampedFiber = fiberGrams.flatMap { $0 >= 0 && $0 <= 1000 ? $0 : nil }
+
                         let updated = FavoriteFood(
                             id: favorite.id,
-                            mealDescription: mealDescription,
-                            carbsGrams: carbsGrams,
-                            proteinGrams: proteinGrams,
-                            fatGrams: fatGrams,
-                            calories: calories,
-                            fiberGrams: fiberGrams,
+                            mealDescription: clampedDescription,
+                            carbsGrams: clampedCarbs,
+                            proteinGrams: clampedProtein,
+                            fatGrams: clampedFat,
+                            calories: clampedCalories,
+                            fiberGrams: clampedFiber,
                             sortOrder: favorite.sortOrder,
                             isHypoTreatment: isHypoTreatment,
                             lastUsed: favorite.lastUsed

@@ -61,3 +61,30 @@ extension FavoriteFood: Equatable {
         lhs.id == rhs.id
     }
 }
+
+// MARK: - Factory Methods
+
+extension FavoriteFood {
+    static func from(mealEntry: MealEntry) -> FavoriteFood {
+        FavoriteFood(
+            mealDescription: mealEntry.mealDescription,
+            carbsGrams: mealEntry.carbsGrams,
+            proteinGrams: mealEntry.proteinGrams,
+            fatGrams: mealEntry.fatGrams,
+            calories: mealEntry.calories,
+            fiberGrams: mealEntry.fiberGrams
+        )
+    }
+
+    func toMealEntry() -> MealEntry {
+        MealEntry(
+            timestamp: Date(),
+            mealDescription: mealDescription,
+            carbsGrams: carbsGrams,
+            proteinGrams: proteinGrams,
+            fatGrams: fatGrams,
+            calories: calories,
+            fiberGrams: fiberGrams
+        )
+    }
+}

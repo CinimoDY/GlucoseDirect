@@ -124,6 +124,7 @@ enum DirectAction {
     case setFoodAnalysisError(error: String)
     case setFoodAnalysisLoading(isLoading: Bool)
     case setThumbCalibration(widthMM: Double?)
+    case reorderFavoriteFoods(favoriteFoodValues: [FavoriteFood])
     case updateFavoriteFood(favoriteFood: FavoriteFood)
     case validateClaudeAPIKey
 

@@ -115,27 +115,11 @@ struct MealEntryListView: View {
     }
 
     private func logAgain(_ mealEntry: MealEntry) {
-        let newEntry = MealEntry(
-            timestamp: Date(),
-            mealDescription: mealEntry.mealDescription,
-            carbsGrams: mealEntry.carbsGrams,
-            proteinGrams: mealEntry.proteinGrams,
-            fatGrams: mealEntry.fatGrams,
-            calories: mealEntry.calories,
-            fiberGrams: mealEntry.fiberGrams
-        )
+        let newEntry = FavoriteFood.from(mealEntry: mealEntry).toMealEntry()
         store.dispatch(.addMealEntry(mealEntryValues: [newEntry]))
     }
 
     private func addToFavorites(_ mealEntry: MealEntry) {
-        let favorite = FavoriteFood(
-            mealDescription: mealEntry.mealDescription,
-            carbsGrams: mealEntry.carbsGrams,
-            proteinGrams: mealEntry.proteinGrams,
-            fatGrams: mealEntry.fatGrams,
-            calories: mealEntry.calories,
-            fiberGrams: mealEntry.fiberGrams
-        )
-        store.dispatch(.addFavoriteFoodValues(favoriteFoodValues: [favorite]))
+        store.dispatch(.addFavoriteFoodValues(favoriteFoodValues: [FavoriteFood.from(mealEntry: mealEntry)]))
     }
 }
