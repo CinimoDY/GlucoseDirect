@@ -12,6 +12,7 @@ struct UnifiedFoodEntryView: View {
     @State private var searchText = ""
     @State private var showingAddMealView = false
     @State private var showingFoodPhotoView = false
+    @State private var showingFavoriteManagement = false
     @State private var toastMealEntry: MealEntry?
     @State private var toastTimer: Timer?
 
@@ -33,6 +34,18 @@ struct UnifiedFoodEntryView: View {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Done") {
                         dismiss()
+                    }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showingFavoriteManagement = true
+                    } label: {
+                        Image(systemName: "gear")
+                            .foregroundColor(AmberTheme.amberDark)
+                    }
+                    .sheet(isPresented: $showingFavoriteManagement) {
+                        FavoriteManagementView()
+                            .environmentObject(store)
                     }
                 }
             }
@@ -303,3 +316,203 @@ struct UnifiedFoodEntryView: View {
         }
     }
 }
+
+// MARK: - FavoriteManagementView
+
+struct FavoriteManagementView: View {
+    @EnvironmentObject var store: DirectStore
+    @Environment(\.dismiss) var dismiss
+
+    @State private var editingFavorite: FavoriteFood?
+
+    var body: some View {
+        NavigationView {
+            List {
+                if store.state.favoriteFoodValues.isEmpty {
+                    Text("No favorites yet. Long-press a meal to add it.")
+                        .font(DOSTypography.bodySmall)
+                        .foregroundColor(AmberTheme.amberDark)
+                } else {
+                    ForEach(store.state.favoriteFoodValues) { favorite in
+                        Button {
+                            editingFavorite = favorite
+                        } label: {
+                            HStack {
+                                if favorite.isHypoTreatment {
+                                    Image(systemName: "cross.case")
+                                        .font(DOSTypography.caption)
+                                        .foregroundColor(AmberTheme.cgaGreen)
+                                        .frame(height: 16)
+                                } else {
+                                    Image(systemName: "star.fill")
+                                        .font(DOSTypography.caption)
+                                        .foregroundColor(AmberTheme.amber)
+                                        .frame(height: 16)
+                                }
+
+                                Text(favorite.mealDescription)
+                                    .font(DOSTypography.bodySmall)
+                                    .foregroundColor(AmberTheme.amber)
+
+                                Spacer()
+
+                                if let carbs = favorite.carbsGrams {
+                                    Text("\(Int(carbs))g")
+                                        .font(DOSTypography.caption)
+                                        .foregroundColor(AmberTheme.amberDark)
+                                }
+                            }
+                        }
+                    }
+                    .onDelete { offsets in
+                        let favorites = store.state.favoriteFoodValues
+                        offsets.forEach { index in
+                            store.dispatch(.deleteFavoriteFood(favoriteFood: favorites[index]))
+                        }
+                    }
+                    .onMove { source, destination in
+                        moveFavorites(from: source, to: destination)
+                    }
+                }
+            }
+            .listStyle(.grouped)
+            .navigationTitle("Favorites")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    EditButton()
+                }
+            }
+            .sheet(item: $editingFavorite) { favorite in
+                EditFavoriteView(favorite: favorite)
+                    .environmentObject(store)
+            }
+        }
+    }
+
+    private func moveFavorites(from source: IndexSet, to destination: Int) {
+        var favorites = store.state.favoriteFoodValues
+        favorites.move(fromOffsets: source, toOffset: destination)
+
+        for (index, favorite) in favorites.enumerated() {
+            let updated = FavoriteFood(
+                id: favorite.id,
+                mealDescription: favorite.mealDescription,
+                carbsGrams: favorite.carbsGrams,
+                proteinGrams: favorite.proteinGrams,
+                fatGrams: favorite.fatGrams,
+                calories: favorite.calories,
+                fiberGrams: favorite.fiberGrams,
+                sortOrder: index,
+                isHypoTreatment: favorite.isHypoTreatment,
+                lastUsed: favorite.lastUsed
+            )
+            store.dispatch(.updateFavoriteFood(favoriteFood: updated))
+        }
+    }
+}
+
+// MARK: - EditFavoriteView
+
+struct EditFavoriteView: View {
+    @EnvironmentObject var store: DirectStore
+    @Environment(\.dismiss) var dismiss
+
+    let favorite: FavoriteFood
+
+    @State private var mealDescription: String = ""
+    @State private var carbsGrams: Double?
+    @State private var proteinGrams: Double?
+    @State private var fatGrams: Double?
+    @State private var calories: Double?
+    @State private var fiberGrams: Double?
+    @State private var isHypoTreatment: Bool = false
+
+    var body: some View {
+        NavigationView {
+            Form {
+                Section {
+                    HStack {
+                        Text("Description")
+                        TextField("", text: $mealDescription)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    HStack {
+                        Text("Carbs (g)")
+                        TextField("", value: $carbsGrams, format: .number)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    HStack {
+                        Text("Protein (g)")
+                        TextField("", value: $proteinGrams, format: .number)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    HStack {
+                        Text("Fat (g)")
+                        TextField("", value: $fatGrams, format: .number)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    HStack {
+                        Text("Calories")
+                        TextField("", value: $calories, format: .number)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    HStack {
+                        Text("Fiber (g)")
+                        TextField("", value: $fiberGrams, format: .number)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                    }
+                }
+
+                Section {
+                    Toggle("Hypo Treatment", isOn: $isHypoTreatment)
+                }
+            }
+            .navigationTitle("Edit Favorite")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        let updated = FavoriteFood(
+                            id: favorite.id,
+                            mealDescription: mealDescription,
+                            carbsGrams: carbsGrams,
+                            proteinGrams: proteinGrams,
+                            fatGrams: fatGrams,
+                            calories: calories,
+                            fiberGrams: fiberGrams,
+                            sortOrder: favorite.sortOrder,
+                            isHypoTreatment: isHypoTreatment,
+                            lastUsed: favorite.lastUsed
+                        )
+                        store.dispatch(.updateFavoriteFood(favoriteFood: updated))
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+            .onAppear {
+                mealDescription = favorite.mealDescription
+                carbsGrams = favorite.carbsGrams
+                proteinGrams = favorite.proteinGrams
+                fatGrams = favorite.fatGrams
+                calories = favorite.calories
+                fiberGrams = favorite.fiberGrams
+                isHypoTreatment = favorite.isHypoTreatment
+            }
+        }
+    }
+}
+
