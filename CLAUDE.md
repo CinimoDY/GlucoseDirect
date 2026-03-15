@@ -42,6 +42,8 @@ View dispatches Action -> Store.dispatch() -> Reducer mutates State
 - **Two middleware arrays** in `App.swift` (device + simulator) — both must be updated when adding middleware
 - **Deployment target is iOS 15.0** — watch for iOS 16+/17+ only APIs (e.g. `PhotosPicker` needs `@available` guard + fallback)
 - **Deploy to TestFlight:** `./deploy.sh` (uses ASC API key). `ExportOptions.plist` uses automatic signing. Bump `CURRENT_PROJECT_VERSION` in pbxproj before each deploy.
+- **SwiftUI `.sheet` collision on iOS 15** — two `.sheet` modifiers on sibling views in the same container can present the wrong sheet. Place them at different view hierarchy levels (e.g., one on `List`, one on `NavigationView`).
+- **Cross-middleware listening** — multiple middlewares can handle the same action (e.g., `.addMealEntry` triggers both `mealEntryStoreMiddleware` and `favoriteFoodStoreMiddleware`). Comment these cross-dependencies for maintainability.
 
 ## Project Structure
 
@@ -80,7 +82,7 @@ App/
     Overview/                  # Chart, sensor, connection subviews
     Settings/                  # Individual settings screens
     SharedViews/               # Reusable components
-    AddViews/                  # Blood glucose, insulin, calibration entry
+    AddViews/                  # Meal entry, photo analysis, insulin, blood glucose, calibration
 Library/
   Extensions/State.swift       # Store class, Reducer/Middleware typealiases
   DirectState.swift            # State protocol
@@ -125,10 +127,10 @@ Key colors:
 - **Dim amber:** `#9a5700` (secondary text) → `AmberTheme.amberDark`
 - **Bright amber:** `#fdca9f` (highlights) → `AmberTheme.amberLight` (NOT amberBright)
 - **Background:** `#000000` (pure black)
-- **Success/Low:** `#55ff55` (CGA green)
-- **Error/High:** `#ff5555` (CGA red)
-- **Warning:** `#ffff55` (CGA yellow)
-- **Info:** `#55ffff` (CGA cyan)
+- **Success/Low:** `#55ff55` (CGA green) → `AmberTheme.cgaGreen`
+- **Error/High:** `#ff5555` (CGA red) → `AmberTheme.cgaRed`
+- **Warning:** `#ffff55` (CGA yellow) — no dedicated property yet
+- **Info:** `#55ffff` (CGA cyan) → `AmberTheme.cgaCyan`
 
 Rules:
 - All text uses monospace fonts (`DOSTypography`)
@@ -140,11 +142,16 @@ Rules:
 
 ## Adding New State Properties
 
-New state must be added in 4 files:
+**For UserDefaults-backed settings** (toggles, preferences), add in 4 files:
 1. `Library/DirectState.swift` — protocol declaration
 2. `App/AppState.swift` — property with `didSet` + init from UserDefaults
 3. `Library/Extensions/UserDefaults.swift` — `Keys` enum case + computed property
 4. `Library/DirectReducer.swift` — reducer case
+
+**For GRDB-backed data** (arrays loaded from database like `mealEntryValues`, `favoriteFoodValues`), add in 3 files — skip UserDefaults:
+1. `Library/DirectState.swift` — protocol declaration
+2. `App/AppState.swift` — property with default `= []` (no `didSet`, no UserDefaults)
+3. `Library/DirectReducer.swift` — reducer case for the `set` action
 
 Don't forget `Library/DirectAction.swift` if a new action is needed.
 
