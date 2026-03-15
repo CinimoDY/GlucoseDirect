@@ -10,9 +10,13 @@ struct UnifiedFoodEntryView: View {
     @Environment(\.dismiss) var dismiss
 
     @State private var searchText = ""
-    @State private var showingAddMealView = false
-    @State private var showingFoodPhotoView = false
+    @State private var activeSheet: ActiveSheet?
     @State private var showingFavoriteManagement = false
+
+    enum ActiveSheet: Identifiable {
+        case manual, photo
+        var id: Int { hashValue }
+    }
     @State private var toastMealEntry: MealEntry?
     @State private var toastWorkItem: DispatchWorkItem?
 
@@ -54,15 +58,17 @@ struct UnifiedFoodEntryView: View {
                     toastView(meal: meal)
                 }
             }
-            .sheet(isPresented: $showingFoodPhotoView) {
+        }
+        .sheet(item: $activeSheet) { sheet in
+            switch sheet {
+            case .manual:
+                AddMealView { time, description, carbs in
+                    let mealEntry = MealEntry(timestamp: time, mealDescription: description, carbsGrams: carbs)
+                    store.dispatch(.addMealEntry(mealEntryValues: [mealEntry]))
+                }
+            case .photo:
                 FoodPhotoAnalysisView()
                     .environmentObject(store)
-            }
-        }
-        .sheet(isPresented: $showingAddMealView) {
-            AddMealView { time, description, carbs in
-                let mealEntry = MealEntry(timestamp: time, mealDescription: description, carbsGrams: carbs)
-                store.dispatch(.addMealEntry(mealEntryValues: [mealEntry]))
             }
         }
         .onAppear {
@@ -177,7 +183,7 @@ struct UnifiedFoodEntryView: View {
         Section {
             HStack(spacing: DOSSpacing.sm) {
                 Button {
-                    showingAddMealView = true
+                    activeSheet = .manual
                 } label: {
                     HStack {
                         Image(systemName: "keyboard")
@@ -191,7 +197,7 @@ struct UnifiedFoodEntryView: View {
 
                 if store.state.claudeAPIKeyValid || store.state.aiConsentFoodPhoto {
                     Button {
-                        showingFoodPhotoView = true
+                        activeSheet = .photo
                     } label: {
                         HStack {
                             Image(systemName: "camera.viewfinder")
