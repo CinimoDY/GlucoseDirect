@@ -11,10 +11,9 @@ struct UnifiedFoodEntryView: View {
 
     @State private var searchText = ""
     @State private var activeSheet: ActiveSheet?
-    @State private var showingFavoriteManagement = false
 
     enum ActiveSheet: Identifiable {
-        case manual, photo
+        case manual, photo, favorites
         var id: Int { hashValue }
     }
     @State private var toastMealEntry: MealEntry?
@@ -42,14 +41,10 @@ struct UnifiedFoodEntryView: View {
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
-                        showingFavoriteManagement = true
+                        activeSheet = .favorites
                     } label: {
                         Image(systemName: "gear")
                             .foregroundColor(AmberTheme.amberDark)
-                    }
-                    .sheet(isPresented: $showingFavoriteManagement) {
-                        FavoriteManagementView()
-                            .environmentObject(store)
                     }
                 }
             }
@@ -68,6 +63,9 @@ struct UnifiedFoodEntryView: View {
                 }
             case .photo:
                 FoodPhotoAnalysisView()
+                    .environmentObject(store)
+            case .favorites:
+                FavoriteManagementView()
                     .environmentObject(store)
             }
         }
