@@ -42,7 +42,7 @@ View dispatches Action -> Store.dispatch() -> Reducer mutates State
 - **Two middleware arrays** in `App.swift` (device + simulator) — both must be updated when adding middleware
 - **Deployment target is iOS 15.0** — watch for iOS 16+/17+ only APIs (e.g. `PhotosPicker` needs `@available` guard + fallback)
 - **Deploy to TestFlight:** `./deploy.sh` (uses ASC API key). `ExportOptions.plist` uses automatic signing. Bump `CURRENT_PROJECT_VERSION` in pbxproj before each deploy.
-- **SwiftUI `.sheet` collision on iOS 15** — two `.sheet` modifiers on sibling views in the same container can present the wrong sheet. Place them at different view hierarchy levels (e.g., one on `List`, one on `NavigationView`).
+- **SwiftUI nested sheets are unreliable** — never present a `.sheet` from within a view that is itself presented as a `.sheet`. Use `NavigationLink` (push) instead. This applies to all iOS versions, not just iOS 15. See `docs/solutions/ui-bugs/swiftui-nested-sheets-present-wrong-view-20260316.md`.
 - **Cross-middleware listening** — multiple middlewares can handle the same action (e.g., `.addMealEntry` triggers both `mealEntryStoreMiddleware` and `favoriteFoodStoreMiddleware`). Comment these cross-dependencies for maintainability.
 
 ## Project Structure
