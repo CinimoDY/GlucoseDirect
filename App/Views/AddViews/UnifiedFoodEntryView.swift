@@ -10,12 +10,7 @@ struct UnifiedFoodEntryView: View {
     @Environment(\.dismiss) var dismiss
 
     @State private var searchText = ""
-    @State private var activeSheet: ActiveSheet?
-
-    enum ActiveSheet: Identifiable {
-        case manual, photo, favorites
-        var id: Int { hashValue }
-    }
+    @State private var showingFavoriteManagement = false
     @State private var toastMealEntry: MealEntry?
     @State private var toastWorkItem: DispatchWorkItem?
 
@@ -41,7 +36,7 @@ struct UnifiedFoodEntryView: View {
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
-                        activeSheet = .favorites
+                        showingFavoriteManagement = true
                     } label: {
                         Image(systemName: "gear")
                             .foregroundColor(AmberTheme.amberDark)
@@ -54,20 +49,9 @@ struct UnifiedFoodEntryView: View {
                 }
             }
         }
-        .sheet(item: $activeSheet) { sheet in
-            switch sheet {
-            case .manual:
-                AddMealView { time, description, carbs in
-                    let mealEntry = MealEntry(timestamp: time, mealDescription: description, carbsGrams: carbs)
-                    store.dispatch(.addMealEntry(mealEntryValues: [mealEntry]))
-                }
-            case .photo:
-                FoodPhotoAnalysisView()
-                    .environmentObject(store)
-            case .favorites:
-                FavoriteManagementView()
-                    .environmentObject(store)
-            }
+        .sheet(isPresented: $showingFavoriteManagement) {
+            FavoriteManagementView()
+                .environmentObject(store)
         }
         .onAppear {
             store.dispatch(.loadFavoriteFoodValues)
@@ -179,36 +163,38 @@ struct UnifiedFoodEntryView: View {
     @ViewBuilder
     private var actionsSection: some View {
         Section {
-            HStack(spacing: DOSSpacing.sm) {
-                Button {
-                    activeSheet = .manual
+            NavigationLink {
+                AddMealView { time, description, carbs in
+                    let mealEntry = MealEntry(timestamp: time, mealDescription: description, carbsGrams: carbs)
+                    store.dispatch(.addMealEntry(mealEntryValues: [mealEntry]))
+                    dismiss()
+                }
+                .navigationBarHidden(true)
+            } label: {
+                HStack {
+                    Image(systemName: "keyboard")
+                        .font(DOSTypography.caption)
+                    Text("MANUAL")
+                        .font(DOSTypography.bodySmall)
+                }
+                .foregroundColor(AmberTheme.amberDark)
+            }
+
+            if store.state.claudeAPIKeyValid || store.state.aiConsentFoodPhoto {
+                NavigationLink {
+                    FoodPhotoAnalysisView()
+                        .environmentObject(store)
+                        .navigationBarHidden(true)
                 } label: {
                     HStack {
-                        Image(systemName: "keyboard")
+                        Image(systemName: "camera.viewfinder")
                             .font(DOSTypography.caption)
-                        Text("MANUAL")
+                        Text("PHOTO")
                             .font(DOSTypography.bodySmall)
                     }
-                    .frame(maxWidth: .infinity)
                     .foregroundColor(AmberTheme.amberDark)
                 }
-
-                if store.state.claudeAPIKeyValid || store.state.aiConsentFoodPhoto {
-                    Button {
-                        activeSheet = .photo
-                    } label: {
-                        HStack {
-                            Image(systemName: "camera.viewfinder")
-                                .font(DOSTypography.caption)
-                            Text("PHOTO")
-                                .font(DOSTypography.bodySmall)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .foregroundColor(AmberTheme.amberDark)
-                    }
-                }
             }
-            .listRowBackground(Color.clear)
         }
     }
 
