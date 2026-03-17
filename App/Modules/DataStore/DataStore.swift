@@ -16,7 +16,7 @@ class DataStore {
 
     private init() {
         do {
-            dbQueue = try DatabaseQueue(path: databaseURL.absoluteString)
+            dbQueue = try DatabaseQueue(path: databaseURL.path)
         } catch {
             DirectLog.error("\(error)")
             dbQueue = nil
