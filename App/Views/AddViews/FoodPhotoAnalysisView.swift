@@ -6,6 +6,18 @@
 import PhotosUI
 import SwiftUI
 
+// MARK: - EditableFoodItem
+
+/// Staging plate item — editable copy of a NutritionItem
+struct EditableFoodItem: Identifiable {
+    var id = UUID()
+    var name: String
+    var carbsG: Double
+    var isExpanded: Bool = false
+}
+
+// MARK: - FoodPhotoAnalysisView
+
 struct FoodPhotoAnalysisView: View {
     // MARK: Internal
 
@@ -47,14 +59,17 @@ struct FoodPhotoAnalysisView: View {
     @State private var showConsentSheet = false
     @State private var showImagePicker = false
 
-    // Editable fields for confirmation
+    // Staging plate state
+    @State private var stagedItems: [EditableFoodItem] = []
     @State private var editDescription = ""
-    @State private var editCarbs: Double?
-    @State private var editProtein: Double?
-    @State private var editFat: Double?
-    @State private var editCalories: Double?
-    @State private var editFiber: Double?
     @State private var editTimestamp = Date()
+    @State private var totalsOverridden = false
+    @State private var overrideCarbs: Double?
+    @State private var overrideProtein: Double?
+    @State private var overrideFat: Double?
+    @State private var overrideCalories: Double?
+    @State private var overrideFiber: Double?
+    @FocusState private var focusedItemID: UUID?
 
     // Progress animation
     @State private var analysisPhase = 0
@@ -67,6 +82,11 @@ struct FoodPhotoAnalysisView: View {
         "Finalizing results...",
     ]
 
+    // Auto-computed totals from staged items
+    private var computedCarbs: Double {
+        stagedItems.reduce(0) { $0 + $1.carbsG }
+    }
+
     private var consentSection: some View {
         Section {
             VStack(spacing: 12) {
@@ -74,7 +94,7 @@ struct FoodPhotoAnalysisView: View {
                     .font(.system(size: 48))
                     .foregroundStyle(AmberTheme.amber)
 
-                Text("AI-powered food analysis requires sending your photo to Anthropic (Claude AI).")
+                Text("AI-powered food analysis requires sending your photo and food preferences to Anthropic (Claude AI).")
                     .font(DOSTypography.body)
                     .multilineTextAlignment(.center)
 
@@ -177,7 +197,7 @@ struct FoodPhotoAnalysisView: View {
                             .foregroundStyle(AmberTheme.cgaGreen)
                     }
                     if store.state.claudeAPIKeyValid {
-                        Text("Estimated cost: less than $0.01 per analysis")
+                        Text("Estimated cost: typically less than $0.01 per analysis")
                             .foregroundStyle(AmberTheme.amberDark)
                     } else {
                         Text("Set up your API key in Settings first.")
@@ -227,10 +247,52 @@ struct FoodPhotoAnalysisView: View {
         }
     }
 
-    // MARK: - Results with full nutritional breakdown
+    // MARK: - Staging Plate Results
 
     private func resultsSection(_ result: NutritionEstimate) -> some View {
         Group {
+            // Nutrition banner — auto-computed from plate items
+            Section(
+                content: {
+                    if totalsOverridden {
+                        macroRow(label: "Carbs", value: $overrideCarbs, unit: "g")
+                        macroRow(label: "Protein", value: $overrideProtein, unit: "g")
+                        macroRow(label: "Fat", value: $overrideFat, unit: "g")
+                        macroRow(label: "Calories", value: $overrideCalories, unit: "kcal")
+                        macroRow(label: "Fiber", value: $overrideFiber, unit: "g")
+
+                        Button("Use auto-calculated totals") {
+                            totalsOverridden = false
+                        }
+                        .font(DOSTypography.caption)
+                        .foregroundStyle(AmberTheme.amberDark)
+                    } else {
+                        HStack {
+                            Text("\(Int(computedCarbs))g C")
+                                .font(DOSTypography.body)
+                                .foregroundStyle(AmberTheme.amber)
+                            Spacer()
+                            Button("Edit totals") {
+                                overrideCarbs = computedCarbs
+                                overrideProtein = result.totalProteinG
+                                overrideFat = result.totalFatG
+                                overrideCalories = result.totalCalories
+                                overrideFiber = result.totalFiberG
+                                totalsOverridden = true
+                            }
+                            .font(DOSTypography.caption)
+                            .foregroundStyle(AmberTheme.amberDark)
+                        }
+                    }
+                },
+                header: {
+                    Label("Nutrition", systemImage: "chart.bar")
+                }
+            )
+            .onAppear {
+                populateStagedItems(from: result)
+            }
+
             // Meal details
             Section(
                 content: {
@@ -248,65 +310,73 @@ struct FoodPhotoAnalysisView: View {
                     Label("Meal", systemImage: "fork.knife")
                 }
             )
-            .onAppear {
-                editDescription = result.description
-                editCarbs = result.totalCarbsG
-                editProtein = result.totalProteinG
-                editFat = result.totalFatG
-                editCalories = result.totalCalories
-                editFiber = result.totalFiberG
-            }
 
-            // Nutrition totals
+            // Staging plate — editable food items
             Section(
                 content: {
-                    macroRow(label: "Carbs", value: $editCarbs, unit: "g")
-                    macroRow(label: "Protein", value: $editProtein, unit: "g")
-                    macroRow(label: "Fat", value: $editFat, unit: "g")
-                    macroRow(label: "Calories", value: $editCalories, unit: "kcal")
-                    macroRow(label: "Fiber", value: $editFiber, unit: "g")
-                },
-                header: {
-                    Label("Nutrition totals", systemImage: "chart.bar")
-                }
-            )
-
-            // Per-item breakdown
-            Section(
-                content: {
-                    ForEach(result.items) { item in
+                    ForEach($stagedItems) { $item in
                         VStack(alignment: .leading, spacing: 4) {
+                            // Summary row — tap to expand
                             HStack {
-                                Text(item.name)
+                                Text(item.name.isEmpty ? "New item" : item.name)
                                     .font(DOSTypography.body)
+                                    .foregroundStyle(item.name.isEmpty ? AmberTheme.amberDark : AmberTheme.amber)
                                 Spacer()
-                                if let serving = item.servingSize {
-                                    Text(serving)
-                                        .font(DOSTypography.caption)
-                                        .foregroundStyle(AmberTheme.amberDark)
+                                macroTag("\(Int(item.carbsG))g C", color: AmberTheme.amber)
+                                Image(systemName: "chevron.right")
+                                    .font(DOSTypography.caption)
+                                    .foregroundStyle(AmberTheme.amberDark)
+                                    .rotationEffect(item.isExpanded ? .degrees(90) : .zero)
+                            }
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                withAnimation(.linear(duration: 0.2)) {
+                                    item.isExpanded.toggle()
                                 }
                             }
 
-                            HStack(spacing: DOSSpacing.sm) {
-                                macroTag("\(Int(item.carbsG))g C", color: AmberTheme.amber)
-
-                                if let p = item.proteinG {
-                                    macroTag("\(Int(p))g P", color: AmberTheme.amberLight)
+                            // Expanded edit fields
+                            if item.isExpanded {
+                                VStack(spacing: DOSSpacing.sm) {
+                                    HStack {
+                                        Text("Name")
+                                            .font(DOSTypography.caption)
+                                            .foregroundStyle(AmberTheme.amberDark)
+                                        TextField("Food name", text: $item.name)
+                                            .font(DOSTypography.body)
+                                            .multilineTextAlignment(.trailing)
+                                            .focused($focusedItemID, equals: item.id)
+                                    }
+                                    HStack {
+                                        Text("Carbs")
+                                            .font(DOSTypography.caption)
+                                            .foregroundStyle(AmberTheme.amberDark)
+                                        TextField("0", value: $item.carbsG, format: .number)
+                                            .keyboardType(.decimalPad)
+                                            .multilineTextAlignment(.trailing)
+                                            .frame(width: 80)
+                                        Text("g")
+                                            .font(DOSTypography.caption)
+                                            .foregroundStyle(AmberTheme.amberDark)
+                                    }
                                 }
-
-                                if let f = item.fatG {
-                                    macroTag("\(Int(f))g F", color: AmberTheme.amberDark)
-                                }
-
-                                if let cal = item.calories {
-                                    macroTag("\(Int(cal)) kcal", color: AmberTheme.amberDark)
-                                }
+                                .padding(.leading, DOSSpacing.md)
                             }
                         }
                     }
+                    .onDelete { offsets in
+                        focusedItemID = nil
+                        stagedItems.remove(atOffsets: offsets)
+                    }
+
+                    Button(action: addItem) {
+                        Label("Add Item", systemImage: "plus")
+                            .font(DOSTypography.body)
+                            .foregroundStyle(AmberTheme.amber)
+                    }
                 },
                 header: {
-                    Label("Food items", systemImage: "list.bullet")
+                    Label("Food items — tap to edit", systemImage: "list.bullet")
                 }
             )
 
@@ -336,13 +406,29 @@ struct FoodPhotoAnalysisView: View {
                 Button(action: saveAnalysis) {
                     HStack {
                         Spacer()
-                        Text("Save Meal")
+                        Text("Log Meal")
                             .font(DOSTypography.body)
                         Spacer()
                     }
                 }
                 .foregroundStyle(AmberTheme.amber)
             }
+        }
+    }
+
+    private func populateStagedItems(from result: NutritionEstimate) {
+        guard stagedItems.isEmpty else { return }
+        editDescription = result.description
+        stagedItems = result.items.map { item in
+            EditableFoodItem(name: item.name, carbsG: item.carbsG)
+        }
+    }
+
+    private func addItem() {
+        let newItem = EditableFoodItem(name: "", carbsG: 0, isExpanded: true)
+        stagedItems.append(newItem)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            focusedItemID = newItem.id
         }
     }
 
@@ -423,19 +509,104 @@ struct FoodPhotoAnalysisView: View {
             value.flatMap { $0 >= 0 && $0 <= 10000 ? $0 : nil }
         }
 
+        // Use overridden totals if user edited them, otherwise compute from items
+        let finalCarbs = totalsOverridden ? clamp(overrideCarbs) : clamp(computedCarbs)
+        let finalProtein = totalsOverridden ? clamp(overrideProtein) : nil
+        let finalFat = totalsOverridden ? clamp(overrideFat) : nil
+        let finalCalories = totalsOverridden ? clamp(overrideCalories) : nil
+        let finalFiber = totalsOverridden ? clamp(overrideFiber) : nil
+
+        // View creates the MealEntry (UUID ownership per learning)
         let meal = MealEntry(
             id: UUID(),
             timestamp: editTimestamp,
             mealDescription: clampedDescription,
-            carbsGrams: clamp(editCarbs),
-            proteinGrams: clamp(editProtein),
-            fatGrams: clamp(editFat),
-            calories: clamp(editCalories),
-            fiberGrams: clamp(editFiber)
+            carbsGrams: finalCarbs,
+            proteinGrams: finalProtein,
+            fatGrams: finalFat,
+            calories: finalCalories,
+            fiberGrams: finalFiber
         )
 
-        store.dispatch(.addMealEntry(mealEntryValues: [meal]))
+        // Compute corrections by diffing staged items against original AI result
+        let corrections = computeCorrections()
+
+        // Single dispatch — middleware chains to .addMealEntry
+        store.dispatch(.saveMealWithCorrections(meal: meal, corrections: corrections))
         store.dispatch(.setFoodAnalysisResult(result: nil))
         dismiss()
+    }
+
+    // MARK: - Correction Computation
+
+    private func computeCorrections() -> [FoodCorrection] {
+        guard let original = store.state.foodAnalysisResult else { return [] }
+
+        var corrections: [FoodCorrection] = []
+        let originalItems = original.items
+
+        // Track which original items have been matched
+        var matchedOriginalIndices = Set<Int>()
+
+        // Match staged items to original items by position (best-effort)
+        for (index, staged) in stagedItems.enumerated() {
+            if index < originalItems.count {
+                let orig = originalItems[index]
+                matchedOriginalIndices.insert(index)
+
+                let nameChanged = staged.name.lowercased() != orig.name.lowercased()
+                let carbsChanged = abs(staged.carbsG - orig.carbsG) > 0.5
+
+                if nameChanged && carbsChanged {
+                    corrections.append(FoodCorrection(
+                        correctionType: .nameChange,
+                        originalName: orig.name,
+                        correctedName: staged.name,
+                        originalCarbsG: orig.carbsG,
+                        correctedCarbsG: staged.carbsG
+                    ))
+                } else if nameChanged {
+                    corrections.append(FoodCorrection(
+                        correctionType: .nameChange,
+                        originalName: orig.name,
+                        correctedName: staged.name,
+                        originalCarbsG: orig.carbsG,
+                        correctedCarbsG: nil
+                    ))
+                } else if carbsChanged {
+                    corrections.append(FoodCorrection(
+                        correctionType: .carbChange,
+                        originalName: orig.name,
+                        correctedName: nil,
+                        originalCarbsG: orig.carbsG,
+                        correctedCarbsG: staged.carbsG
+                    ))
+                }
+            } else {
+                // Item added by user (not in original)
+                corrections.append(FoodCorrection(
+                    correctionType: .added,
+                    originalName: nil,
+                    correctedName: staged.name,
+                    originalCarbsG: nil,
+                    correctedCarbsG: staged.carbsG
+                ))
+            }
+        }
+
+        // Items in original that were deleted (not matched)
+        for (index, orig) in originalItems.enumerated() {
+            if !matchedOriginalIndices.contains(index) && index >= stagedItems.count {
+                corrections.append(FoodCorrection(
+                    correctionType: .deleted,
+                    originalName: orig.name,
+                    correctedName: nil,
+                    originalCarbsG: orig.carbsG,
+                    correctedCarbsG: nil
+                ))
+            }
+        }
+
+        return corrections
     }
 }

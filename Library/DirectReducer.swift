@@ -202,6 +202,12 @@ func directReducer(state: inout DirectState, action: DirectAction) {
     case .setFavoriteFoodValues(favoriteFoodValues: let favoriteFoodValues):
         state.favoriteFoodValues = favoriteFoodValues
 
+    case .setPersonalFoods(personalFoods: let personalFoods):
+        state.personalFoodValues = personalFoods
+
+    case .setRecentFoodCorrections(recentFoodCorrections: let recentFoodCorrections):
+        state.recentFoodCorrections = recentFoodCorrections
+
     case .setRecentMealEntries(recentMealEntries: let recentMealEntries):
         state.recentMealEntries = recentMealEntries
 

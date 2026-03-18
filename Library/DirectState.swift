@@ -82,6 +82,8 @@ protocol DirectState {
     var foodAnalysisResult: NutritionEstimate? { get set }
     var foodAnalysisError: String? { get set }
     var foodAnalysisLoading: Bool { get set }
+    var personalFoodValues: [PersonalFood] { get set }
+    var recentFoodCorrections: [FoodCorrection] { get set }
     var thumbCalibrationMM: Double? { get set }
 }
 
