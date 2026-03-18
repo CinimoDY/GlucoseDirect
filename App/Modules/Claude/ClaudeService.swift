@@ -14,7 +14,7 @@ struct ClaudeService {
     static let keychainKey = "anthropic-api-key"
     static let model = "claude-haiku-4-5-20251001"
 
-    func analyzeFood(imageData: Data, thumbWidthMM: Double? = nil, personalFoods: [PersonalFoodSummary] = [], recentCorrections: [CorrectionSummary] = []) async throws -> NutritionEstimate {
+    func analyzeFood(imageData: Data, thumbWidthMM: Double? = nil, personalFoods: [PersonalFood] = [], recentCorrections: [FoodCorrection] = []) async throws -> NutritionEstimate {
         let apiKey = try getAPIKey()
 
         var request = URLRequest(url: baseURL)
@@ -126,7 +126,7 @@ struct ClaudeService {
         "additionalProperties": false,
     ]
 
-    func buildPrompt(thumbWidthMM: Double?, personalFoods: [PersonalFoodSummary] = [], recentCorrections: [CorrectionSummary] = []) -> String {
+    private func buildPrompt(thumbWidthMM: Double?, personalFoods: [PersonalFood] = [], recentCorrections: [FoodCorrection] = []) -> String {
         var prompt = "Analyze this meal photo. Identify each food item and estimate nutritional content. Be specific about portion sizes."
         if let mm = thumbWidthMM {
             prompt += " The user's thumb (width: \(Int(mm))mm at the widest joint) may be visible in the photo next to the food as a size reference. If you can see a thumb, use its known width to estimate portion sizes more accurately. The thumb should be at the same depth as the food for reliable scale."
@@ -139,7 +139,7 @@ struct ClaudeService {
         }
 
         // Recent corrections with lessons
-        let positiveCorrections = recentCorrections.filter { $0.type != .deleted }
+        let positiveCorrections = recentCorrections.filter { $0.correctionType != .deleted }
         if !positiveCorrections.isEmpty {
             var examples = ""
             for correction in positiveCorrections {
@@ -151,7 +151,7 @@ struct ClaudeService {
         }
 
         // Negative examples (hallucinated items)
-        let deletedCorrections = recentCorrections.filter { $0.type == .deleted }
+        let deletedCorrections = recentCorrections.filter { $0.correctionType == .deleted }
         if !deletedCorrections.isEmpty {
             let items = deletedCorrections.prefix(5).map { correction in
                 let name = sanitizeFoodName(correction.originalName ?? "unknown")
@@ -222,19 +222,6 @@ struct ClaudeService {
             throw ClaudeError.apiError(statusCode: httpResponse.statusCode)
         }
     }
-}
-
-// MARK: - Lightweight prompt structs (decoupled from GRDB models)
-
-struct PersonalFoodSummary {
-    let name: String
-    let carbsG: Double
-}
-
-struct CorrectionSummary {
-    let type: FoodCorrection.CorrectionType
-    let originalName: String?
-    let correctedName: String?
 }
 
 // MARK: - ClaudeResponse

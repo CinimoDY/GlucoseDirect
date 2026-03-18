@@ -24,17 +24,11 @@ private func claudeMiddleware(service: LazyService<ClaudeService>) -> Middleware
                 Task {
                     do {
                         // Read personal context from DirectState (loaded by FoodCorrectionStore)
-                        let personalFoods = state.personalFoodValues.map {
-                            PersonalFoodSummary(name: $0.name, carbsG: $0.carbsG)
-                        }
-                        let recentCorrections = state.recentFoodCorrections.map {
-                            CorrectionSummary(type: $0.correctionType, originalName: $0.originalName, correctedName: $0.correctedName)
-                        }
                         let result = try await service.value.analyzeFood(
                             imageData: imageData,
                             thumbWidthMM: state.thumbCalibrationMM,
-                            personalFoods: personalFoods,
-                            recentCorrections: recentCorrections
+                            personalFoods: state.personalFoodValues,
+                            recentCorrections: state.recentFoodCorrections
                         )
                         promise(.success(.setFoodAnalysisResult(result: result)))
                     } catch {

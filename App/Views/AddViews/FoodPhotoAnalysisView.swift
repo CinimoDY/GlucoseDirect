@@ -63,12 +63,6 @@ struct FoodPhotoAnalysisView: View {
     @State private var stagedItems: [EditableFoodItem] = []
     @State private var editDescription = ""
     @State private var editTimestamp = Date()
-    @State private var totalsOverridden = false
-    @State private var overrideCarbs: Double?
-    @State private var overrideProtein: Double?
-    @State private var overrideFat: Double?
-    @State private var overrideCalories: Double?
-    @State private var overrideFiber: Double?
     @FocusState private var focusedItemID: UUID?
 
     // Progress animation
@@ -254,35 +248,14 @@ struct FoodPhotoAnalysisView: View {
             // Nutrition banner — auto-computed from plate items
             Section(
                 content: {
-                    if totalsOverridden {
-                        macroRow(label: "Carbs", value: $overrideCarbs, unit: "g")
-                        macroRow(label: "Protein", value: $overrideProtein, unit: "g")
-                        macroRow(label: "Fat", value: $overrideFat, unit: "g")
-                        macroRow(label: "Calories", value: $overrideCalories, unit: "kcal")
-                        macroRow(label: "Fiber", value: $overrideFiber, unit: "g")
-
-                        Button("Use auto-calculated totals") {
-                            totalsOverridden = false
-                        }
-                        .font(DOSTypography.caption)
-                        .foregroundStyle(AmberTheme.amberDark)
-                    } else {
-                        HStack {
-                            Text("\(Int(computedCarbs))g C")
-                                .font(DOSTypography.body)
-                                .foregroundStyle(AmberTheme.amber)
-                            Spacer()
-                            Button("Edit totals") {
-                                overrideCarbs = computedCarbs
-                                overrideProtein = result.totalProteinG
-                                overrideFat = result.totalFatG
-                                overrideCalories = result.totalCalories
-                                overrideFiber = result.totalFiberG
-                                totalsOverridden = true
-                            }
+                    HStack {
+                        Text("\(Int(computedCarbs))g C")
+                            .font(DOSTypography.body)
+                            .foregroundStyle(AmberTheme.amber)
+                        Spacer()
+                        Text("from \(stagedItems.count) items")
                             .font(DOSTypography.caption)
                             .foregroundStyle(AmberTheme.amberDark)
-                        }
                     }
                 },
                 header: {
@@ -432,21 +405,6 @@ struct FoodPhotoAnalysisView: View {
         }
     }
 
-    private func macroRow(label: String, value: Binding<Double?>, unit: String) -> some View {
-        HStack {
-            Text(label)
-            Spacer()
-            TextField("--", value: value, format: .number)
-                .keyboardType(.decimalPad)
-                .multilineTextAlignment(.trailing)
-                .frame(width: 80)
-            Text(unit)
-                .font(DOSTypography.caption)
-                .foregroundStyle(AmberTheme.amberDark)
-                .frame(width: 36, alignment: .leading)
-        }
-    }
-
     private func macroTag(_ text: String, color: Color) -> some View {
         Text(text)
             .font(DOSTypography.caption)
@@ -509,23 +467,12 @@ struct FoodPhotoAnalysisView: View {
             value.flatMap { $0 >= 0 && $0 <= 10000 ? $0 : nil }
         }
 
-        // Use overridden totals if user edited them, otherwise compute from items
-        let finalCarbs = totalsOverridden ? clamp(overrideCarbs) : clamp(computedCarbs)
-        let finalProtein = totalsOverridden ? clamp(overrideProtein) : nil
-        let finalFat = totalsOverridden ? clamp(overrideFat) : nil
-        let finalCalories = totalsOverridden ? clamp(overrideCalories) : nil
-        let finalFiber = totalsOverridden ? clamp(overrideFiber) : nil
-
         // View creates the MealEntry (UUID ownership per learning)
         let meal = MealEntry(
             id: UUID(),
             timestamp: editTimestamp,
             mealDescription: clampedDescription,
-            carbsGrams: finalCarbs,
-            proteinGrams: finalProtein,
-            fatGrams: finalFat,
-            calories: finalCalories,
-            fiberGrams: finalFiber
+            carbsGrams: clamp(computedCarbs)
         )
 
         // Compute corrections by diffing staged items against original AI result
@@ -545,27 +492,37 @@ struct FoodPhotoAnalysisView: View {
         var corrections: [FoodCorrection] = []
         let originalItems = original.items
 
+        func clampName(_ name: String) -> String {
+            String(name.trimmingCharacters(in: .whitespacesAndNewlines).prefix(100))
+        }
+
+        func clampCarbs(_ value: Double) -> Double {
+            max(0, min(value, 10000))
+        }
+
         // Match staged items to original items by position (best-effort)
         for (index, staged) in stagedItems.enumerated() {
             if index < originalItems.count {
                 let orig = originalItems[index]
+                let stagedName = clampName(staged.name)
+                let stagedCarbs = clampCarbs(staged.carbsG)
 
-                let nameChanged = staged.name.lowercased() != orig.name.lowercased()
-                let carbsChanged = abs(staged.carbsG - orig.carbsG) > 0.5
+                let nameChanged = stagedName.lowercased() != orig.name.lowercased()
+                let carbsChanged = abs(stagedCarbs - orig.carbsG) > 0.5
 
                 if nameChanged && carbsChanged {
                     corrections.append(FoodCorrection(
                         correctionType: .nameChange,
                         originalName: orig.name,
-                        correctedName: staged.name,
+                        correctedName: stagedName,
                         originalCarbsG: orig.carbsG,
-                        correctedCarbsG: staged.carbsG
+                        correctedCarbsG: stagedCarbs
                     ))
                 } else if nameChanged {
                     corrections.append(FoodCorrection(
                         correctionType: .nameChange,
                         originalName: orig.name,
-                        correctedName: staged.name,
+                        correctedName: stagedName,
                         originalCarbsG: orig.carbsG,
                         correctedCarbsG: nil
                     ))
@@ -575,7 +532,7 @@ struct FoodPhotoAnalysisView: View {
                         originalName: orig.name,
                         correctedName: nil,
                         originalCarbsG: orig.carbsG,
-                        correctedCarbsG: staged.carbsG
+                        correctedCarbsG: stagedCarbs
                     ))
                 }
             } else {
@@ -583,9 +540,9 @@ struct FoodPhotoAnalysisView: View {
                 corrections.append(FoodCorrection(
                     correctionType: .added,
                     originalName: nil,
-                    correctedName: staged.name,
+                    correctedName: clampName(staged.name),
                     originalCarbsG: nil,
-                    correctedCarbsG: staged.carbsG
+                    correctedCarbsG: clampCarbs(staged.carbsG)
                 ))
             }
         }
