@@ -34,6 +34,8 @@ func foodCorrectionStoreMiddleware() -> Middleware<DirectState, DirectAction> {
                 DataStore.shared.insertFoodCorrectionsAndUpsertPersonalFoods(corrections)
             }
 
+            // Cross-middleware: .addMealEntry is also handled by mealEntryStoreMiddleware
+            // (DB write) and favoriteFoodStoreMiddleware (recents update)
             return Publishers.Merge3(
                 Just(DirectAction.addMealEntry(mealEntryValues: [meal]))
                     .setFailureType(to: DirectError.self),
@@ -247,6 +249,8 @@ private extension DataStore {
                         promise(.failure(.withError(error)))
                     }
                 }
+            } else {
+                promise(.success([]))
             }
         }
     }
@@ -269,6 +273,8 @@ private extension DataStore {
                         promise(.failure(.withError(error)))
                     }
                 }
+            } else {
+                promise(.success([]))
             }
         }
     }

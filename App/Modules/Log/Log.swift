@@ -34,6 +34,9 @@ private func logMiddleware(service: SendService) -> Middleware<DirectState, Dire
             break
 
         // Privacy: suppress food/correction actions (health-adjacent PII)
+        case .addMealEntry:
+            break
+
         case .saveMealWithCorrections:
             break
 

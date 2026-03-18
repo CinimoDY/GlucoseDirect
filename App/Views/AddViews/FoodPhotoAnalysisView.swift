@@ -237,7 +237,7 @@ struct FoodPhotoAnalysisView: View {
                     .multilineTextAlignment(.center)
 
                 Button("Try Again") {
-                    store.dispatch(.setFoodAnalysisError(error: ""))
+                    // setFoodAnalysisLoading(false) reducer nils out both error and result
                     store.dispatch(.setFoodAnalysisLoading(isLoading: false))
                 }
                 .foregroundStyle(AmberTheme.amber)
@@ -545,14 +545,10 @@ struct FoodPhotoAnalysisView: View {
         var corrections: [FoodCorrection] = []
         let originalItems = original.items
 
-        // Track which original items have been matched
-        var matchedOriginalIndices = Set<Int>()
-
         // Match staged items to original items by position (best-effort)
         for (index, staged) in stagedItems.enumerated() {
             if index < originalItems.count {
                 let orig = originalItems[index]
-                matchedOriginalIndices.insert(index)
 
                 let nameChanged = staged.name.lowercased() != orig.name.lowercased()
                 let carbsChanged = abs(staged.carbsG - orig.carbsG) > 0.5
@@ -594,17 +590,15 @@ struct FoodPhotoAnalysisView: View {
             }
         }
 
-        // Items in original that were deleted (not matched)
-        for (index, orig) in originalItems.enumerated() {
-            if !matchedOriginalIndices.contains(index) && index >= stagedItems.count {
-                corrections.append(FoodCorrection(
-                    correctionType: .deleted,
-                    originalName: orig.name,
-                    correctedName: nil,
-                    originalCarbsG: orig.carbsG,
-                    correctedCarbsG: nil
-                ))
-            }
+        // Items in original beyond staged count were deleted
+        for orig in originalItems.dropFirst(stagedItems.count) {
+            corrections.append(FoodCorrection(
+                correctionType: .deleted,
+                originalName: orig.name,
+                correctedName: nil,
+                originalCarbsG: orig.carbsG,
+                correctedCarbsG: nil
+            ))
         }
 
         return corrections

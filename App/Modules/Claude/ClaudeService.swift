@@ -167,6 +167,9 @@ struct ClaudeService {
         String(name
             .replacingOccurrences(of: "\n", with: " ")
             .replacingOccurrences(of: "\r", with: " ")
+            .replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .prefix(100))
     }
