@@ -35,13 +35,6 @@ func insulinDeliveryStoreMiddleware() -> Middleware<DirectState, DirectAction> {
                 .setFailureType(to: DirectError.self)
                 .eraseToAnyPublisher()
 
-        case .clearBloodGlucoseValues:
-            DataStore.shared.deleteAllInsulinDelivery()
-
-            return Just(DirectAction.loadInsulinDeliveryValues)
-                .setFailureType(to: DirectError.self)
-                .eraseToAnyPublisher()
-
         case .setSelectedDate(selectedDate: _):
             return Just(DirectAction.loadInsulinDeliveryValues)
                 .setFailureType(to: DirectError.self)

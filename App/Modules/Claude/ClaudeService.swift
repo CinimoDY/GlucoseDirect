@@ -14,7 +14,7 @@ struct ClaudeService {
     static let keychainKey = "anthropic-api-key"
     static let model = "claude-haiku-4-5-20251001"
 
-    func analyzeFood(imageData: Data, thumbWidthMM: Double? = nil) async throws -> NutritionEstimate {
+    func analyzeFood(imageData: Data, thumbWidthMM: Double? = nil, personalFoods: [PersonalFood] = [], recentCorrections: [FoodCorrection] = []) async throws -> NutritionEstimate {
         let apiKey = try getAPIKey()
 
         var request = URLRequest(url: baseURL)
@@ -37,7 +37,7 @@ struct ClaudeService {
                         "media_type": mediaType,
                         "data": base64Image,
                     ]],
-                    ["type": "text", "text": buildPrompt(thumbWidthMM: thumbWidthMM)],
+                    ["type": "text", "text": buildPrompt(thumbWidthMM: thumbWidthMM, personalFoods: personalFoods, recentCorrections: recentCorrections)],
                 ]],
             ],
             "output_config": [
@@ -126,12 +126,52 @@ struct ClaudeService {
         "additionalProperties": false,
     ]
 
-    private func buildPrompt(thumbWidthMM: Double?) -> String {
+    private func buildPrompt(thumbWidthMM: Double?, personalFoods: [PersonalFood] = [], recentCorrections: [FoodCorrection] = []) -> String {
         var prompt = "Analyze this meal photo. Identify each food item and estimate nutritional content. Be specific about portion sizes."
         if let mm = thumbWidthMM {
             prompt += " The user's thumb (width: \(Int(mm))mm at the widest joint) may be visible in the photo next to the food as a size reference. If you can see a thumb, use its known width to estimate portion sizes more accurately. The thumb should be at the same depth as the food for reliable scale."
         }
+
+        // Personal food dictionary
+        if !personalFoods.isEmpty {
+            let entries = personalFoods.map { "- \(sanitizeFoodName($0.name)): \(Int($0.carbsG))g carbs" }.joined(separator: "\n")
+            prompt += "\n\n<user_food_dictionary>\nThese are this user's confirmed foods. Use these exact values when identified:\n\(entries)\n</user_food_dictionary>"
+        }
+
+        // Recent corrections with lessons
+        let positiveCorrections = recentCorrections.filter { $0.correctionType != .deleted }
+        if !positiveCorrections.isEmpty {
+            var examples = ""
+            for correction in positiveCorrections {
+                let aiSaid = sanitizeFoodName(correction.originalName ?? "unknown")
+                let userCorrected = sanitizeFoodName(correction.correctedName ?? "unknown")
+                examples += "\n<example>\n  <ai_said>\(aiSaid)</ai_said>\n  <user_corrected>\(userCorrected)</user_corrected>\n</example>"
+            }
+            prompt += "\n\n<user_corrections>\nThis user has corrected these misidentifications:\(examples)\n</user_corrections>"
+        }
+
+        // Negative examples (hallucinated items)
+        let deletedCorrections = recentCorrections.filter { $0.correctionType == .deleted }
+        if !deletedCorrections.isEmpty {
+            let items = deletedCorrections.prefix(5).map { correction in
+                let name = sanitizeFoodName(correction.originalName ?? "unknown")
+                return "<excluded_item>\n  <name>\(name)</name>\n</excluded_item>"
+            }.joined(separator: "\n")
+            prompt += "\n\n<items_not_present>\nDo not include these items unless you see unmistakable visual evidence:\n\(items)\n</items_not_present>"
+        }
+
         return prompt
+    }
+
+    private func sanitizeFoodName(_ name: String) -> String {
+        String(name
+            .replacingOccurrences(of: "\n", with: " ")
+            .replacingOccurrences(of: "\r", with: " ")
+            .replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .prefix(100))
     }
 
     private func getAPIKey() throws -> String {

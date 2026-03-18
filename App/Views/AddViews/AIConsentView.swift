@@ -20,7 +20,7 @@ struct AIConsentView: View {
                 .multilineTextAlignment(.center)
 
             VStack(alignment: .leading, spacing: 8) {
-                consentBullet("Only the photo and a text prompt are sent")
+                consentBullet("Your photo, a text prompt, and your saved food preferences are sent")
                 consentBullet("No glucose or health data is included")
                 consentBullet("Anthropic does not store your images or use them for model training (Zero Data Retention)")
                 consentBullet("Data is transmitted securely via HTTPS/TLS")

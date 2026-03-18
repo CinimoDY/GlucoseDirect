@@ -54,6 +54,9 @@ struct ContentView: View {
             .onAppear {
                 DirectLog.info("onAppear()")
 
+                // Ensure data loads happen even if scenePhase was already .active
+                store.dispatch(.setAppState(appState: .active))
+
                 let appearance = UITabBarAppearance()
                 appearance.configureWithOpaqueBackground()
                 appearance.backgroundColor = .black

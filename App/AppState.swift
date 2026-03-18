@@ -100,6 +100,8 @@ struct AppState: DirectState {
     var healthImportExcludedSources: [String] { didSet { UserDefaults.standard.healthImportExcludedSources = healthImportExcludedSources } }
     var insulinDeliveryValues: [InsulinDelivery] = []
     var favoriteFoodValues: [FavoriteFood] = []
+    var personalFoodValues: [PersonalFood] = []
+    var recentFoodCorrections: [FoodCorrection] = []
     var recentMealEntries: [MealEntry] = []
     var mealEntryValues: [MealEntry] = []
     var connectionError: String?

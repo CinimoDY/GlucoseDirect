@@ -33,6 +33,19 @@ private func logMiddleware(service: SendService) -> Middleware<DirectState, Dire
         case .validateClaudeAPIKey:
             break
 
+        // Privacy: suppress food/correction actions (health-adjacent PII)
+        case .addMealEntry:
+            break
+
+        case .saveMealWithCorrections:
+            break
+
+        case .setPersonalFoods:
+            break
+
+        case .setRecentFoodCorrections:
+            break
+
         case .startup:
             DirectLog.deleteLogs()
 

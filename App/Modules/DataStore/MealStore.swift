@@ -35,13 +35,6 @@ func mealEntryStoreMiddleware() -> Middleware<DirectState, DirectAction> {
                 .setFailureType(to: DirectError.self)
                 .eraseToAnyPublisher()
 
-        case .clearBloodGlucoseValues:
-            DataStore.shared.deleteAllMealEntry()
-
-            return Just(DirectAction.loadMealEntryValues)
-                .setFailureType(to: DirectError.self)
-                .eraseToAnyPublisher()
-
         case .setSelectedDate(selectedDate: _):
             return Just(DirectAction.loadMealEntryValues)
                 .setFailureType(to: DirectError.self)

@@ -16,7 +16,7 @@ class DataStore {
 
     private init() {
         do {
-            dbQueue = try DatabaseQueue(path: databaseURL.absoluteString)
+            dbQueue = try DatabaseQueue(path: databaseURL.path)
         } catch {
             DirectLog.error("\(error)")
             dbQueue = nil
@@ -144,6 +144,47 @@ extension ExerciseEntry: FetchableRecord, PersistableRecord {
         case timegroup
     }
 }
+
+// MARK: - FoodCorrection + FetchableRecord, PersistableRecord
+
+extension FoodCorrection: FetchableRecord, PersistableRecord {
+    static let databaseUUIDEncodingStrategy = DatabaseUUIDEncodingStrategy.uppercaseString
+
+    static var Table: String {
+        "FoodCorrection"
+    }
+
+    enum Columns: String, ColumnExpression {
+        case id
+        case timestamp
+        case correctionType
+        case originalName
+        case correctedName
+        case originalCarbsG
+        case correctedCarbsG
+    }
+}
+
+// MARK: - PersonalFood + FetchableRecord, PersistableRecord
+
+extension PersonalFood: FetchableRecord, PersistableRecord {
+    static let databaseUUIDEncodingStrategy = DatabaseUUIDEncodingStrategy.uppercaseString
+
+    static var Table: String {
+        "PersonalFood"
+    }
+
+    enum Columns: String, ColumnExpression {
+        case id
+        case name
+        case carbsG
+        case lastUsed
+    }
+}
+
+// MARK: - FoodCorrection.CorrectionType + DatabaseValueConvertible
+
+extension FoodCorrection.CorrectionType: DatabaseValueConvertible {}
 
 // MARK: - FavoriteFood + FetchableRecord, PersistableRecord
 
