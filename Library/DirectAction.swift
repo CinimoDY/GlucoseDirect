@@ -118,7 +118,7 @@ enum DirectAction {
 
     case analyzeFood(imageData: Data)
     case analyzeFoodBarcode(code: String)
-    case analyzeFoodText(query: String)
+    case analyzeFoodText(query: String, history: [ConversationTurn] = [])
     case deleteClaudeAPIKey
     case setAIConsentFoodPhoto(enabled: Bool)
     case setClaudeAPIKeyValid(isValid: Bool)

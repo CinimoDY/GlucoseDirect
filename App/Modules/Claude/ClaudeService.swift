@@ -6,6 +6,14 @@
 import Foundation
 import UIKit
 
+// MARK: - FoodAnalysisResult
+
+/// Wraps NutritionEstimate with the raw assistant JSON for multi-turn follow-up
+struct FoodAnalysisResult {
+    let estimate: NutritionEstimate
+    let rawAssistantJSON: String // Raw JSON text for passing back in follow-up
+}
+
 // MARK: - ClaudeService
 
 struct ClaudeService {
@@ -54,12 +62,18 @@ struct ClaudeService {
         return try handleResponse(data: data, response: response)
     }
 
-    func analyzeFoodText(query: String, personalFoods: [PersonalFood] = []) async throws -> NutritionEstimate {
+    func analyzeFoodText(query: String, personalFoods: [PersonalFood] = [], history: [ConversationTurn] = []) async throws -> FoodAnalysisResult {
         let apiKey = try getAPIKey()
 
         // Defence-in-depth: cap query length at service layer too
         let boundedQuery = String(query.trimmingCharacters(in: .whitespacesAndNewlines).prefix(500))
-        guard boundedQuery.count >= 3 else {
+        guard boundedQuery.count >= 3 || !history.isEmpty else {
+            throw ClaudeError.invalidResponse
+        }
+
+        // Cap total history at 4000 chars to prevent runaway API spend
+        let totalHistoryChars = history.reduce(0) { $0 + $1.content.count }
+        guard totalHistoryChars <= 4000 else {
             throw ClaudeError.invalidResponse
         }
 
@@ -70,12 +84,24 @@ struct ClaudeService {
         request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
         request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
 
+        // Build messages array — single-turn or multi-turn
+        var messages: [[String: Any]]
+        if history.isEmpty {
+            // Single-turn: original query with system prompt
+            messages = [
+                ["role": "user", "content": buildTextPrompt(query: boundedQuery, personalFoods: personalFoods)],
+            ]
+        } else {
+            // Multi-turn: replay conversation history verbatim (view owns all appends)
+            messages = history.map { turn in
+                ["role": turn.role, "content": turn.content] as [String: Any]
+            }
+        }
+
         let body: [String: Any] = [
             "model": ClaudeService.model,
             "max_tokens": 1024,
-            "messages": [
-                ["role": "user", "content": buildTextPrompt(query: boundedQuery, personalFoods: personalFoods)],
-            ],
+            "messages": messages,
             "output_config": [
                 "format": [
                     "type": "json_schema",
@@ -87,7 +113,7 @@ struct ClaudeService {
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         let (data, response) = try await URLSession.shared.data(for: request)
-        return try handleResponse(data: data, response: response)
+        return try handleResponseWithRawText(data: data, response: response)
     }
 
     func validateAPIKey(_ apiKey: String) async throws {
@@ -295,6 +321,30 @@ struct ClaudeService {
             return "image/gif"
         }
         return "image/jpeg"
+    }
+
+    private func handleResponseWithRawText(data: Data, response: URLResponse) throws -> FoodAnalysisResult {
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw ClaudeError.invalidResponse
+        }
+
+        switch httpResponse.statusCode {
+        case 200:
+            let claudeResponse = try JSONDecoder().decode(ClaudeResponse.self, from: data)
+            let rawText = claudeResponse.content.first(where: { $0.type == "text" })?.text ?? ""
+            let estimate = try claudeResponse.toNutritionEstimate()
+            return FoodAnalysisResult(estimate: estimate, rawAssistantJSON: rawText)
+        case 401:
+            throw ClaudeError.invalidAPIKey
+        case 429:
+            let retryAfter = httpResponse.value(forHTTPHeaderField: "retry-after")
+                .flatMap { TimeInterval($0) } ?? 60
+            throw ClaudeError.rateLimited(retryAfter: retryAfter)
+        case 529:
+            throw ClaudeError.overloaded
+        default:
+            throw ClaudeError.apiError(statusCode: httpResponse.statusCode)
+        }
     }
 
     private func handleResponse(data: Data, response: URLResponse) throws -> NutritionEstimate {

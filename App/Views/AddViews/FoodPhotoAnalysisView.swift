@@ -51,9 +51,13 @@ struct FoodPhotoAnalysisView: View {
             }
             .onDisappear {
                 // Clear stale state when view is popped (back swipe or cancel)
-                // Prevents stale results from surfacing on next entry
                 stagedItems = []
                 editDescription = ""
+                followUpHistory = []
+                followUpText = ""
+                followUpRoundsUsed = 0
+                isFollowingUp = false
+                followUpError = nil
             }
         }
     }
@@ -70,6 +74,13 @@ struct FoodPhotoAnalysisView: View {
     @State private var editDescription = ""
     @State private var editTimestamp = Date()
     @FocusState private var focusedItemID: UUID?
+
+    // Conversational follow-up state
+    @State private var followUpHistory: [ConversationTurn] = []
+    @State private var followUpText = ""
+    @State private var isFollowingUp = false
+    @State private var followUpError: String?
+    @State private var followUpRoundsUsed = 0
 
     // Progress animation
     @State private var analysisPhase = 0
@@ -289,6 +300,24 @@ struct FoodPhotoAnalysisView: View {
             .onAppear {
                 populateStagedItems(from: result)
             }
+            .onChange(of: store.state.foodAnalysisResult?.totalCarbsG) { _ in
+                // Detect follow-up result: replace staged items if we're in a follow-up
+                if isFollowingUp, let newResult = store.state.foodAnalysisResult {
+                    replaceWithFollowUpResult(newResult)
+                }
+            }
+            .onChange(of: store.state.foodAnalysisResult?.description) { _ in
+                if isFollowingUp, let newResult = store.state.foodAnalysisResult {
+                    replaceWithFollowUpResult(newResult)
+                }
+            }
+            .onChange(of: store.state.foodAnalysisError) { _ in
+                // Reset follow-up spinner on error
+                if isFollowingUp && store.state.foodAnalysisError != nil {
+                    isFollowingUp = false
+                    followUpError = store.state.foodAnalysisError
+                }
+            }
 
             // Meal details
             Section(
@@ -377,6 +406,54 @@ struct FoodPhotoAnalysisView: View {
                 }
             )
 
+            // Inline clarification — text-path only (rawAssistantJSON != nil), confidence not high, rounds < 3
+            if result.confidence != .high && followUpRoundsUsed < 3 && result.rawAssistantJSON != nil {
+                Section(
+                    content: {
+                        if isFollowingUp {
+                            HStack {
+                                ProgressView()
+                                    .tint(AmberTheme.amber)
+                                Text("Updating estimate...")
+                                    .font(DOSTypography.caption)
+                                    .foregroundStyle(AmberTheme.amber)
+                            }
+                        } else {
+                            Text("Can you be more specific? (e.g. portion size, brand, cooking method)")
+                                .font(DOSTypography.caption)
+                                .foregroundStyle(AmberTheme.amberDark)
+
+                            if let error = followUpError {
+                                Text(error)
+                                    .font(DOSTypography.caption)
+                                    .foregroundStyle(AmberTheme.cgaRed)
+                            }
+
+                            HStack {
+                                TextField("e.g. about 10 almonds", text: $followUpText)
+                                    .font(DOSTypography.body)
+                                    .textFieldStyle(.roundedBorder)
+
+                                Button("Send") {
+                                    sendFollowUp(result: result)
+                                }
+                                .foregroundStyle(AmberTheme.amber)
+                                .disabled(followUpText.trimmingCharacters(in: .whitespacesAndNewlines).count < 2)
+                            }
+                        }
+                    },
+                    header: {
+                        Label("Clarify", systemImage: "questionmark.bubble")
+                    }
+                )
+            } else if followUpRoundsUsed >= 3 {
+                Section {
+                    Text("Best estimate after clarification.")
+                        .font(DOSTypography.caption)
+                        .foregroundStyle(AmberTheme.amberDark)
+                }
+            }
+
             // Confidence
             Section(
                 content: {
@@ -419,6 +496,52 @@ struct FoodPhotoAnalysisView: View {
         stagedItems = result.items.map { item in
             EditableFoodItem(name: item.name, carbsG: item.carbsG)
         }
+    }
+
+    private func sendFollowUp(result: NutritionEstimate) {
+        guard !isFollowingUp else { return } // double-tap guard
+        let answer = String(followUpText.trimmingCharacters(in: .whitespacesAndNewlines).prefix(200))
+        guard answer.count >= 2 else { return }
+
+        // Build conversation history if this is the first follow-up
+        if followUpHistory.isEmpty, let rawJSON = result.rawAssistantJSON {
+            // Sanitize editDescription (user may have edited it)
+            let sanitizedDesc = editDescription
+                .replacingOccurrences(of: "&", with: "&amp;")
+                .replacingOccurrences(of: "<", with: "&lt;")
+                .replacingOccurrences(of: ">", with: "&gt;")
+            followUpHistory.append(ConversationTurn(role: "user", content: String(sanitizedDesc.prefix(500))))
+            followUpHistory.append(ConversationTurn(role: "assistant", content: rawJSON))
+        } else if let rawJSON = result.rawAssistantJSON {
+            // Subsequent rounds: append the latest assistant response
+            followUpHistory.append(ConversationTurn(role: "assistant", content: rawJSON))
+        }
+
+        // Check history cap before dispatching (not in service — avoids unrecoverable error)
+        let totalChars = followUpHistory.reduce(0) { $0 + $1.content.count } + answer.count
+        if totalChars > 4000 {
+            followUpError = "Conversation too long. Log the current estimate or start over."
+            return
+        }
+
+        // View owns history — append user answer here, service replays verbatim
+        followUpHistory.append(ConversationTurn(role: "user", content: answer))
+
+        isFollowingUp = true
+        followUpError = nil
+        followUpText = ""
+
+        // Dispatch follow-up — do NOT dispatch setFoodAnalysisLoading (keeps staging plate visible)
+        store.dispatch(.analyzeFoodText(query: answer, history: followUpHistory))
+    }
+
+    private func replaceWithFollowUpResult(_ result: NutritionEstimate) {
+        editDescription = result.description
+        stagedItems = result.items.map { item in
+            EditableFoodItem(name: item.name, carbsG: item.carbsG)
+        }
+        isFollowingUp = false
+        followUpRoundsUsed += 1 // increment on success, not before dispatch
     }
 
     private func addItem() {

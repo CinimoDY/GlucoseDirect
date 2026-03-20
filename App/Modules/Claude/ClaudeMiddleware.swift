@@ -38,7 +38,7 @@ private func claudeMiddleware(service: LazyService<ClaudeService>) -> Middleware
             }
             .eraseToAnyPublisher()
 
-        case .analyzeFoodText(let query):
+        case .analyzeFoodText(let query, let history):
             guard state.aiConsentFoodPhoto else {
                 return Empty().eraseToAnyPublisher()
             }
@@ -47,11 +47,15 @@ private func claudeMiddleware(service: LazyService<ClaudeService>) -> Middleware
                 Task {
                     do {
                         // Text path: personal dictionary only, no photo corrections
-                        let result = try await service.value.analyzeFoodText(
+                        let analysisResult = try await service.value.analyzeFoodText(
                             query: query,
-                            personalFoods: state.personalFoodValues
+                            personalFoods: state.personalFoodValues,
+                            history: history
                         )
-                        promise(.success(.setFoodAnalysisResult(result: result)))
+                        // Attach raw JSON to estimate for multi-turn follow-up
+                        var estimate = analysisResult.estimate
+                        estimate.rawAssistantJSON = analysisResult.rawAssistantJSON
+                        promise(.success(.setFoodAnalysisResult(result: estimate)))
                     } catch {
                         promise(.success(.setFoodAnalysisError(error: error.localizedDescription)))
                     }
