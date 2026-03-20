@@ -8,45 +8,53 @@ import SwiftUI
 
 // MARK: - BarcodeScannerView
 
-/// Barcode scanner that auto-transitions to staging plate when OFF API returns a result.
-/// Shows scanner → scans barcode → loading → staging plate (FoodPhotoAnalysisView's resultsSection).
+/// Barcode scanner that auto-navigates to staging plate when OFF API returns a result.
 struct BarcodeScannerView: View {
     @EnvironmentObject var store: DirectStore
     @Environment(\.dismiss) var dismiss
 
     @State private var hasScanned = false
-    @State private var showStagingPlate = false
+
+    private var shouldShowStagingPlate: Binding<Bool> {
+        Binding(
+            get: { store.state.foodAnalysisResult != nil },
+            set: { if !$0 { store.dispatch(.setFoodAnalysisResult(result: nil)) } }
+        )
+    }
 
     var body: some View {
-        Group {
+        ZStack {
             if store.state.foodAnalysisLoading {
                 loadingView
-            } else if store.state.foodAnalysisResult != nil {
-                // Auto-push to staging plate when result arrives
-                FoodPhotoAnalysisView()
-                    .environmentObject(store)
             } else if let error = store.state.foodAnalysisError, !error.isEmpty {
                 errorView(error)
             } else {
                 scannerView
             }
+
+            // Auto-push to staging plate when result arrives
+            NavigationLink(isActive: shouldShowStagingPlate) {
+                FoodPhotoAnalysisView()
+                    .environmentObject(store)
+                    .navigationBarHidden(true)
+            } label: {
+                EmptyView()
+            }
+            .hidden()
         }
-        .navigationTitle(store.state.foodAnalysisResult != nil ? "AI Meal Analysis" : "Scan Barcode")
+        .navigationTitle("Scan Barcode")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
-                if store.state.foodAnalysisResult == nil {
-                    Button("Cancel") {
-                        store.dispatch(.setFoodAnalysisResult(result: nil))
-                        store.dispatch(.setFoodAnalysisLoading(isLoading: false))
-                        dismiss()
-                    }
-                    .foregroundStyle(AmberTheme.amber)
+                Button("Cancel") {
+                    store.dispatch(.setFoodAnalysisResult(result: nil))
+                    store.dispatch(.setFoodAnalysisLoading(isLoading: false))
+                    dismiss()
                 }
+                .foregroundStyle(AmberTheme.amber)
             }
         }
         .onDisappear {
-            // Clear stale state when view is popped
             if !hasScanned {
                 store.dispatch(.setFoodAnalysisResult(result: nil))
                 store.dispatch(.setFoodAnalysisLoading(isLoading: false))
@@ -103,7 +111,8 @@ struct BarcodeScannerView: View {
             HStack(spacing: DOSSpacing.md) {
                 Button("Try Again") {
                     hasScanned = false
-                    store.dispatch(.setFoodAnalysisLoading(isLoading: false))
+                    // Clear error state — setFoodAnalysisResult(nil) clears both error and loading
+                    store.dispatch(.setFoodAnalysisResult(result: nil))
                 }
                 .foregroundStyle(AmberTheme.amber)
 
