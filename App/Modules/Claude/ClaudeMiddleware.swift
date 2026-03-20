@@ -59,6 +59,20 @@ private func claudeMiddleware(service: LazyService<ClaudeService>) -> Middleware
             }
             .eraseToAnyPublisher()
 
+        case .analyzeFoodBarcode(let code):
+            // No consent gate — OFF is free, no API key needed
+            return Future<DirectAction, DirectError> { promise in
+                Task {
+                    do {
+                        let result = try await lookupBarcodeInOpenFoodFacts(code)
+                        promise(.success(.setFoodAnalysisResult(result: result)))
+                    } catch {
+                        promise(.success(.setFoodAnalysisError(error: error.localizedDescription)))
+                    }
+                }
+            }
+            .eraseToAnyPublisher()
+
         case .validateClaudeAPIKey:
             return Future<DirectAction, DirectError> { promise in
                 Task {
@@ -96,5 +110,145 @@ private func claudeMiddleware(service: LazyService<ClaudeService>) -> Middleware
         }
 
         return Empty().eraseToAnyPublisher()
+    }
+}
+
+// MARK: - Open Food Facts Barcode Lookup (inlined, no separate service file)
+
+private func lookupBarcodeInOpenFoodFacts(_ code: String) async throws -> NutritionEstimate {
+    // Validate barcode: digits only, 8-14 chars
+    let trimmed = code.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard trimmed.allSatisfy(\.isNumber), (8 ... 14).contains(trimmed.count) else {
+        throw ClaudeError.invalidResponse
+    }
+
+    let urlString = "https://world.openfoodfacts.org/api/v2/product/\(trimmed).json?fields=product_name,brands,serving_size,serving_quantity,nutriments"
+    guard let url = URL(string: urlString) else {
+        throw ClaudeError.invalidResponse
+    }
+
+    var request = URLRequest(url: url)
+    request.timeoutInterval = 10
+    request.setValue("DOSBTS/1.0 (iOS CGM app)", forHTTPHeaderField: "User-Agent")
+
+    let (data, response) = try await URLSession.shared.data(for: request)
+
+    guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+        throw ClaudeError.apiError(statusCode: (response as? HTTPURLResponse)?.statusCode ?? 0)
+    }
+
+    let offResponse = try JSONDecoder().decode(OFFResponse.self, from: data)
+
+    guard offResponse.status == 1, let product = offResponse.product else {
+        throw ClaudeError.invalidResponse
+    }
+
+    return product.toNutritionEstimate()
+}
+
+// MARK: - Open Food Facts Response Types
+
+private struct OFFResponse: Decodable {
+    let status: Int
+    let product: OFFProduct?
+}
+
+private struct OFFProduct: Decodable {
+    let productName: String?
+    let brands: String?
+    let servingSize: String?
+    let servingQuantity: Double?
+    let nutriments: OFFNutriments?
+
+    enum CodingKeys: String, CodingKey {
+        case productName = "product_name"
+        case brands
+        case servingSize = "serving_size"
+        case servingQuantity = "serving_quantity"
+        case nutriments
+    }
+
+    func toNutritionEstimate() -> NutritionEstimate {
+        let name = [brands, productName].compactMap { $0 }.joined(separator: " - ")
+        let clampedName = String(name.prefix(200))
+
+        let hasServing = (servingQuantity ?? 0) > 0
+        let n = nutriments
+
+        // Use per-serving if available, otherwise per-100g
+        let carbs = clampValue(hasServing ? n?.carbohydratesServing : n?.carbohydrates100g)
+        let protein = clampValue(hasServing ? n?.proteinsServing : n?.proteins100g)
+        let fat = clampValue(hasServing ? n?.fatServing : n?.fat100g)
+        let fiber = clampFiber(hasServing ? n?.fiberServing : n?.fiber100g)
+        let calories = clampCalories(hasServing ? n?.energyKcalServing : n?.energyKcal100g)
+            ?? clampCalories((hasServing ? n?.energyKjServing : n?.energyKj100g).map { $0 / 4.184 })
+
+        let servingLabel = hasServing ? (servingSize ?? "1 serving") : "per 100g"
+
+        // Confidence: medium if we have carbs, low if missing key fields
+        let confidence: NutritionEstimate.Confidence = (carbs != nil) ? .medium : .low
+
+        let item = NutritionItem(
+            name: clampedName.isEmpty ? "Unknown product" : clampedName,
+            carbsG: carbs ?? 0,
+            proteinG: protein,
+            fatG: fat,
+            calories: calories,
+            fiberG: fiber,
+            servingSize: servingLabel
+        )
+
+        return NutritionEstimate(
+            description: clampedName.isEmpty ? "Scanned product" : clampedName,
+            items: [item],
+            totalCarbsG: carbs ?? 0,
+            totalCalories: calories,
+            confidence: confidence,
+            confidenceNotes: hasServing ? "Per serving (\(servingLabel))" : "Per 100g — adjust portion on staging plate"
+        )
+    }
+
+    // Bounds-clamp before HealthKit: carbs 0-1000, protein/fat 0-500
+    private func clampValue(_ value: Double?) -> Double? {
+        value.flatMap { $0 >= 0 && $0 <= 1000 ? $0 : nil }
+    }
+
+    private func clampCalories(_ value: Double?) -> Double? {
+        value.flatMap { $0 >= 0 && $0 <= 10000 ? $0 : nil }
+    }
+
+    private func clampFiber(_ value: Double?) -> Double? {
+        value.flatMap { $0 >= 0 && $0 <= 200 ? $0 : nil }
+    }
+}
+
+// OFF nutriments — all optional, handles mixed number/string types
+private struct OFFNutriments: Decodable {
+    let carbohydrates100g: Double?
+    let carbohydratesServing: Double?
+    let proteins100g: Double?
+    let proteinsServing: Double?
+    let fat100g: Double?
+    let fatServing: Double?
+    let fiber100g: Double?
+    let fiberServing: Double?
+    let energyKcal100g: Double?
+    let energyKcalServing: Double?
+    let energyKj100g: Double?
+    let energyKjServing: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case carbohydrates100g = "carbohydrates_100g"
+        case carbohydratesServing = "carbohydrates_serving"
+        case proteins100g = "proteins_100g"
+        case proteinsServing = "proteins_serving"
+        case fat100g = "fat_100g"
+        case fatServing = "fat_serving"
+        case fiber100g = "fiber_100g"
+        case fiberServing = "fiber_serving"
+        case energyKcal100g = "energy-kcal_100g"
+        case energyKcalServing = "energy-kcal_serving"
+        case energyKj100g = "energy-kj_100g"
+        case energyKjServing = "energy-kj_serving"
     }
 }

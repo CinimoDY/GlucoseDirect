@@ -180,6 +180,21 @@ struct UnifiedFoodEntryView: View {
                 .foregroundColor(AmberTheme.amberDark)
             }
 
+            // SCAN — always available (OFF is free, no API key needed)
+            NavigationLink {
+                BarcodeScannerView()
+                    .environmentObject(store)
+                    .navigationBarHidden(true)
+            } label: {
+                HStack {
+                    Image(systemName: "barcode.viewfinder")
+                        .font(DOSTypography.caption)
+                    Text("SCAN")
+                        .font(DOSTypography.bodySmall)
+                }
+                .foregroundColor(AmberTheme.amberDark)
+            }
+
             if store.state.claudeAPIKeyValid || store.state.aiConsentFoodPhoto {
                 NavigationLink {
                     FoodPhotoAnalysisView()
