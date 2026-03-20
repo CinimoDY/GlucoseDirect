@@ -92,13 +92,10 @@ struct ClaudeService {
                 ["role": "user", "content": buildTextPrompt(query: boundedQuery, personalFoods: personalFoods)],
             ]
         } else {
-            // Multi-turn: replay conversation history + new follow-up
+            // Multi-turn: replay conversation history verbatim (view owns all appends)
             messages = history.map { turn in
                 ["role": turn.role, "content": turn.content] as [String: Any]
             }
-            // Append the follow-up as a new user message
-            let sanitizedFollowUp = sanitizeFoodName(boundedQuery)
-            messages.append(["role": "user", "content": sanitizedFollowUp])
         }
 
         let body: [String: Any] = [

@@ -300,10 +300,22 @@ struct FoodPhotoAnalysisView: View {
             .onAppear {
                 populateStagedItems(from: result)
             }
-            .onChange(of: store.state.foodAnalysisResult?.description) { _ in
+            .onChange(of: store.state.foodAnalysisResult?.totalCarbsG) { _ in
                 // Detect follow-up result: replace staged items if we're in a follow-up
                 if isFollowingUp, let newResult = store.state.foodAnalysisResult {
                     replaceWithFollowUpResult(newResult)
+                }
+            }
+            .onChange(of: store.state.foodAnalysisResult?.description) { _ in
+                if isFollowingUp, let newResult = store.state.foodAnalysisResult {
+                    replaceWithFollowUpResult(newResult)
+                }
+            }
+            .onChange(of: store.state.foodAnalysisError) { _ in
+                // Reset follow-up spinner on error
+                if isFollowingUp && store.state.foodAnalysisError != nil {
+                    isFollowingUp = false
+                    followUpError = store.state.foodAnalysisError
                 }
             }
 
@@ -394,8 +406,8 @@ struct FoodPhotoAnalysisView: View {
                 }
             )
 
-            // Inline clarification — shown when confidence is not high and rounds < 3
-            if result.confidence != .high && followUpRoundsUsed < 3 {
+            // Inline clarification — text-path only (rawAssistantJSON != nil), confidence not high, rounds < 3
+            if result.confidence != .high && followUpRoundsUsed < 3 && result.rawAssistantJSON != nil {
                 Section(
                     content: {
                         if isFollowingUp {
@@ -487,25 +499,36 @@ struct FoodPhotoAnalysisView: View {
     }
 
     private func sendFollowUp(result: NutritionEstimate) {
+        guard !isFollowingUp else { return } // double-tap guard
         let answer = String(followUpText.trimmingCharacters(in: .whitespacesAndNewlines).prefix(200))
         guard answer.count >= 2 else { return }
 
         // Build conversation history if this is the first follow-up
         if followUpHistory.isEmpty, let rawJSON = result.rawAssistantJSON {
-            // Reconstruct the original conversation: user query + assistant response
-            followUpHistory.append(ConversationTurn(role: "user", content: editDescription))
+            // Sanitize editDescription (user may have edited it)
+            let sanitizedDesc = editDescription
+                .replacingOccurrences(of: "&", with: "&amp;")
+                .replacingOccurrences(of: "<", with: "&lt;")
+                .replacingOccurrences(of: ">", with: "&gt;")
+            followUpHistory.append(ConversationTurn(role: "user", content: String(sanitizedDesc.prefix(500))))
             followUpHistory.append(ConversationTurn(role: "assistant", content: rawJSON))
-        } else if let rawJSON = result.rawAssistantJSON, followUpRoundsUsed > 0 {
+        } else if let rawJSON = result.rawAssistantJSON {
             // Subsequent rounds: append the latest assistant response
             followUpHistory.append(ConversationTurn(role: "assistant", content: rawJSON))
         }
 
-        // Append user's follow-up answer
+        // Check history cap before dispatching (not in service — avoids unrecoverable error)
+        let totalChars = followUpHistory.reduce(0) { $0 + $1.content.count } + answer.count
+        if totalChars > 4000 {
+            followUpError = "Conversation too long. Log the current estimate or start over."
+            return
+        }
+
+        // View owns history — append user answer here, service replays verbatim
         followUpHistory.append(ConversationTurn(role: "user", content: answer))
 
         isFollowingUp = true
         followUpError = nil
-        followUpRoundsUsed += 1
         followUpText = ""
 
         // Dispatch follow-up — do NOT dispatch setFoodAnalysisLoading (keeps staging plate visible)
@@ -518,6 +541,7 @@ struct FoodPhotoAnalysisView: View {
             EditableFoodItem(name: item.name, carbsG: item.carbsG)
         }
         isFollowingUp = false
+        followUpRoundsUsed += 1 // increment on success, not before dispatch
     }
 
     private func addItem() {

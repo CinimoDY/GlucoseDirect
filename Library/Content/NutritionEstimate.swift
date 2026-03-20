@@ -22,7 +22,9 @@ struct NutritionEstimate: Codable {
     var totalCalories: Double?
     var confidence: Confidence
     var confidenceNotes: String?
-    // Transient: raw JSON from Claude for multi-turn follow-up (not decoded from API)
+    /// Transient: raw JSON from Claude for multi-turn follow-up.
+    /// Not in CodingKeys — intentionally excluded from encode/decode.
+    /// Lost on any serialization round-trip. Do NOT persist or rely on across sessions.
     var rawAssistantJSON: String?
 
     enum Confidence: String, Codable {
