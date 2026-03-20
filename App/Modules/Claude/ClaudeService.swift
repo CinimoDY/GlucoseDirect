@@ -54,6 +54,42 @@ struct ClaudeService {
         return try handleResponse(data: data, response: response)
     }
 
+    func analyzeFoodText(query: String, personalFoods: [PersonalFood] = []) async throws -> NutritionEstimate {
+        let apiKey = try getAPIKey()
+
+        // Defence-in-depth: cap query length at service layer too
+        let boundedQuery = String(query.trimmingCharacters(in: .whitespacesAndNewlines).prefix(500))
+        guard boundedQuery.count >= 3 else {
+            throw ClaudeError.invalidResponse
+        }
+
+        var request = URLRequest(url: baseURL)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 30
+        request.setValue("application/json", forHTTPHeaderField: "content-type")
+        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+
+        let body: [String: Any] = [
+            "model": ClaudeService.model,
+            "max_tokens": 1024,
+            "messages": [
+                ["role": "user", "content": buildTextPrompt(query: boundedQuery, personalFoods: personalFoods)],
+            ],
+            "output_config": [
+                "format": [
+                    "type": "json_schema",
+                    "schema": textNutritionSchema,
+                ],
+            ],
+        ]
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        return try handleResponse(data: data, response: response)
+    }
+
     func validateAPIKey(_ apiKey: String) async throws {
         var request = URLRequest(url: baseURL)
         request.httpMethod = "POST"
@@ -125,6 +161,70 @@ struct ClaudeService {
         "required": ["description", "items", "total_carbs_g", "confidence"],
         "additionalProperties": false,
     ]
+
+    // Text-specific schema: adds `reasoning` field for CoT before numbers
+    private let textNutritionSchema: [String: Any] = [
+        "type": "object",
+        "properties": [
+            "reasoning": ["type": "string", "description": "Step-by-step identification of each food item, data source used, and portion assumptions"],
+            "description": ["type": "string", "description": "Brief meal description"],
+            "items": ["type": "array", "items": [
+                "type": "object",
+                "properties": [
+                    "name": ["type": "string"],
+                    "carbs_g": ["type": "number"],
+                    "protein_g": ["type": "number"],
+                    "fat_g": ["type": "number"],
+                    "calories": ["type": "number"],
+                    "fiber_g": ["type": "number"],
+                    "serving_size": ["type": "string", "description": "Portion description e.g. '1 medium (154g)' or '200ml'"],
+                ],
+                "required": ["name", "carbs_g"],
+                "additionalProperties": false,
+            ]],
+            "total_carbs_g": ["type": "number"],
+            "total_calories": ["type": "number"],
+            "confidence": ["type": "string", "enum": ["high", "medium", "low"]],
+            "confidence_notes": ["type": "string", "description": "Why confidence is high/medium/low"],
+        ],
+        "required": ["reasoning", "description", "items", "total_carbs_g", "confidence"],
+        "additionalProperties": false,
+    ]
+
+    private func buildTextPrompt(query: String, personalFoods: [PersonalFood] = []) -> String {
+        var prompt = """
+        You are a registered dietitian AI assistant. Given a food description, identify each distinct food item and estimate nutritional content.
+
+        <resolution_protocol>
+        - Named restaurant items ("Big Mac", "Grande Latte"): use the brand's published nutrition data.
+        - Named packaged products ("Ben & Jerry's Cookies & Cream"): use standard serving or stated size.
+        - Metric quantities (200ml, 100g): use as stated.
+        - Informal quantities: "a couple" = 2, "a few" = 3, "a handful" of nuts = 28g, "a slice" of bread = 28g, pizza = 100g, "a cup" = 240ml liquid.
+        - "small/medium/large" at a restaurant: match the chain's published size tiers.
+        - Multi-item meals ("burger fries and a coke"): decompose into separate items.
+        - When quantity is unclear: assume one standard serving and note the assumption in confidence_notes.
+        </resolution_protocol>
+
+        <confidence_definitions>
+        "high": Specific branded/restaurant product with known nutrition, or precise metric quantities for common foods. Error < 15%.
+        "medium": Recognized food type but brand is generic, quantity informal, or cooking method unclear. Error 15-35%.
+        "low": Ambiguous food, very vague quantity, unusual/regional item, or combining multiple assumptions. Error > 35%.
+        When in doubt between two levels, choose the lower one.
+        </confidence_definitions>
+        """
+
+        // User query wrapped in XML element for structural isolation
+        let sanitizedQuery = sanitizeFoodName(query)
+        prompt += "\n\n<food_description>\(sanitizedQuery)</food_description>"
+
+        // Personal food dictionary (max 50 entries)
+        if !personalFoods.isEmpty {
+            let entries = personalFoods.prefix(50).map { "- \(sanitizeFoodName($0.name)): \(Int($0.carbsG))g carbs" }.joined(separator: "\n")
+            prompt += "\n\n<user_food_dictionary>\nThese are this user's confirmed foods. Use these exact values when identified:\n\(entries)\n</user_food_dictionary>"
+        }
+
+        return prompt
+    }
 
     private func buildPrompt(thumbWidthMM: Double?, personalFoods: [PersonalFood] = [], recentCorrections: [FoodCorrection] = []) -> String {
         var prompt = "Analyze this meal photo. Identify each food item and estimate nutritional content. Be specific about portion sizes."
