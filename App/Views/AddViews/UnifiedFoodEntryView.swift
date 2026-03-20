@@ -194,6 +194,40 @@ struct UnifiedFoodEntryView: View {
                     }
                     .foregroundColor(AmberTheme.amberDark)
                 }
+
+                // NL text parsing — appears when search text >= 3 chars
+                if searchText.trimmingCharacters(in: .whitespacesAndNewlines).count >= 3 {
+                    if store.state.foodAnalysisLoading {
+                        HStack {
+                            ProgressView()
+                                .tint(AmberTheme.amber)
+                            Text("Analyzing...")
+                                .font(DOSTypography.bodySmall)
+                                .foregroundColor(AmberTheme.amber)
+                        }
+                    } else {
+                        NavigationLink {
+                            FoodPhotoAnalysisView()
+                                .environmentObject(store)
+                                .navigationBarHidden(true)
+                                .onAppear {
+                                    // Clear state and dispatch text analysis
+                                    let query = String(searchText.trimmingCharacters(in: .whitespacesAndNewlines).prefix(500))
+                                    store.dispatch(.setFoodAnalysisLoading(isLoading: true))
+                                    store.dispatch(.analyzeFoodText(query: query))
+                                }
+                        } label: {
+                            HStack {
+                                Image(systemName: "sparkles")
+                                    .font(DOSTypography.caption)
+                                Text("ASK AI: \"\(searchText.prefix(30))\"")
+                                    .font(DOSTypography.bodySmall)
+                                    .lineLimit(1)
+                            }
+                            .foregroundColor(AmberTheme.amber)
+                        }
+                    }
+                }
             }
         }
     }

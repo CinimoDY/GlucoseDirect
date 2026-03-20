@@ -245,6 +245,24 @@ struct FoodPhotoAnalysisView: View {
 
     private func resultsSection(_ result: NutritionEstimate) -> some View {
         Group {
+            // Empty results guard
+            if result.items.isEmpty {
+                Section {
+                    VStack(spacing: 12) {
+                        Image(systemName: "questionmark.circle")
+                            .font(.system(size: 36))
+                            .foregroundStyle(AmberTheme.amber)
+
+                        Text("Couldn't identify any foods. Try being more specific or use manual entry.")
+                            .font(DOSTypography.body)
+                            .foregroundStyle(AmberTheme.amber)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                }
+            }
+
             // Nutrition banner — auto-computed from plate items
             Section(
                 content: {

@@ -1,7 +1,7 @@
 ---
 title: "feat: Natural Language Food Parsing via Claude"
 type: feat
-status: active
+status: completed
 date: 2026-03-20
 deepened: 2026-03-20
 linear: DMNC-558
@@ -174,20 +174,20 @@ Not in MVP scope. The staging plate already lets users see and edit all values v
 
 ## Acceptance Criteria
 
-- [ ] **"Ask AI" row** in `actionsSection` when search text >= 3 chars and AI is set up
-- [ ] **Text sent to Claude** via `analyzeFoodText()` (text-only, enhanced prompt with reasoning + portion defaults)
-- [ ] **Loading state** shown while Claude processes
-- [ ] **Staging plate** displays results (push via NavigationLink to existing `FoodPhotoAnalysisView`)
-- [ ] **Per-item editing** works (existing staging plate)
-- [ ] **Corrections logged** on save (existing `saveMealWithCorrections`)
-- [ ] **Personal dictionary** in text prompt (max 50 entries, not photo corrections)
-- [ ] **Input sanitized** — XML-escaped, wrapped in `<food_description>`, capped 500 chars in view + service
-- [ ] **Empty results handled** — "couldn't identify" message, not empty staging plate
-- [ ] **Consent copy updated** — "food photo or description"
-- [ ] **`.analyzeFoodText` suppressed** from log middleware
-- [ ] **State cleared on dismiss**
-- [ ] **Consent guard** replicated in middleware `.analyzeFoodText` case
-- [ ] **Builds on simulator**
+- [x] **"Ask AI" row** in `actionsSection` when search text >= 3 chars and AI is set up
+- [x] **Text sent to Claude** via `analyzeFoodText()` (text-only, enhanced prompt with reasoning + portion defaults)
+- [x] **Loading state** shown while Claude processes
+- [x] **Staging plate** displays results (push via NavigationLink to existing `FoodPhotoAnalysisView`)
+- [x] **Per-item editing** works (existing staging plate)
+- [x] **Corrections logged** on save (existing `saveMealWithCorrections`)
+- [x] **Personal dictionary** in text prompt (max 50 entries, not photo corrections)
+- [x] **Input sanitized** — XML-escaped, wrapped in `<food_description>`, capped 500 chars in view + service
+- [x] **Empty results handled** — "couldn't identify" message, not empty staging plate
+- [x] **Consent copy updated** — "food photo or description"
+- [x] **`.analyzeFoodText` suppressed** from log middleware
+- [x] **State cleared on dismiss**
+- [x] **Consent guard** replicated in middleware `.analyzeFoodText` case
+- [x] **Builds on simulator**
 
 ## Success Metrics
 

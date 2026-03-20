@@ -15,7 +15,7 @@ struct AIConsentView: View {
                 .font(DOSTypography.displayMedium)
                 .foregroundStyle(AmberTheme.amber)
 
-            Text("Your food photo will be sent to **Anthropic (Claude AI)** to estimate nutritional content.")
+            Text("Your food photo or description will be sent to **Anthropic (Claude AI)** to estimate nutritional content.")
                 .font(DOSTypography.body)
                 .multilineTextAlignment(.center)
 

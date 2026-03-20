@@ -38,6 +38,27 @@ private func claudeMiddleware(service: LazyService<ClaudeService>) -> Middleware
             }
             .eraseToAnyPublisher()
 
+        case .analyzeFoodText(let query):
+            guard state.aiConsentFoodPhoto else {
+                return Empty().eraseToAnyPublisher()
+            }
+
+            return Future<DirectAction, DirectError> { promise in
+                Task {
+                    do {
+                        // Text path: personal dictionary only, no photo corrections
+                        let result = try await service.value.analyzeFoodText(
+                            query: query,
+                            personalFoods: state.personalFoodValues
+                        )
+                        promise(.success(.setFoodAnalysisResult(result: result)))
+                    } catch {
+                        promise(.success(.setFoodAnalysisError(error: error.localizedDescription)))
+                    }
+                }
+            }
+            .eraseToAnyPublisher()
+
         case .validateClaudeAPIKey:
             return Future<DirectAction, DirectError> { promise in
                 Task {
