@@ -51,9 +51,13 @@ struct FoodPhotoAnalysisView: View {
             }
             .onDisappear {
                 // Clear stale state when view is popped (back swipe or cancel)
-                // Prevents stale results from surfacing on next entry
                 stagedItems = []
                 editDescription = ""
+                followUpHistory = []
+                followUpText = ""
+                followUpRoundsUsed = 0
+                isFollowingUp = false
+                followUpError = nil
             }
         }
     }
@@ -70,6 +74,13 @@ struct FoodPhotoAnalysisView: View {
     @State private var editDescription = ""
     @State private var editTimestamp = Date()
     @FocusState private var focusedItemID: UUID?
+
+    // Conversational follow-up state
+    @State private var followUpHistory: [ConversationTurn] = []
+    @State private var followUpText = ""
+    @State private var isFollowingUp = false
+    @State private var followUpError: String?
+    @State private var followUpRoundsUsed = 0
 
     // Progress animation
     @State private var analysisPhase = 0
@@ -289,6 +300,12 @@ struct FoodPhotoAnalysisView: View {
             .onAppear {
                 populateStagedItems(from: result)
             }
+            .onChange(of: store.state.foodAnalysisResult?.description) { _ in
+                // Detect follow-up result: replace staged items if we're in a follow-up
+                if isFollowingUp, let newResult = store.state.foodAnalysisResult {
+                    replaceWithFollowUpResult(newResult)
+                }
+            }
 
             // Meal details
             Section(
@@ -377,6 +394,54 @@ struct FoodPhotoAnalysisView: View {
                 }
             )
 
+            // Inline clarification — shown when confidence is not high and rounds < 3
+            if result.confidence != .high && followUpRoundsUsed < 3 {
+                Section(
+                    content: {
+                        if isFollowingUp {
+                            HStack {
+                                ProgressView()
+                                    .tint(AmberTheme.amber)
+                                Text("Updating estimate...")
+                                    .font(DOSTypography.caption)
+                                    .foregroundStyle(AmberTheme.amber)
+                            }
+                        } else {
+                            Text("Can you be more specific? (e.g. portion size, brand, cooking method)")
+                                .font(DOSTypography.caption)
+                                .foregroundStyle(AmberTheme.amberDark)
+
+                            if let error = followUpError {
+                                Text(error)
+                                    .font(DOSTypography.caption)
+                                    .foregroundStyle(AmberTheme.cgaRed)
+                            }
+
+                            HStack {
+                                TextField("e.g. about 10 almonds", text: $followUpText)
+                                    .font(DOSTypography.body)
+                                    .textFieldStyle(.roundedBorder)
+
+                                Button("Send") {
+                                    sendFollowUp(result: result)
+                                }
+                                .foregroundStyle(AmberTheme.amber)
+                                .disabled(followUpText.trimmingCharacters(in: .whitespacesAndNewlines).count < 2)
+                            }
+                        }
+                    },
+                    header: {
+                        Label("Clarify", systemImage: "questionmark.bubble")
+                    }
+                )
+            } else if followUpRoundsUsed >= 3 {
+                Section {
+                    Text("Best estimate after clarification.")
+                        .font(DOSTypography.caption)
+                        .foregroundStyle(AmberTheme.amberDark)
+                }
+            }
+
             // Confidence
             Section(
                 content: {
@@ -419,6 +484,40 @@ struct FoodPhotoAnalysisView: View {
         stagedItems = result.items.map { item in
             EditableFoodItem(name: item.name, carbsG: item.carbsG)
         }
+    }
+
+    private func sendFollowUp(result: NutritionEstimate) {
+        let answer = String(followUpText.trimmingCharacters(in: .whitespacesAndNewlines).prefix(200))
+        guard answer.count >= 2 else { return }
+
+        // Build conversation history if this is the first follow-up
+        if followUpHistory.isEmpty, let rawJSON = result.rawAssistantJSON {
+            // Reconstruct the original conversation: user query + assistant response
+            followUpHistory.append(ConversationTurn(role: "user", content: editDescription))
+            followUpHistory.append(ConversationTurn(role: "assistant", content: rawJSON))
+        } else if let rawJSON = result.rawAssistantJSON, followUpRoundsUsed > 0 {
+            // Subsequent rounds: append the latest assistant response
+            followUpHistory.append(ConversationTurn(role: "assistant", content: rawJSON))
+        }
+
+        // Append user's follow-up answer
+        followUpHistory.append(ConversationTurn(role: "user", content: answer))
+
+        isFollowingUp = true
+        followUpError = nil
+        followUpRoundsUsed += 1
+        followUpText = ""
+
+        // Dispatch follow-up — do NOT dispatch setFoodAnalysisLoading (keeps staging plate visible)
+        store.dispatch(.analyzeFoodText(query: answer, history: followUpHistory))
+    }
+
+    private func replaceWithFollowUpResult(_ result: NutritionEstimate) {
+        editDescription = result.description
+        stagedItems = result.items.map { item in
+            EditableFoodItem(name: item.name, carbsG: item.carbsG)
+        }
+        isFollowingUp = false
     }
 
     private func addItem() {

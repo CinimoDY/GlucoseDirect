@@ -5,6 +5,14 @@
 
 import Foundation
 
+// MARK: - ConversationTurn
+
+/// Lightweight struct for multi-turn Claude API conversation
+struct ConversationTurn {
+    let role: String // "user" or "assistant"
+    let content: String
+}
+
 // MARK: - NutritionEstimate
 
 struct NutritionEstimate: Codable {
@@ -14,6 +22,8 @@ struct NutritionEstimate: Codable {
     var totalCalories: Double?
     var confidence: Confidence
     var confidenceNotes: String?
+    // Transient: raw JSON from Claude for multi-turn follow-up (not decoded from API)
+    var rawAssistantJSON: String?
 
     enum Confidence: String, Codable {
         case high
