@@ -88,3 +88,31 @@ The plan was deepened with research from NutriBench, Taralli study, and PMC12513
 - `docs/plans/2026-03-20-feat-natural-language-food-parsing-plan.md`
 - `docs/references/food-logging-2026-vision.md`
 - Updated CLAUDE.md with dual Claude analysis paths
+
+---
+
+## Arc 4: Barcode Scanning with Open Food Facts (Build 30) — 2026-03-20
+
+### What Was Built
+
+Dedicated barcode scanner using AVCaptureSession + AVCaptureMetadataOutput (EAN-13/EAN-8/UPC-E). Scanned barcode → Open Food Facts API lookup (free, no auth) → NutritionEstimate on staging plate for confirmation. One new file (BarcodeScannerView), OFF API inlined in ClaudeMiddleware (~150 lines).
+
+### Key Decisions
+
+- **1 new file instead of 3** — OFF API call inlined in ClaudeMiddleware, no separate service or middleware (YAGNI — one endpoint, one caller)
+- **SCAN button outside API key gate** — OFF is free, always available
+- **EAN/UPC only** — no QR/Code128 (security: prevents arbitrary string injection)
+- **Missing nutrition = nil, not zero** — critical for CGM safety (0g carbs would be dangerous)
+- **Bounds-clamp** all OFF nutrition data before HealthKit (carbs 0-1000, calories 0-10000)
+- **Programmatic NavigationLink** for auto-push to staging plate (avoids double NavigationView)
+
+### Review Findings (3 fixed)
+
+1. Double NavigationView from embedding FoodPhotoAnalysisView in Group → used NavigationLink(isActive:)
+2. "Try Again" not clearing error → dispatch .setFoodAnalysisResult(nil)
+3. Unused @State variable → removed
+
+### Linear
+
+- DMNC-561: Barcode scanning (done)
+- DMNC-562: Portion presets (backlog, unblocked by this)
