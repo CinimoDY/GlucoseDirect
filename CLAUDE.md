@@ -45,6 +45,7 @@ View dispatches Action -> Store.dispatch() -> Reducer mutates State
 - **SwiftUI nested sheets are unreliable** — never present a `.sheet` from within a view that is itself presented as a `.sheet`. Use `NavigationLink` (push) instead. This applies to all iOS versions, not just iOS 15. See `docs/solutions/ui-bugs/swiftui-nested-sheets-present-wrong-view-20260316.md`.
 - **Cross-middleware listening** — multiple middlewares can handle the same action (e.g., `.addMealEntry` triggers both `mealEntryStoreMiddleware` and `favoriteFoodStoreMiddleware`). Comment these cross-dependencies for maintainability.
 - **Data load guards** — all DataStore middlewares guard `state.appState == .active` before loading. The `.active` state is set in `ContentView.onAppear`. If adding new data store middlewares, follow this pattern: handle `.setAppState(.active)` to trigger initial load, and guard `.active` in the load action handler. See `docs/solutions/logic-errors/appstate-inactive-blocks-data-loading-20260317.md`.
+- **Claude food analysis has two paths** — `analyzeFood(imageData:)` for photos and `analyzeFoodText(query:)` for natural language text. Both share `foodAnalysisResult/Loading/Error` state and reuse `FoodPhotoAnalysisView` as the staging plate. Text path includes personal food dictionary but not photo corrections in the prompt. Both require `aiConsentFoodPhoto` consent gate.
 
 ## Project Structure
 

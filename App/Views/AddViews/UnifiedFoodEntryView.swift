@@ -211,7 +211,9 @@ struct UnifiedFoodEntryView: View {
                                 .environmentObject(store)
                                 .navigationBarHidden(true)
                                 .onAppear {
-                                    // Clear state and dispatch text analysis
+                                    // Guard: only dispatch if not already loading/loaded
+                                    guard !store.state.foodAnalysisLoading,
+                                          store.state.foodAnalysisResult == nil else { return }
                                     let query = String(searchText.trimmingCharacters(in: .whitespacesAndNewlines).prefix(500))
                                     store.dispatch(.setFoodAnalysisLoading(isLoading: true))
                                     store.dispatch(.analyzeFoodText(query: query))

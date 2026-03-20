@@ -49,6 +49,12 @@ struct FoodPhotoAnalysisView: View {
                     }
                 }
             }
+            .onDisappear {
+                // Clear stale state when view is popped (back swipe or cancel)
+                // Prevents stale results from surfacing on next entry
+                stagedItems = []
+                editDescription = ""
+            }
         }
     }
 

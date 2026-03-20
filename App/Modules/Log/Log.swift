@@ -49,6 +49,9 @@ private func logMiddleware(service: SendService) -> Middleware<DirectState, Dire
         case .analyzeFoodText:
             break
 
+        case .setFoodAnalysisError:
+            break
+
         case .startup:
             DirectLog.deleteLogs()
 

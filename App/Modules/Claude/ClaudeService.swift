@@ -234,7 +234,7 @@ struct ClaudeService {
 
         // Personal food dictionary
         if !personalFoods.isEmpty {
-            let entries = personalFoods.map { "- \(sanitizeFoodName($0.name)): \(Int($0.carbsG))g carbs" }.joined(separator: "\n")
+            let entries = personalFoods.prefix(50).map { "- \(sanitizeFoodName($0.name)): \(Int($0.carbsG))g carbs" }.joined(separator: "\n")
             prompt += "\n\n<user_food_dictionary>\nThese are this user's confirmed foods. Use these exact values when identified:\n\(entries)\n</user_food_dictionary>"
         }
 
