@@ -116,3 +116,55 @@ Dedicated barcode scanner using AVCaptureSession + AVCaptureMetadataOutput (EAN-
 
 - DMNC-561: Barcode scanning (done)
 - DMNC-562: Portion presets (backlog, unblocked by this)
+
+---
+
+## Arc 5: Conversational Follow-up (Build 31) — 2026-03-21
+
+### What Was Built
+
+When Claude returns low/medium confidence results from text input, an inline clarification section appears on the staging plate: "Can you be more specific?" + text field + Send button. User answers → multi-message follow-up to Claude → updated NutritionEstimate replaces staged items. Up to 3 rounds.
+
+### Key Decisions
+
+- **Zero new Redux state** — all follow-up state (history, round counter, loading, error) in `@State`
+- **Zero new schema fields** — trigger from `confidence != .high` in the view, not a Claude-supplied field
+- **Zero new files** — extended existing `.analyzeFoodText(query:history:)` with optional history
+- **Multi-turn API** — pass raw assistant JSON + user answers as multi-message conversation
+- **Text-path only** — photo/barcode results don't show clarification (no `rawAssistantJSON`)
+- **View owns history, service replays verbatim** — clean separation, no double-append
+
+### Review Findings (9 found, all fixed)
+
+3 HIGH:
+1. Double user turn in messages → service replays verbatim, view owns appends
+2. onChange misses when description unchanged → observe both totalCarbsG and description + error handler
+3. Cap exceeded leaves spinner → check in view before dispatch + error onChange resets state
+
+6 MEDIUM: double-tap guard, round counter on success only, hide for photo results, sanitize editDescription, transient field docs, error resets spinner
+
+### Documentation
+
+- `docs/plans/2026-03-20-feat-conversational-food-clarification-plan.md`
+- DMNC-560 Done in Linear
+
+---
+
+## Session Summary
+
+**Dates:** 2026-03-17 through 2026-03-21
+**Builds shipped:** 27, 28, 29, 30, 31
+**PRs merged:** #2 (editable AI results), #3 (NL parsing), #4 (barcode), #5 (conversational follow-up)
+**Linear issues closed:** DMNC-553, DMNC-558, DMNC-560, DMNC-561
+
+### What Was Built (Across All Arcs)
+
+1. **Data persistence fix** (Build 27) — appState stuck at .inactive
+2. **Editable AI food results** (Build 28) — staging plate, per-item editing, AI learning from corrections
+3. **NL text food parsing** (Build 29) — type "cheeseburger from McDonalds" → structured nutrition
+4. **Barcode scanning** (Build 30) — EAN/UPC scan → Open Food Facts lookup → staging plate
+5. **Conversational follow-up** (Build 31) — "some almonds" → "How many?" → "about 10" → accurate result
+
+### Remaining Backlog
+
+- DMNC-562: Portion presets & smart quantities (only remaining food logging issue)
