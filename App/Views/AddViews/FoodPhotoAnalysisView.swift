@@ -53,8 +53,10 @@ struct FoodPhotoAnalysisView: View {
                 }
             }
             .onDisappear {
-                // Clear stale state when view is popped (back swipe or cancel)
-                stopProgressTimer() // safety stop if view dismissed during loading
+                // Don't clear state when a child NavigationLink (item barcode scan) is active
+                guard !isItemScanActive else { return }
+                // Clear stale state when view is truly popped (back swipe or cancel)
+                stopProgressTimer()
                 stagedItems = []
                 editDescription = ""
                 followUpHistory = []
@@ -75,6 +77,7 @@ struct FoodPhotoAnalysisView: View {
     @State private var showCamera = false
     @State private var showConsentSheet = false
     @State private var showImagePicker = false
+    @State private var isItemScanActive = false // guards onDisappear from clearing during child push
 
     // Staging plate state
     @State private var stagedItems: [EditableFoodItem] = []
@@ -456,24 +459,28 @@ struct FoodPhotoAnalysisView: View {
                                         let itemID = item.id
                                         NavigationLink {
                                             ItemBarcodeScannerView { scannedEstimate in
+                                                isItemScanActive = false
                                                 if let currentIdx = stagedItems.firstIndex(where: { $0.id == itemID }),
                                                    let scannedItem = scannedEstimate.items.first {
                                                     let amount = parseBaseServingG(scannedItem.servingSize)
                                                     let ratio: Double? = amount.flatMap { $0 > 0 ? scannedItem.carbsG / $0 : nil }
-                                                    stagedItems[currentIdx] = EditableFoodItem(
-                                                        name: scannedItem.name,
-                                                        carbsG: scannedItem.carbsG,
-                                                        baseServingG: amount,
-                                                        currentAmountG: amount,
-                                                        carbsPerG: ratio
-                                                    )
+                                                    // Update in-place (preserve ID so ForEach doesn't re-render)
+                                                    stagedItems[currentIdx].name = scannedItem.name
+                                                    stagedItems[currentIdx].carbsG = scannedItem.carbsG
+                                                    stagedItems[currentIdx].baseServingG = amount
+                                                    stagedItems[currentIdx].currentAmountG = amount
+                                                    stagedItems[currentIdx].carbsPerG = ratio
                                                 }
                                             }
                                             .navigationBarHidden(true)
+                                            .onAppear { isItemScanActive = true }
+                                            .onDisappear { isItemScanActive = false }
                                         } label: {
-                                                Image(systemName: "barcode.viewfinder")
-                                                    .font(DOSTypography.caption)
-                                                    .foregroundStyle(AmberTheme.amberDark)
+                                            Image(systemName: "barcode.viewfinder")
+                                                .font(.system(size: 20))
+                                                .frame(width: 44, height: 44) // Apple 44pt touch target
+                                                .contentShape(Rectangle())
+                                                .foregroundStyle(AmberTheme.amberDark)
                                         }
                                     }
                                     // Amount field — only when parseable serving size exists
