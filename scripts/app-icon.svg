@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
   <rect width="1024" height="1024" fill="#000000"/>
 
-  <!-- Blood drop — upper left quadrant, large (~280px tall) -->
+  <!-- Blood drop — upper left quadrant, large (~280px tall) — KEEP AS IS -->
   <g transform="translate(230, 260)">
     <path
       d="M0,-140 C-15,-100 -95,25 -95,90 C-95,143 -53,185 0,185 C53,185 95,143 95,90 C95,25 15,-100 0,-140 Z"
@@ -12,10 +12,10 @@
     <ellipse cx="-22" cy="50" rx="18" ry="26" fill="#ff8888" opacity="0.3"/>
   </g>
 
-  <!-- Insulin pen — larger, diagonal from lower-left to upper-right -->
-  <g transform="translate(530, 500) rotate(-45)">
+  <!-- Insulin pen — LARGER, fills more of the canvas -->
+  <g transform="translate(540, 480) rotate(-45) scale(1.35)">
     <!-- Main barrel -->
-    <rect x="-220" y="-28" width="440" height="56" fill="none" stroke="#ffb000" stroke-width="5" rx="3"/>
+    <rect x="-220" y="-28" width="440" height="56" fill="none" stroke="#ffb000" stroke-width="4" rx="3"/>
     <!-- Graduation marks -->
     <line x1="-180" y1="-28" x2="-180" y2="-12" stroke="#ffb000" stroke-width="2.5"/>
     <line x1="-140" y1="-28" x2="-140" y2="-16" stroke="#ffb000" stroke-width="2"/>
@@ -32,23 +32,23 @@
     <line x1="86" y1="-14" x2="86" y2="14" stroke="#ffb000" stroke-width="2"/>
     <line x1="104" y1="-14" x2="104" y2="14" stroke="#ffb000" stroke-width="2"/>
     <!-- Cap end (right) -->
-    <rect x="220" y="-22" width="50" height="44" fill="none" stroke="#ffb000" stroke-width="5" rx="3"/>
+    <rect x="220" y="-22" width="50" height="44" fill="none" stroke="#ffb000" stroke-width="4" rx="3"/>
     <line x1="232" y1="-14" x2="232" y2="14" stroke="#ffb000" stroke-width="2.5"/>
     <line x1="245" y1="-14" x2="245" y2="14" stroke="#ffb000" stroke-width="2.5"/>
     <line x1="258" y1="-14" x2="258" y2="14" stroke="#ffb000" stroke-width="2.5"/>
     <!-- Needle end (left) — tapered -->
-    <polygon points="-220,-20 -220,20 -280,5 -280,-5" fill="none" stroke="#ffb000" stroke-width="4"/>
+    <polygon points="-220,-20 -220,20 -280,5 -280,-5" fill="none" stroke="#ffb000" stroke-width="3"/>
     <!-- Needle tip -->
     <line x1="-280" y1="0" x2="-316" y2="0" stroke="#ffb000" stroke-width="3"/>
   </g>
 
-  <!-- Chart line — starts near pen tip, 3 angles going right and up -->
-  <!-- Pen tip approx at (280, 735) in screen coords -->
+  <!-- Chart line — starts near pen tip, sweeps wider across canvas -->
+  <!-- Pen tip with scale(1.35) approx at (200, 780) -->
   <polyline
-    points="280,735 420,650 560,690 730,530 880,480"
+    points="200,790 380,680 580,730 800,520 960,450"
     fill="none"
     stroke="#ffb000"
-    stroke-width="7"
+    stroke-width="8"
     stroke-linecap="round"
     stroke-linejoin="round"
     opacity="0.75"
