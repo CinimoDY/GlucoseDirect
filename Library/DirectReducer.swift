@@ -208,6 +208,9 @@ func directReducer(state: inout DirectState, action: DirectAction) {
     case .setRecentFoodCorrections(recentFoodCorrections: let recentFoodCorrections):
         state.recentFoodCorrections = recentFoodCorrections
 
+    case .setServingPresets(servingPresets: let servingPresets):
+        state.servingPresets = servingPresets
+
     case .setRecentMealEntries(recentMealEntries: let recentMealEntries):
         state.recentMealEntries = recentMealEntries
 

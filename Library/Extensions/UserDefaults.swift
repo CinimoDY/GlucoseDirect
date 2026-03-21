@@ -61,6 +61,7 @@ private enum Keys: String {
     case aiConsentFoodPhoto = "libre-direct.settings.ai-consent-food-photo"
     case claudeAPIKeyValid = "libre-direct.settings.claude-api-key-valid"
     case thumbCalibrationMM = "libre-direct.settings.thumb-calibration-mm"
+    case servingPresets = "libre-direct.settings.serving-presets"
 }
 
 extension UserDefaults {
@@ -734,6 +735,15 @@ extension UserDefaults {
             } else {
                 removeObject(forKey: Keys.thumbCalibrationMM.rawValue)
             }
+        }
+    }
+
+    var servingPresets: [ServingPreset] {
+        get {
+            getArray(forKey: Keys.servingPresets.rawValue) ?? ServingPreset.defaults
+        }
+        set {
+            setArray(newValue, forKey: Keys.servingPresets.rawValue)
         }
     }
 }

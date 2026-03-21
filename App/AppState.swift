@@ -84,6 +84,7 @@ struct AppState: DirectState {
         self.aiConsentFoodPhoto = UserDefaults.standard.aiConsentFoodPhoto
         self.claudeAPIKeyValid = UserDefaults.standard.claudeAPIKeyValid
         self.thumbCalibrationMM = UserDefaults.standard.thumbCalibrationMM
+        self.servingPresets = UserDefaults.standard.servingPresets
     }
 
     // MARK: Internal
@@ -166,6 +167,7 @@ struct AppState: DirectState {
     var aiConsentFoodPhoto: Bool { didSet { UserDefaults.standard.aiConsentFoodPhoto = aiConsentFoodPhoto } }
     var claudeAPIKeyValid: Bool { didSet { UserDefaults.standard.claudeAPIKeyValid = claudeAPIKeyValid } }
     var thumbCalibrationMM: Double? { didSet { UserDefaults.standard.thumbCalibrationMM = thumbCalibrationMM } }
+    var servingPresets: [ServingPreset] { didSet { UserDefaults.standard.servingPresets = servingPresets } }
     var foodAnalysisResult: NutritionEstimate?
     var foodAnalysisError: String?
     var foodAnalysisLoading = false

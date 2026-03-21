@@ -131,6 +131,7 @@ enum DirectAction {
     case reorderFavoriteFoods(favoriteFoodValues: [FavoriteFood])
     case saveMealWithCorrections(meal: MealEntry, corrections: [FoodCorrection])
     case setPersonalFoods(personalFoods: [PersonalFood])
+    case setServingPresets(servingPresets: [ServingPreset])
     case setRecentFoodCorrections(recentFoodCorrections: [FoodCorrection])
     case updateFavoriteFood(favoriteFood: FavoriteFood)
     case validateClaudeAPIKey
