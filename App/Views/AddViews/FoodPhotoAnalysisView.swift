@@ -14,6 +14,7 @@ struct EditableFoodItem: Identifiable {
     var name: String
     var carbsG: Double
     var isExpanded: Bool = false
+    var baseServingG: Double? = nil // From OFF serving_quantity, for portion scaling
 }
 
 // MARK: - FoodPhotoAnalysisView
@@ -58,6 +59,9 @@ struct FoodPhotoAnalysisView: View {
                 followUpRoundsUsed = 0
                 isFollowingUp = false
                 followUpError = nil
+                portionMultiplier = 1.0
+                baseStagedItems = []
+                customPortionText = ""
             }
         }
     }
@@ -74,6 +78,11 @@ struct FoodPhotoAnalysisView: View {
     @State private var editDescription = ""
     @State private var editTimestamp = Date()
     @FocusState private var focusedItemID: UUID?
+
+    // Portion scaling state
+    @State private var portionMultiplier: Double = 1.0
+    @State private var baseStagedItems: [EditableFoodItem] = []
+    @State private var customPortionText = ""
 
     // Conversational follow-up state
     @State private var followUpHistory: [ConversationTurn] = []
@@ -94,8 +103,15 @@ struct FoodPhotoAnalysisView: View {
     ]
 
     // Auto-computed totals from staged items
+    // Show scaled carbs in the banner (base × multiplier)
     private var computedCarbs: Double {
-        stagedItems.reduce(0) { $0 + $1.carbsG }
+        stagedItems.reduce(0) { $0 + $1.carbsG } * portionMultiplier
+    }
+
+    // Whether the portion picker should show (single-item barcode result with known serving)
+    private var showPortionPicker: Bool {
+        guard stagedItems.count == 1, let base = stagedItems.first?.baseServingG else { return false }
+        return base > 0
     }
 
     private var consentSection: some View {
@@ -319,6 +335,63 @@ struct FoodPhotoAnalysisView: View {
                 }
             }
 
+            // Portion picker — single-item barcode results with known serving
+            if showPortionPicker {
+                Section(
+                    content: {
+                        // Preset chips
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: DOSSpacing.sm) {
+                                ForEach(store.state.servingPresets) { preset in
+                                    Button {
+                                        if let base = stagedItems.first?.baseServingG, base > 0 {
+                                            portionMultiplier = min(preset.amountML / base, 20)
+                                        }
+                                    } label: {
+                                        Text(preset.label)
+                                            .font(DOSTypography.caption)
+                                            .padding(.horizontal, DOSSpacing.sm)
+                                            .padding(.vertical, 4)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 2)
+                                                    .stroke(AmberTheme.amberDark, lineWidth: 1)
+                                            )
+                                    }
+                                    .foregroundStyle(AmberTheme.amber)
+                                }
+                            }
+                        }
+
+                        // Custom amount entry
+                        HStack {
+                            TextField("Custom (g/ml)", text: $customPortionText)
+                                .font(DOSTypography.caption)
+                                .keyboardType(.decimalPad)
+                                .frame(width: 120)
+
+                            Button("Apply") {
+                                if let custom = Double(customPortionText),
+                                   let base = stagedItems.first?.baseServingG,
+                                   base > 0, custom > 0 {
+                                    portionMultiplier = min(max(custom / base, 0.1), 20)
+                                }
+                            }
+                            .font(DOSTypography.caption)
+                            .foregroundStyle(AmberTheme.amber)
+
+                            Spacer()
+
+                            Text("×\(String(format: "%.1f", portionMultiplier))")
+                                .font(DOSTypography.body)
+                                .foregroundStyle(AmberTheme.amber)
+                        }
+                    },
+                    header: {
+                        Label("Portion", systemImage: "scalemass")
+                    }
+                )
+            }
+
             // Meal details
             Section(
                 content: {
@@ -493,9 +566,25 @@ struct FoodPhotoAnalysisView: View {
     private func populateStagedItems(from result: NutritionEstimate) {
         guard stagedItems.isEmpty else { return }
         editDescription = result.description
-        stagedItems = result.items.map { item in
-            EditableFoodItem(name: item.name, carbsG: item.carbsG)
+        let items = result.items.map { item in
+            EditableFoodItem(name: item.name, carbsG: item.carbsG, baseServingG: parseBaseServingG(item.servingSize))
         }
+        stagedItems = items
+        baseStagedItems = items // preserve unscaled originals for corrections
+        portionMultiplier = 1.0
+    }
+
+    /// Parse numeric grams/ml from serving size string like "per 100g", "1 serving (30g)", "15 g"
+    private func parseBaseServingG(_ servingSize: String?) -> Double? {
+        guard let s = servingSize else { return nil }
+        // Look for a number followed by g or ml
+        let pattern = #"(\d+(?:\.\d+)?)\s*(?:g|ml|gram)"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
+              let match = regex.firstMatch(in: s, range: NSRange(s.startIndex..., in: s)),
+              let range = Range(match.range(at: 1), in: s),
+              let value = Double(s[range]),
+              value > 0, value <= 2000 else { return nil }
+        return value
     }
 
     private func sendFollowUp(result: NutritionEstimate) {
@@ -537,11 +626,15 @@ struct FoodPhotoAnalysisView: View {
 
     private func replaceWithFollowUpResult(_ result: NutritionEstimate) {
         editDescription = result.description
-        stagedItems = result.items.map { item in
+        let newItems = result.items.map { item in
             EditableFoodItem(name: item.name, carbsG: item.carbsG)
         }
+        stagedItems = newItems
+        baseStagedItems = newItems
+        portionMultiplier = 1.0 // follow-up result is already the correct portion
+        customPortionText = ""
         isFollowingUp = false
-        followUpRoundsUsed += 1 // increment on success, not before dispatch
+        followUpRoundsUsed += 1
     }
 
     private func addItem() {

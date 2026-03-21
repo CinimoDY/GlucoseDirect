@@ -27,6 +27,8 @@
 		FC01000100000003000A0003 /* PersonalFood.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC01000200000002000A0002 /* PersonalFood.swift */; };
 		FC01000100000004000A0004 /* PersonalFood.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC01000200000002000A0002 /* PersonalFood.swift */; };
 		FC01000100000005000A0005 /* FoodCorrectionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC01000200000003000A0003 /* FoodCorrectionStore.swift */; };
+		DA01000100000001000E0001 /* ServingPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA01000200000001000E0001 /* ServingPreset.swift */; };
+		DA01000100000002000E0002 /* ServingPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA01000200000001000E0001 /* ServingPreset.swift */; };
 		FF01000100000004000F0004 /* UnifiedFoodEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF01000200000003000F0003 /* UnifiedFoodEntryView.swift */; };
 		BD098B7D516906B95F92737F /* MealEntryListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47988FB1F9466EE8DB163743 /* MealEntryListView.swift */; };
 		0A18373573D9BFB02935C90B /* MealStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 291E048F059A0A6C176A6315 /* MealStore.swift */; };
@@ -295,6 +297,7 @@
 		F5B3B29325013D6A04E3E5A6 /* MealEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealEntry.swift; sourceTree = "<group>"; };
 		FC01000200000001000A0001 /* FoodCorrection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodCorrection.swift; sourceTree = "<group>"; };
 		FC01000200000002000A0002 /* PersonalFood.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalFood.swift; sourceTree = "<group>"; };
+		DA01000200000001000E0001 /* ServingPreset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServingPreset.swift; sourceTree = "<group>"; };
 		FC01000200000003000A0003 /* FoodCorrectionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodCorrectionStore.swift; sourceTree = "<group>"; };
 		FF01000200000001000F0001 /* FavoriteFood.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteFood.swift; sourceTree = "<group>"; };
 		FF01000200000002000F0002 /* FavoriteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteStore.swift; sourceTree = "<group>"; };
@@ -844,6 +847,7 @@
 				F5B3B29325013D6A04E3E5A6 /* MealEntry.swift */,
 				CB01000100000003000C0003 /* NutritionEstimate.swift */,
 				FC01000200000002000A0002 /* PersonalFood.swift */,
+				DA01000200000001000E0001 /* ServingPreset.swift */,
 				E26677DB28799E8A008E8B68 /* Glucose.swift */,
 				E2FCAC18270741BC00FE1CBF /* GlucoseUnit.swift */,
 				E2FCAC13270741BC00FE1CBF /* Sensor.swift */,
@@ -1258,6 +1262,7 @@
 				FF01000100000001000F0001 /* FavoriteFood.swift in Sources */,
 				FC01000100000001000A0001 /* FoodCorrection.swift in Sources */,
 				FC01000100000003000A0003 /* PersonalFood.swift in Sources */,
+				DA01000100000001000E0001 /* ServingPreset.swift in Sources */,
 				FC01000100000005000A0005 /* FoodCorrectionStore.swift in Sources */,
 				FF01000100000002000F0002 /* FavoriteStore.swift in Sources */,
 				12028E4ACD3A51BE09BB9CFA /* MealEntry.swift in Sources */,
@@ -1357,6 +1362,7 @@
 				FF01000100000003000F0003 /* FavoriteFood.swift in Sources */,
 				FC01000100000002000A0002 /* FoodCorrection.swift in Sources */,
 				FC01000100000004000A0004 /* PersonalFood.swift in Sources */,
+				DA01000100000002000E0002 /* ServingPreset.swift in Sources */,
 				EFCE388A6BE1BC789C79E511 /* MealEntry.swift in Sources */,
 				CB01000300000003000C0003 /* NutritionEstimate.swift in Sources */,
 				E2591C5B28740E7A0009F27C /* SensorConnectionInfo.swift in Sources */,
