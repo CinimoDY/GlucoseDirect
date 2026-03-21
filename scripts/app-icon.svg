@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" fill="#000000"/>
+
+  <!-- Glucose chart line — jagged waveform across the middle -->
+  <polyline
+    points="80,620 160,580 240,640 320,520 400,560 440,420 500,480 560,380 620,440 700,360 760,400 840,340 920,380"
+    fill="none"
+    stroke="#ffb000"
+    stroke-width="8"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    opacity="0.6"
+  />
+
+  <!-- Target range band (dim amber, behind the line) -->
+  <rect x="60" y="400" width="900" height="200" fill="#ffb000" opacity="0.06" rx="4"/>
+
+  <!-- Blood drop — teardrop shape, center-right -->
+  <g transform="translate(700, 200)">
+    <!-- Drop body -->
+    <path
+      d="M0,-80 C-8,-60 -50,10 -50,50 C-50,78 -28,100 0,100 C28,100 50,78 50,50 C50,10 8,-60 0,-80 Z"
+      fill="#ff5555"
+      stroke="#ffb000"
+      stroke-width="4"
+    />
+    <!-- Highlight -->
+    <ellipse cx="-12" cy="30" rx="10" ry="14" fill="#ff8888" opacity="0.4"/>
+  </g>
+
+  <!-- Small glucose value display — DOS style -->
+  <g transform="translate(120, 180)">
+    <text
+      font-family="monospace"
+      font-size="120"
+      font-weight="bold"
+      fill="#ffb000"
+    >BTS</text>
+  </g>
+
+  <!-- Bottom label -->
+  <text
+    x="512" y="920"
+    font-family="monospace"
+    font-size="48"
+    fill="#9a5700"
+    text-anchor="middle"
+  >GLUCOSE</text>
+
+  <!-- Scanline effect (subtle) -->
+  <defs>
+    <pattern id="scanlines" width="4" height="4" patternUnits="userSpaceOnUse">
+      <rect width="4" height="2" fill="rgba(0,0,0,0.15)"/>
+    </pattern>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#scanlines)"/>
+</svg>
