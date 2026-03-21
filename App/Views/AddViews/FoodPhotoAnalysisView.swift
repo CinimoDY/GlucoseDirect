@@ -14,7 +14,9 @@ struct EditableFoodItem: Identifiable {
     var name: String
     var carbsG: Double
     var isExpanded: Bool = false
-    var baseServingG: Double? = nil // From OFF serving_quantity, for portion scaling
+    var baseServingG: Double? = nil  // From OFF serving_quantity, for portion presets
+    var currentAmountG: Double? = nil // User-visible portion in g/ml (nil = amount field hidden)
+    var carbsPerG: Double? = nil      // Carbs-per-gram ratio (nil = user overrode carbs directly)
 }
 
 // MARK: - FoodPhotoAnalysisView
@@ -78,6 +80,9 @@ struct FoodPhotoAnalysisView: View {
     @State private var editDescription = ""
     @State private var editTimestamp = Date()
     @FocusState private var focusedItemID: UUID?
+
+    // Inline item barcode scan
+    @State private var scanTargetIndex: Int?
 
     // Portion scaling state
     @State private var portionMultiplier: Double = 1.0
@@ -445,18 +450,90 @@ struct FoodPhotoAnalysisView: View {
                                             .font(DOSTypography.body)
                                             .multilineTextAlignment(.trailing)
                                             .focused($focusedItemID, equals: item.id)
+
+                                        // Inline barcode scan for this item
+                                        if let idx = stagedItems.firstIndex(where: { $0.id == item.id }) {
+                                            NavigationLink {
+                                                ItemBarcodeScannerView { scannedEstimate in
+                                                    // Replace this item with scanned product
+                                                    if idx < stagedItems.count,
+                                                       let scannedItem = scannedEstimate.items.first {
+                                                        let amount = parseBaseServingG(scannedItem.servingSize)
+                                                        let ratio: Double? = (amount != nil && amount! > 0) ? scannedItem.carbsG / amount! : nil
+                                                        stagedItems[idx] = EditableFoodItem(
+                                                            name: scannedItem.name,
+                                                            carbsG: scannedItem.carbsG,
+                                                            baseServingG: amount,
+                                                            currentAmountG: amount,
+                                                            carbsPerG: ratio
+                                                        )
+                                                    }
+                                                }
+                                                .navigationBarHidden(true)
+                                            } label: {
+                                                Image(systemName: "barcode.viewfinder")
+                                                    .font(DOSTypography.caption)
+                                                    .foregroundStyle(AmberTheme.amberDark)
+                                            }
+                                        }
                                     }
+                                    // Amount field — only when parseable serving size exists
+                                    if item.currentAmountG != nil {
+                                        HStack {
+                                            Text("Amount")
+                                                .font(DOSTypography.caption)
+                                                .foregroundStyle(AmberTheme.amberDark)
+                                            TextField("0", value: $item.currentAmountG, format: .number)
+                                                .keyboardType(.decimalPad)
+                                                .multilineTextAlignment(.trailing)
+                                                .frame(width: 80)
+                                                .onChange(of: item.currentAmountG) { newAmount in
+                                                    // Auto-scale carbs proportionally when ratio exists
+                                                    if let ratio = item.carbsPerG,
+                                                       let amt = newAmount, amt > 0 {
+                                                        let scaled = ratio * min(amt, 10000)
+                                                        if abs(scaled - item.carbsG) > 0.01 {
+                                                            item.carbsG = scaled
+                                                        }
+                                                    }
+                                                }
+                                            Text("g")
+                                                .font(DOSTypography.caption)
+                                                .foregroundStyle(AmberTheme.amberDark)
+                                        }
+                                    }
+
                                     HStack {
                                         Text("Carbs")
                                             .font(DOSTypography.caption)
-                                            .foregroundStyle(AmberTheme.amberDark)
+                                            .foregroundStyle(item.carbsPerG == nil && item.currentAmountG != nil
+                                                ? AmberTheme.amber : AmberTheme.amberDark)
                                         TextField("0", value: $item.carbsG, format: .number)
                                             .keyboardType(.decimalPad)
                                             .multilineTextAlignment(.trailing)
                                             .frame(width: 80)
+                                            .onChange(of: item.carbsG) { _ in
+                                                // Manual carb edit breaks proportional link
+                                                if item.carbsPerG != nil && item.currentAmountG != nil {
+                                                    // Only break if user actually typed (not auto-scaled)
+                                                    // Check if current carbs match the ratio
+                                                    if let ratio = item.carbsPerG,
+                                                       let amt = item.currentAmountG {
+                                                        let expected = ratio * amt
+                                                        if abs(item.carbsG - expected) > 0.5 {
+                                                            item.carbsPerG = nil // manual override
+                                                        }
+                                                    }
+                                                }
+                                            }
                                         Text("g")
                                             .font(DOSTypography.caption)
                                             .foregroundStyle(AmberTheme.amberDark)
+                                        if item.carbsPerG == nil && item.currentAmountG != nil {
+                                            Text("manual")
+                                                .font(DOSTypography.caption)
+                                                .foregroundStyle(AmberTheme.amberDark)
+                                        }
                                     }
                                 }
                                 .padding(.leading, DOSSpacing.md)
@@ -566,8 +643,16 @@ struct FoodPhotoAnalysisView: View {
     private func populateStagedItems(from result: NutritionEstimate) {
         guard stagedItems.isEmpty else { return }
         editDescription = result.description
-        let items = result.items.map { item in
-            EditableFoodItem(name: item.name, carbsG: item.carbsG, baseServingG: parseBaseServingG(item.servingSize))
+        let items = result.items.map { item -> EditableFoodItem in
+            let amount = parseBaseServingG(item.servingSize)
+            let ratio: Double? = (amount != nil && amount! > 0) ? item.carbsG / amount! : nil
+            return EditableFoodItem(
+                name: item.name,
+                carbsG: item.carbsG,
+                baseServingG: amount,
+                currentAmountG: amount,
+                carbsPerG: ratio
+            )
         }
         stagedItems = items
         baseStagedItems = items // preserve unscaled originals for corrections
