@@ -99,6 +99,10 @@ struct ItemBarcodeScannerView: View {
                 let estimate = try await lookupBarcodeInOpenFoodFacts(code)
                 await MainActor.run {
                     onResult(estimate)
+                }
+                // Allow SwiftUI to process the state update before popping
+                try? await Task.sleep(nanoseconds: 50_000_000) // ~3 frames
+                await MainActor.run {
                     dismiss()
                 }
             } catch {

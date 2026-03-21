@@ -54,6 +54,7 @@ struct FoodPhotoAnalysisView: View {
             }
             .onDisappear {
                 // Clear stale state when view is popped (back swipe or cancel)
+                stopProgressTimer() // safety stop if view dismissed during loading
                 stagedItems = []
                 editDescription = ""
                 followUpHistory = []
@@ -451,30 +452,28 @@ struct FoodPhotoAnalysisView: View {
                                             .multilineTextAlignment(.trailing)
                                             .focused($focusedItemID, equals: item.id)
 
-                                        // Inline barcode scan for this item
-                                        if let idx = stagedItems.firstIndex(where: { $0.id == item.id }) {
-                                            NavigationLink {
-                                                ItemBarcodeScannerView { scannedEstimate in
-                                                    // Replace this item with scanned product
-                                                    if idx < stagedItems.count,
-                                                       let scannedItem = scannedEstimate.items.first {
-                                                        let amount = parseBaseServingG(scannedItem.servingSize)
-                                                        let ratio: Double? = (amount != nil && amount! > 0) ? scannedItem.carbsG / amount! : nil
-                                                        stagedItems[idx] = EditableFoodItem(
-                                                            name: scannedItem.name,
-                                                            carbsG: scannedItem.carbsG,
-                                                            baseServingG: amount,
-                                                            currentAmountG: amount,
-                                                            carbsPerG: ratio
-                                                        )
-                                                    }
+                                        // Inline barcode scan for this item (capture ID, not index)
+                                        let itemID = item.id
+                                        NavigationLink {
+                                            ItemBarcodeScannerView { scannedEstimate in
+                                                if let currentIdx = stagedItems.firstIndex(where: { $0.id == itemID }),
+                                                   let scannedItem = scannedEstimate.items.first {
+                                                    let amount = parseBaseServingG(scannedItem.servingSize)
+                                                    let ratio: Double? = amount.flatMap { $0 > 0 ? scannedItem.carbsG / $0 : nil }
+                                                    stagedItems[currentIdx] = EditableFoodItem(
+                                                        name: scannedItem.name,
+                                                        carbsG: scannedItem.carbsG,
+                                                        baseServingG: amount,
+                                                        currentAmountG: amount,
+                                                        carbsPerG: ratio
+                                                    )
                                                 }
-                                                .navigationBarHidden(true)
-                                            } label: {
+                                            }
+                                            .navigationBarHidden(true)
+                                        } label: {
                                                 Image(systemName: "barcode.viewfinder")
                                                     .font(DOSTypography.caption)
                                                     .foregroundStyle(AmberTheme.amberDark)
-                                            }
                                         }
                                     }
                                     // Amount field — only when parseable serving size exists
@@ -492,7 +491,7 @@ struct FoodPhotoAnalysisView: View {
                                                     if let ratio = item.carbsPerG,
                                                        let amt = newAmount, amt > 0 {
                                                         let scaled = ratio * min(amt, 10000)
-                                                        if abs(scaled - item.carbsG) > 0.01 {
+                                                        if abs(scaled - item.carbsG) > 0.5 {
                                                             item.carbsG = scaled
                                                         }
                                                     }
@@ -645,7 +644,7 @@ struct FoodPhotoAnalysisView: View {
         editDescription = result.description
         let items = result.items.map { item -> EditableFoodItem in
             let amount = parseBaseServingG(item.servingSize)
-            let ratio: Double? = (amount != nil && amount! > 0) ? item.carbsG / amount! : nil
+            let ratio: Double? = amount.flatMap { $0 > 0 ? item.carbsG / $0 : nil }
             return EditableFoodItem(
                 name: item.name,
                 carbsG: item.carbsG,

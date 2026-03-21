@@ -119,7 +119,8 @@ private func claudeMiddleware(service: LazyService<ClaudeService>) -> Middleware
 
 // MARK: - Open Food Facts Barcode Lookup (inlined, no separate service file)
 
-// Internal: also called by ItemBarcodeScannerView for per-item inline scan
+/// Direct OFF barcode lookup. For standard Redux flow, dispatch `.analyzeFoodBarcode` instead.
+/// Called directly by `ItemBarcodeScannerView` to avoid colliding with `foodAnalysisResult` state.
 func lookupBarcodeInOpenFoodFacts(_ code: String) async throws -> NutritionEstimate {
     // Validate barcode: digits only, 8-14 chars
     let trimmed = code.trimmingCharacters(in: .whitespacesAndNewlines)
