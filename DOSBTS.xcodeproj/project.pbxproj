@@ -241,6 +241,7 @@
 		CB01000200000004000C0004 /* ClaudeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB01000100000004000C0004 /* ClaudeService.swift */; };
 		CB01000200000005000C0005 /* ClaudeMiddleware.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB01000100000005000C0005 /* ClaudeMiddleware.swift */; };
 		BC01000100000001000D0001 /* BarcodeScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC01000200000001000D0001 /* BarcodeScannerView.swift */; };
+		EA01000100000001000F0001 /* ItemBarcodeScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA01000200000001000F0001 /* ItemBarcodeScannerView.swift */; };
 		CB01000200000006000C0006 /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB01000100000006000C0006 /* CameraView.swift */; };
 		CB01000200000007000C0007 /* AIConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB01000100000007000C0007 /* AIConsentView.swift */; };
 		CB01000200000008000C0008 /* FoodPhotoAnalysisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB01000100000008000C0008 /* FoodPhotoAnalysisView.swift */; };
@@ -506,6 +507,7 @@
 		CB01000100000004000C0004 /* ClaudeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeService.swift; sourceTree = "<group>"; };
 		CB01000100000005000C0005 /* ClaudeMiddleware.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeMiddleware.swift; sourceTree = "<group>"; };
 		BC01000200000001000D0001 /* BarcodeScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeScannerView.swift; sourceTree = "<group>"; };
+		EA01000200000001000F0001 /* ItemBarcodeScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemBarcodeScannerView.swift; sourceTree = "<group>"; };
 		CB01000100000006000C0006 /* CameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraView.swift; sourceTree = "<group>"; };
 		CB01000100000007000C0007 /* AIConsentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIConsentView.swift; sourceTree = "<group>"; };
 		CB01000100000008000C0008 /* FoodPhotoAnalysisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPhotoAnalysisView.swift; sourceTree = "<group>"; };
@@ -544,6 +546,7 @@
 				10DD1300296A15B900C900EA /* AddCalibrationView.swift */,
 				10DD1302296A15CA00C900EA /* AddBloodGlucoseView.swift */,
 				BC01000200000001000D0001 /* BarcodeScannerView.swift */,
+				EA01000200000001000F0001 /* ItemBarcodeScannerView.swift */,
 				CB01000100000006000C0006 /* CameraView.swift */,
 				CB01000100000007000C0007 /* AIConsentView.swift */,
 				CB01000100000008000C0008 /* FoodPhotoAnalysisView.swift */,
@@ -1345,6 +1348,7 @@
 				CB01000200000004000C0004 /* ClaudeService.swift in Sources */,
 				CB01000200000005000C0005 /* ClaudeMiddleware.swift in Sources */,
 				BC01000100000001000D0001 /* BarcodeScannerView.swift in Sources */,
+				EA01000100000001000F0001 /* ItemBarcodeScannerView.swift in Sources */,
 				CB01000200000006000C0006 /* CameraView.swift in Sources */,
 				CB01000200000007000C0007 /* AIConsentView.swift in Sources */,
 				CB01000200000008000C0008 /* FoodPhotoAnalysisView.swift in Sources */,

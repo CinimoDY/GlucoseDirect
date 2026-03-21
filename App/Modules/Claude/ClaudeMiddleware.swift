@@ -119,7 +119,9 @@ private func claudeMiddleware(service: LazyService<ClaudeService>) -> Middleware
 
 // MARK: - Open Food Facts Barcode Lookup (inlined, no separate service file)
 
-private func lookupBarcodeInOpenFoodFacts(_ code: String) async throws -> NutritionEstimate {
+/// Direct OFF barcode lookup. For standard Redux flow, dispatch `.analyzeFoodBarcode` instead.
+/// Called directly by `ItemBarcodeScannerView` to avoid colliding with `foodAnalysisResult` state.
+func lookupBarcodeInOpenFoodFacts(_ code: String) async throws -> NutritionEstimate {
     // Validate barcode: digits only, 8-14 chars
     let trimmed = code.trimmingCharacters(in: .whitespacesAndNewlines)
     guard trimmed.allSatisfy(\.isNumber), (8 ... 14).contains(trimmed.count) else {
@@ -152,12 +154,12 @@ private func lookupBarcodeInOpenFoodFacts(_ code: String) async throws -> Nutrit
 
 // MARK: - Open Food Facts Response Types
 
-private struct OFFResponse: Decodable {
+struct OFFResponse: Decodable {
     let status: Int
     let product: OFFProduct?
 }
 
-private struct OFFProduct: Decodable {
+struct OFFProduct: Decodable {
     let productName: String?
     let brands: String?
     let servingSize: String?
@@ -227,7 +229,7 @@ private struct OFFProduct: Decodable {
 }
 
 // OFF nutriments — all optional, handles mixed number/string types
-private struct OFFNutriments: Decodable {
+struct OFFNutriments: Decodable {
     let carbohydrates100g: Double?
     let carbohydratesServing: Double?
     let proteins100g: Double?
