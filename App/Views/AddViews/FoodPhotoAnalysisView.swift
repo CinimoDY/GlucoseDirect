@@ -110,7 +110,8 @@ struct FoodPhotoAnalysisView: View {
 
     // Whether the portion picker should show (single-item barcode result with known serving)
     private var showPortionPicker: Bool {
-        stagedItems.count == 1 && stagedItems.first?.baseServingG != nil
+        guard stagedItems.count == 1, let base = stagedItems.first?.baseServingG else { return false }
+        return base > 0
     }
 
     private var consentSection: some View {
@@ -582,7 +583,7 @@ struct FoodPhotoAnalysisView: View {
               let match = regex.firstMatch(in: s, range: NSRange(s.startIndex..., in: s)),
               let range = Range(match.range(at: 1), in: s),
               let value = Double(s[range]),
-              value > 0 else { return nil }
+              value > 0, value <= 2000 else { return nil }
         return value
     }
 
@@ -625,11 +626,15 @@ struct FoodPhotoAnalysisView: View {
 
     private func replaceWithFollowUpResult(_ result: NutritionEstimate) {
         editDescription = result.description
-        stagedItems = result.items.map { item in
+        let newItems = result.items.map { item in
             EditableFoodItem(name: item.name, carbsG: item.carbsG)
         }
+        stagedItems = newItems
+        baseStagedItems = newItems
+        portionMultiplier = 1.0 // follow-up result is already the correct portion
+        customPortionText = ""
         isFollowingUp = false
-        followUpRoundsUsed += 1 // increment on success, not before dispatch
+        followUpRoundsUsed += 1
     }
 
     private func addItem() {

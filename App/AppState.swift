@@ -84,6 +84,10 @@ struct AppState: DirectState {
         self.aiConsentFoodPhoto = UserDefaults.standard.aiConsentFoodPhoto
         self.claudeAPIKeyValid = UserDefaults.standard.claudeAPIKeyValid
         self.thumbCalibrationMM = UserDefaults.standard.thumbCalibrationMM
+        // Persist defaults on first launch so UUIDs are stable
+        if UserDefaults.standard.data(forKey: "libre-direct.settings.serving-presets") == nil {
+            UserDefaults.standard.servingPresets = ServingPreset.defaults
+        }
         self.servingPresets = UserDefaults.standard.servingPresets
     }
 
