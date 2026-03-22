@@ -740,7 +740,7 @@ struct ChartView: View {
         static let symbolSize: CGFloat = 20
         static let selectionSize: CGFloat = 100
         static let spacerWidth: CGFloat = 50
-        static let chartHeight: CGFloat = 340
+        static let chartHeight: CGFloat = 250
         static let lineStyle: StrokeStyle = .init(lineWidth: 3, lineCap: .round)
         static let smoothLineStyle: StrokeStyle = .init(lineWidth: 3.5, lineCap: .round)
         static let rawLineStyle: StrokeStyle = .init(lineWidth: 3, lineCap: .round)

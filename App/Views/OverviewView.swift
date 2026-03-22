@@ -13,30 +13,35 @@ struct OverviewView: View {
     @State private var showingAddBloodGlucoseView = false
 
     var body: some View {
-        List {
-            GlucoseView()
-                .listRowSeparator(.hidden)
+        VStack(spacing: 0) {
+            List {
+                GlucoseView()
+                    .listRowSeparator(.hidden)
 
-            if !store.state.sensorGlucoseValues.isEmpty || !store.state.bloodGlucoseValues.isEmpty {
-                if #available(iOS 16.0, *) {
-                    ChartView()
-                } else {
-                    ChartViewCompatibility()
+                if !store.state.sensorGlucoseValues.isEmpty || !store.state.bloodGlucoseValues.isEmpty {
+                    if #available(iOS 16.0, *) {
+                        ChartView()
+                    } else {
+                        ChartViewCompatibility()
+                    }
                 }
-            }
 
-            QuickActionsSection()
+                ConnectionView()
+                SensorView()
+            }.listStyle(.grouped)
 
-            ConnectionView()
-            SensorView()
-        }.listStyle(.grouped)
+            StickyQuickActions()
+        }
     }
 
-    // MARK: - Quick Actions
+    // MARK: - Sticky Quick Actions
 
     @ViewBuilder
-    private func QuickActionsSection() -> some View {
-        Section {
+    private func StickyQuickActions() -> some View {
+        VStack(spacing: 0) {
+            Divider()
+                .background(AmberTheme.dosBorder)
+
             HStack(spacing: DOSSpacing.sm) {
                 if DirectConfig.showInsulinInput, store.state.showInsulinInput {
                     QuickActionButton(
@@ -62,28 +67,24 @@ struct OverviewView: View {
                         .environmentObject(store)
                 }
                 .frame(maxWidth: .infinity)
-            }
-            .padding(.horizontal, DOSSpacing.xs)
-            .listRowBackground(Color.clear)
-            .listRowInsets(EdgeInsets(top: DOSSpacing.xs, leading: 0, bottom: DOSSpacing.xs, trailing: 0))
 
-            if DirectConfig.bloodGlucoseInput {
-                Button(action: { showingAddBloodGlucoseView = true }) {
-                    HStack {
-                        Image(systemName: "drop.fill")
-                            .font(DOSTypography.caption)
-                        Text("Add blood glucose")
-                            .font(DOSTypography.bodySmall)
-                    }
-                    .foregroundColor(AmberTheme.amberDark)
-                }
-                .sheet(isPresented: $showingAddBloodGlucoseView) {
-                    AddBloodGlucoseView(glucoseUnit: store.state.glucoseUnit) { time, value in
-                        let glucose = BloodGlucose(id: UUID(), timestamp: time, glucoseValue: value)
-                        store.dispatch(.addBloodGlucose(glucoseValues: [glucose]))
+                if DirectConfig.bloodGlucoseInput {
+                    QuickActionButton(
+                        title: "BG",
+                        icon: "drop.fill",
+                        action: { showingAddBloodGlucoseView = true }
+                    )
+                    .sheet(isPresented: $showingAddBloodGlucoseView) {
+                        AddBloodGlucoseView(glucoseUnit: store.state.glucoseUnit) { time, value in
+                            let glucose = BloodGlucose(id: UUID(), timestamp: time, glucoseValue: value)
+                            store.dispatch(.addBloodGlucose(glucoseValues: [glucose]))
+                        }
                     }
                 }
             }
+            .padding(.horizontal, DOSSpacing.md)
+            .padding(.vertical, DOSSpacing.xs)
+            .background(AmberTheme.dosBlack)
         }
     }
 }

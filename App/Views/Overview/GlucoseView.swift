@@ -16,7 +16,7 @@ struct GlucoseView: View {
     var body: some View {
         VStack(spacing: 0) {
             if let latestGlucose = store.state.latestSensorGlucose {
-                HStack(alignment: .lastTextBaseline, spacing: 20) {
+                HStack(alignment: .lastTextBaseline, spacing: 12) {
                     if latestGlucose.type != .high {
                         Text(verbatim: latestGlucose.glucoseValue.asGlucose(glucoseUnit: store.state.glucoseUnit))
                             .font(DOSTypography.glucoseHero)
@@ -29,15 +29,17 @@ struct GlucoseView: View {
                             )
                             .onAppear { lowPulse = true }
 
-                        VStack(alignment: .leading) {
+                        VStack(alignment: .leading, spacing: 2) {
                             Text(verbatim: latestGlucose.trend.description)
                                 .foregroundColor(getGlucoseColor(glucose: latestGlucose))
-                                .font(DOSTypography.mono(size: 52, weight: .bold))
+                                .font(DOSTypography.mono(size: 36, weight: .bold))
 
                             if let minuteChange = latestGlucose.minuteChange?.asMinuteChange(glucoseUnit: store.state.glucoseUnit) {
                                 Text(verbatim: minuteChange)
+                                    .font(DOSTypography.caption)
                             } else {
                                 Text(verbatim: "?")
+                                    .font(DOSTypography.caption)
                             }
                         }
                     } else {
@@ -52,20 +54,22 @@ struct GlucoseView: View {
                     Text(verbatim: warning)
                         .font(DOSTypography.bodySmall)
                         .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
+                        .padding(.vertical, 3)
                         .background(AmberTheme.cgaRed)
                         .foregroundColor(AmberTheme.dosBlack)
                 } else {
                     Text(verbatim: store.state.glucoseUnit.localizedDescription)
+                        .font(DOSTypography.caption)
                         .opacity(0.5)
                 }
 
             } else {
                 Text("No Data")
-                    .font(DOSTypography.mono(size: 52, weight: .bold))
+                    .font(DOSTypography.mono(size: 42, weight: .bold))
                     .foregroundColor(AmberTheme.cgaRed)
 
                 Text(verbatim: "---")
+                    .font(DOSTypography.caption)
                     .opacity(0.5)
             }
 
@@ -110,7 +114,7 @@ struct GlucoseView: View {
                     }
                 }).opacity(store.state.alarmSnoozeUntil == nil ? 0.5 : 1)
             }
-            .padding(.top)
+            .padding(.top, DOSSpacing.xs)
             .disabled(store.state.latestSensorGlucose == nil)
             .buttonStyle(.plain)
         }
