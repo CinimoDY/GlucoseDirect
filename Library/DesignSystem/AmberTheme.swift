@@ -55,4 +55,63 @@ public enum AmberTheme {
 
     /// Warm near-black for card backgrounds: #1B1917
     public static let cardBackground = Color(red: 27.0 / 255.0, green: 25.0 / 255.0, blue: 23.0 / 255.0)
+
+    // MARK: - Glucose Color Functions
+
+    /// Raw RGB tuples for interpolation (avoids UIKit dependency)
+    private static let greenRGB = (r: 85.0 / 255.0, g: 1.0, b: 85.0 / 255.0)
+    private static let amberRGB = (r: 1.0, g: 176.0 / 255.0, b: 0.0)
+    private static let redRGB = (r: 1.0, g: 85.0 / 255.0, b: 85.0 / 255.0)
+
+    // MARK: - Chart Transition Colors (pre-computed blends)
+
+    /// Red→Green at 30% — exiting danger zone
+    public static let glucoseLowBuffer = interpolateRGB(from: redRGB, to: greenRGB, t: 0.3)
+    /// Green→Amber at 40% — starting to rise
+    public static let glucoseRising = interpolateRGB(from: greenRGB, to: amberRGB, t: 0.4)
+    /// Amber→Red at 50% — entering danger above
+    public static let glucoseHighBuffer = interpolateRGB(from: amberRGB, to: redRGB, t: 0.5)
+
+    /// Gradient glucose color based on mg/dL value
+    public static func glucoseColor(forValue value: Int, low: Int, high: Int) -> Color {
+        let v = Double(value)
+        let lo = Double(low)
+        let hi = Double(high)
+        let perfect = 100.0
+
+        if v < lo { return cgaRed }
+        if v <= perfect { return cgaGreen }
+        if v <= hi {
+            let t = min((v - perfect) / (hi - perfect), 1.0)
+            return interpolateRGB(from: greenRGB, to: amberRGB, t: t)
+        }
+        let t = min((v - hi) / 60.0, 1.0)
+        return interpolateRGB(from: amberRGB, to: redRGB, t: t)
+    }
+
+    /// Classify glucose into 7-level chart color zone for smooth transitions
+    public static func glucoseLevel(forValue value: Int, low: Int, high: Int) -> String {
+        if value < low { return "low" }
+        if value < low + 15 { return "lowBuffer" }
+        if value <= 100 { return "inRange" }
+        let mid = 100 + (high - 100) / 2
+        if value <= mid { return "rising" }
+        if value <= high { return "approaching" }
+        if value <= high + 30 { return "highBuffer" }
+        return "high"
+    }
+
+    /// Linear RGB interpolation
+    public static func interpolateRGB(
+        from: (r: Double, g: Double, b: Double),
+        to: (r: Double, g: Double, b: Double),
+        t: Double
+    ) -> Color {
+        let c = max(0, min(t, 1))
+        return Color(
+            red: from.r + (to.r - from.r) * c,
+            green: from.g + (to.g - from.g) * c,
+            blue: from.b + (to.b - from.b) * c
+        )
+    }
 }

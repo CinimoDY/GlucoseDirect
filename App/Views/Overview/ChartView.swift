@@ -8,16 +8,44 @@ import SwiftUI
 
 // MARK: - ChartView
 
+// MARK: - ReportType
+
+private enum ReportType: String, CaseIterable {
+    case glucose = "GLUCOSE"
+    case timeInRange = "TIME IN RANGE"
+    case statistics = "STATISTICS"
+}
+
 @available(iOS 16.0, *)
 struct ChartView: View {
     // MARK: Internal
 
     @EnvironmentObject var store: DirectStore
+    @State private var selectedReportType: ReportType = .glucose
 
     var body: some View {
         Section(
             content: {
                 VStack {
+                    ReportTypeSelectorView
+
+                    switch selectedReportType {
+                    case .glucose:
+                        GlucoseChartContent
+                    case .timeInRange:
+                        TimeInRangeContent
+                    case .statistics:
+                        StatisticsContent
+                    }
+                }
+            }
+        )
+    }
+
+    // MARK: - Glucose Chart Content
+
+    private var GlucoseChartContent: some View {
+        VStack {
                     HStack {
                         Button(action: {
                             setSelectedDate(addDays: -1)
@@ -49,6 +77,13 @@ struct ChartView: View {
                     }
                     .buttonStyle(.plain)
 
+                    HStack {
+                        Text(store.state.glucoseUnit.localizedDescription)
+                            .font(.system(size: 9, weight: .medium, design: .monospaced))
+                            .foregroundColor(AmberTheme.amberMuted)
+                        Spacer()
+                    }
+
                     ZStack(alignment: .topLeading) {
                         ScrollViewReader { scrollViewProxy in
                             ScrollView(.horizontal, showsIndicators: false) {
@@ -75,7 +110,7 @@ struct ChartView: View {
                             }
                         }
 
-                        if selectedSmoothSensorPoint != nil || selectedRawSensorPoint != nil || selectedBloodPoint != nil {
+                        if selectedSmoothSensorPoint != nil || selectedRawSensorPoint != nil || selectedBloodPoint != nil || selectedHeartRate != nil {
                             HStack(alignment: .top) {
                                 VStack(alignment: .leading) {
                                     if let selectedSensorPoint = selectedSmoothSensorPoint {
@@ -86,7 +121,7 @@ struct ChartView: View {
                                         .font(DOSTypography.caption)
                                         .padding(.horizontal, 10)
                                         .padding(.vertical, 5)
-                                        .background(AmberTheme.cgaCyan)
+                                        .background(AmberTheme.amberLight)
                                         .foregroundColor(AmberTheme.dosBlack)
                                         .cornerRadius(0)
                                     }
@@ -121,17 +156,184 @@ struct ChartView: View {
                                     .foregroundColor(AmberTheme.dosBlack)
                                     .cornerRadius(0)
                                 }
+
+                                if let hr = selectedHeartRate {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "heart.fill")
+                                            .font(.system(size: 10))
+                                        Text("\(hr) bpm").bold()
+                                    }
+                                    .font(DOSTypography.caption)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 5)
+                                    .background(AmberTheme.cgaMagenta)
+                                    .foregroundColor(AmberTheme.dosBlack)
+                                    .cornerRadius(0)
+                                }
                             }.opacity(0.75)
                         }
                     }
 
-                    ZoomLevelsView
-                }
-            },
-            header: {
-                Label("Chart", systemImage: "chart.xyaxis.line")
+                    HStack(spacing: DOSSpacing.xs) {
+                        ZoomLevelsView
+
+                        if !store.state.heartRateSeries.isEmpty {
+                            Spacer()
+                            HStack(spacing: 3) {
+                                RoundedRectangle(cornerRadius: 1)
+                                    .fill(AmberTheme.cgaMagenta.opacity(0.4))
+                                    .frame(width: 12, height: 2)
+                                Text("HR")
+                                    .font(.system(size: 9, weight: .medium, design: .monospaced))
+                                    .foregroundColor(AmberTheme.cgaMagenta.opacity(0.5))
+                            }
+                        }
+                    }
+        }
+        .sheet(item: $tappedMealEntry) { meal in
+            AddMealView(
+                timestamp: meal.timestamp,
+                mealDescription: meal.mealDescription,
+                carbsGrams: meal.carbsGrams
+            ) { newTimestamp, newDescription, newCarbs in
+                store.dispatch(.deleteMealEntry(mealEntry: meal))
+                let updated = MealEntry(
+                    timestamp: newTimestamp,
+                    mealDescription: newDescription,
+                    carbsGrams: newCarbs
+                )
+                store.dispatch(.addMealEntry(mealEntryValues: [updated]))
             }
-        )
+        }
+        .alert(
+            insulinDetailTitle,
+            isPresented: $showInsulinDetail
+        ) {
+            Button("OK", role: .cancel) {}
+        }
+    }
+
+    // MARK: - Report Type Selector
+
+    private var ReportTypeSelectorView: some View {
+        HStack(spacing: DOSSpacing.sm) {
+            ForEach(ReportType.allCases, id: \.self) { type in
+                Button(action: {
+                    DirectNotifications.shared.hapticFeedback()
+                    selectedReportType = type
+                }) {
+                    HStack(spacing: 4) {
+                        Circle()
+                            .if(selectedReportType == type) {
+                                $0.fill(AmberTheme.amberLight)
+                            } else: {
+                                $0.stroke(AmberTheme.amberLight)
+                            }
+                            .frame(width: 8, height: 8)
+
+                        Text(type.rawValue)
+                            .font(DOSTypography.caption)
+                            .foregroundColor(selectedReportType == type ? AmberTheme.amberLight : AmberTheme.amberDark)
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 4)
+    }
+
+    // MARK: - Time In Range Content
+
+    private var TimeInRangeContent: some View {
+        VStack(spacing: DOSSpacing.md) {
+            if let stats = store.state.glucoseStatistics {
+                VStack(spacing: DOSSpacing.sm) {
+                    TimeInRangeBar(label: "TAR", value: stats.tar, color: AmberTheme.cgaRed)
+                    TimeInRangeBar(label: "TIR", value: stats.tir, color: AmberTheme.cgaGreen)
+                    TimeInRangeBar(label: "TBR", value: stats.tbr, color: AmberTheme.cgaRed)
+                }
+
+                Text("\(stats.days) of \(stats.maxDays) days")
+                    .font(DOSTypography.caption)
+                    .foregroundColor(AmberTheme.amberDark)
+            } else {
+                Text("No statistics available")
+                    .font(DOSTypography.bodySmall)
+                    .foregroundColor(AmberTheme.amberDark)
+            }
+        }
+        .padding(.vertical, DOSSpacing.sm)
+    }
+
+    private func TimeInRangeBar(label: String, value: Double, color: Color) -> some View {
+        HStack(spacing: DOSSpacing.sm) {
+            Text(label)
+                .font(DOSTypography.caption)
+                .foregroundColor(AmberTheme.amberDark)
+                .frame(width: 30, alignment: .trailing)
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Rectangle()
+                        .fill(AmberTheme.amberMuted.opacity(0.3))
+                        .frame(height: 16)
+
+                    Rectangle()
+                        .fill(color)
+                        .frame(width: max(0, geo.size.width * CGFloat(value / 100.0)), height: 16)
+                }
+            }
+            .frame(height: 16)
+
+            Text(String(format: "%.0f%%", value))
+                .font(DOSTypography.caption)
+                .foregroundColor(AmberTheme.amberLight)
+                .frame(width: 36, alignment: .trailing)
+        }
+    }
+
+    // MARK: - Statistics Content
+
+    private var StatisticsContent: some View {
+        VStack(spacing: DOSSpacing.sm) {
+            if let stats = store.state.glucoseStatistics {
+                StatRow(label: "AVG", value: String(format: "%.0f", stats.avg), unit: store.state.glucoseUnit.localizedDescription)
+                StatRow(label: "SD", value: String(format: "%.1f", stats.stdev), unit: store.state.glucoseUnit.localizedDescription)
+                StatRow(label: "CV", value: String(format: "%.1f%%", stats.cv), unit: "")
+                StatRow(label: "GMI", value: String(format: "%.1f%%", stats.gmi), unit: "")
+                StatRow(label: "READINGS", value: "\(stats.readings)", unit: "")
+
+                Text("\(stats.days) of \(stats.maxDays) days")
+                    .font(DOSTypography.caption)
+                    .foregroundColor(AmberTheme.amberDark)
+                    .padding(.top, DOSSpacing.xs)
+            } else {
+                Text("No statistics available")
+                    .font(DOSTypography.bodySmall)
+                    .foregroundColor(AmberTheme.amberDark)
+            }
+        }
+        .padding(.vertical, DOSSpacing.sm)
+    }
+
+    private func StatRow(label: String, value: String, unit: String) -> some View {
+        HStack {
+            Text(label)
+                .font(DOSTypography.caption)
+                .foregroundColor(AmberTheme.amberDark)
+            Spacer()
+            HStack(spacing: 4) {
+                Text(value)
+                    .font(DOSTypography.bodySmall)
+                    .foregroundColor(AmberTheme.amberLight)
+                if !unit.isEmpty {
+                    Text(unit)
+                        .font(DOSTypography.caption)
+                        .foregroundColor(AmberTheme.amberDark)
+                }
+            }
+        }
     }
 
     var ZoomLevelsView: some View {
@@ -172,6 +374,12 @@ struct ChartView: View {
             RuleMark(y: .value("Minimum High", chartMinimum))
                 .foregroundStyle(.clear)
 
+            RectangleMark(
+                yStart: .value("Low", alarmLow),
+                yEnd: .value("High", alarmHigh)
+            )
+            .foregroundStyle(AmberTheme.cgaGreen.opacity(0.08))
+
             RuleMark(y: .value("Lower limit", alarmLow))
                 .foregroundStyle(AmberTheme.cgaRed)
                 .lineStyle(Config.ruleStyle)
@@ -180,14 +388,17 @@ struct ChartView: View {
                 .foregroundStyle(AmberTheme.cgaRed)
                 .lineStyle(Config.ruleStyle)
 
-            ForEach(smoothSensorGlucoseSeries) { value in
-                LineMark(
-                    x: .value("Time", value.time),
-                    y: .value("Glucose", value.value)
-                )
-                .interpolationMethod(.monotone)
-                .foregroundStyle(AmberTheme.cgaCyan)
-                .lineStyle(Config.lineStyle)
+            ForEach(glucoseSegments) { segment in
+                ForEach(segment.points) { point in
+                    LineMark(
+                        x: .value("Time", point.time),
+                        y: .value("Glucose", point.value),
+                        series: .value("Series", segment.id)
+                    )
+                    .interpolationMethod(.monotone)
+                    .foregroundStyle(segment.color)
+                    .lineStyle(Config.smoothLineStyle)
+                }
             }
 
             ForEach(bloodGlucoseSeries) { value in
@@ -257,21 +468,22 @@ struct ChartView: View {
                 }
             }
 
-            ForEach(mealSeries) { value in
+            ForEach(Array(mealSeries.enumerated()), id: \.element.id) { index, value in
                 PointMark(
                     x: .value("Time", value.time),
                     y: .value("Meal", chartMinimum * 0.85)
                 )
-                .symbolSize(Config.symbolSize)
+                .symbolSize(40)
                 .symbol(.diamond)
-                .annotation(position: .top) {
-                    Text(value.carbs != nil ? "\(Int(value.carbs!))g" : String(value.label.prefix(20)))
+                .annotation(position: index % 2 == 0 ? .top : .bottom) {
+                    Text(value.carbs != nil ? "\(Int(value.carbs!))g" : String(value.label.prefix(6)))
                         .foregroundStyle(AmberTheme.cgaGreen)
-                        .padding(.horizontal, 2.5)
-                        .background(Color.black.opacity(0.5))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 4)
+                        .background(Color.black.opacity(0.6))
                         .cornerRadius(2)
                         .bold()
-                        .font(DOSTypography.caption)
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
                 }
                 .foregroundStyle(AmberTheme.cgaGreen)
             }
@@ -295,8 +507,8 @@ struct ChartView: View {
                     series: .value("Series", "HeartRate")
                 )
                 .interpolationMethod(.monotone)
-                .foregroundStyle(AmberTheme.cgaMagenta.opacity(0.4))
-                .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+                .foregroundStyle(AmberTheme.cgaMagenta.opacity(0.3))
+                .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
             }
 
             if showUnsmoothedValues, store.state.showSmoothedGlucose {
@@ -331,10 +543,9 @@ struct ChartView: View {
                     x: .value("Time", selectedPointInfo.time),
                     y: .value("Glucose", selectedPointInfo.value)
                 )
-                //.symbol(.square)
                 .opacity(0.75)
                 .symbolSize(Config.selectionSize)
-                .foregroundStyle(AmberTheme.cgaCyan)
+                .foregroundStyle(AmberTheme.amberLight)
             }
 
             if let selectedPointInfo = selectedBloodPoint {
@@ -363,16 +574,18 @@ struct ChartView: View {
             }
         }
         .chartYAxis {
-            AxisMarks(position: .trailing, values: .stride(by: yAxisSteps)) { value in
+            AxisMarks(position: .leading, values: .stride(by: yAxisSteps)) { value in
                 AxisGridLine(stroke: Config.axisStyle)
 
                 if let glucoseValue = value.as(Double.self), glucoseValue > 0 {
                     AxisTick(length: 4, stroke: Config.tickStyle)
                         .foregroundStyle(AmberTheme.amberMuted)
                     AxisValueLabel()
+                        .font(.system(size: 10, weight: .regular, design: .monospaced))
                 }
             }
         }
+        .chartLegend(.hidden)
         .id(Config.chartID)
         .onChange(of: store.state.showSmoothedGlucose) { _ in
             if shouldRefresh {
@@ -436,6 +649,7 @@ struct ChartView: View {
             selectedSmoothSensorPoint = nil
             selectedRawSensorPoint = nil
             selectedBloodPoint = nil
+            selectedHeartRate = nil
 
         }.onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
             if shouldRefresh {
@@ -453,18 +667,20 @@ struct ChartView: View {
             updateInsulinSeries()
             updateMealSeries()
             updateExerciseSeries()
+            updateHeartRateLookup()
 
         }.chartOverlay { overlayProxy in
             GeometryReader { geometryProxy in
                 Rectangle().fill(.clear).contentShape(Rectangle())
-                    .gesture(DragGesture()
+                    .gesture(DragGesture(minimumDistance: 0)
                         .onChanged { value in
                             let currentX = value.location.x - geometryProxy[overlayProxy.plotAreaFrame].origin.x
 
                             if let currentDate: Date = overlayProxy.value(atX: currentX) {
-                                let selectedSmoothSensorPoint = smoothSensorPointInfos[currentDate.toRounded(on: 1, .minute)]
-                                let selectedRawSensorPoint = rawSensorPointInfos[currentDate.toRounded(on: 1, .minute)]
-                                let selectedBloodPoint = bloodPointInfos[currentDate.toRounded(on: 1, .minute)]
+                                let rounded = currentDate.toRounded(on: 1, .minute)
+                                let selectedSmoothSensorPoint = smoothSensorPointInfos[rounded]
+                                let selectedRawSensorPoint = rawSensorPointInfos[rounded]
+                                let selectedBloodPoint = bloodPointInfos[rounded]
 
                                 if let selectedSmoothSensorPoint {
                                     self.selectedSmoothSensorPoint = selectedSmoothSensorPoint
@@ -472,12 +688,42 @@ struct ChartView: View {
 
                                 self.selectedRawSensorPoint = selectedRawSensorPoint
                                 self.selectedBloodPoint = selectedBloodPoint
+
+                                // Search nearby minutes for heart rate (HR samples may not align exactly)
+                                self.selectedHeartRate = nearestHeartRate(at: rounded)
                             }
                         }
-                        .onEnded { _ in
+                        .onEnded { dragValue in
+                            let wasTap = abs(dragValue.translation.width) < 10 && abs(dragValue.translation.height) < 10
+
                             selectedSmoothSensorPoint = nil
                             selectedRawSensorPoint = nil
                             selectedBloodPoint = nil
+                            selectedHeartRate = nil
+
+                            guard wasTap else { return }
+
+                            // Detect tap on meal/insulin marker
+                            let currentX = dragValue.location.x - geometryProxy[overlayProxy.plotAreaFrame].origin.x
+                            guard let tappedDate: Date = overlayProxy.value(atX: currentX) else { return }
+
+                            let threshold: TimeInterval = 20 * 60
+                            if let meal = store.state.mealEntryValues
+                                .filter({ abs($0.timestamp.timeIntervalSince(tappedDate)) < threshold })
+                                .min(by: { abs($0.timestamp.timeIntervalSince(tappedDate)) < abs($1.timestamp.timeIntervalSince(tappedDate)) })
+                            {
+                                tappedMealEntry = meal
+                                return
+                            }
+
+                            if let insulin = store.state.insulinDeliveryValues
+                                .filter({ $0.type != .basal && abs($0.starts.timeIntervalSince(tappedDate)) < threshold })
+                                .min(by: { abs($0.starts.timeIntervalSince(tappedDate)) < abs($1.starts.timeIntervalSince(tappedDate)) })
+                            {
+                                tappedInsulinEntry = insulin
+                                showInsulinDetail = true
+                                return
+                            }
                         }
                     )
             }
@@ -496,11 +742,12 @@ struct ChartView: View {
         static let spacerWidth: CGFloat = 50
         static let chartHeight: CGFloat = 340
         static let lineStyle: StrokeStyle = .init(lineWidth: 3, lineCap: .round)
+        static let smoothLineStyle: StrokeStyle = .init(lineWidth: 3.5, lineCap: .round)
         static let rawLineStyle: StrokeStyle = .init(lineWidth: 3, lineCap: .round)
         static let ruleStyle: StrokeStyle = .init(lineWidth: 1, dash: [2])
         static let gridStyle: StrokeStyle = .init(lineWidth: 1)
         static let dayStyle: StrokeStyle = .init(lineWidth: 1)
-        static let axisStyle: StrokeStyle = .init(lineWidth: 0.5, dash: [2, 3])
+        static let axisStyle: StrokeStyle = .init(lineWidth: 0.3, dash: [2, 3])
         static let tickStyle: StrokeStyle = .init(lineWidth: 4)
         static let zoomLevels: [ZoomLevel] = [
             ZoomLevel(level: 3, name: LocalizedString("3h"), visibleHours: 3, labelEvery: 1),
@@ -514,6 +761,7 @@ struct ChartView: View {
 
     @State private var seriesWidth: CGFloat = 0
     @State private var smoothSensorGlucoseSeries: [GlucoseDatapoint] = []
+    @State private var glucoseSegments: [GlucoseSegment] = []
     @State private var rawSensorGlucoseSeries: [GlucoseDatapoint] = []
     @State private var bloodGlucoseSeries: [GlucoseDatapoint] = []
     @State private var insulinSeries: [InsulinDatapoint] = []
@@ -527,6 +775,12 @@ struct ChartView: View {
     @State private var selectedSmoothSensorPoint: GlucoseDatapoint? = nil
     @State private var selectedRawSensorPoint: GlucoseDatapoint? = nil
     @State private var selectedBloodPoint: GlucoseDatapoint? = nil
+    @State private var selectedHeartRate: Int? = nil
+    @State private var heartRatePointInfos: [Date: Int] = [:]
+
+    @State private var tappedMealEntry: MealEntry? = nil
+    @State private var tappedInsulinEntry: InsulinDelivery? = nil
+    @State private var showInsulinDetail = false
 
     private let calculationQueue = DispatchQueue(label: "libre-direct.chart-calculation", qos: .utility)
 
@@ -712,8 +966,11 @@ struct ChartView: View {
                 }
             }
 
+            let segments = segmentGlucoseSeries(smoothSensorGlucoseSeries)
+
             DispatchQueue.main.async {
                 self.smoothSensorGlucoseSeries = smoothSensorGlucoseSeries
+                self.glucoseSegments = segments
                 self.smoothSensorPointInfos = smoothSensorPointInfos
 
                 self.rawSensorGlucoseSeries = rawSensorGlucoseSeries
@@ -761,6 +1018,43 @@ struct ChartView: View {
     private func updateExerciseSeries() {
         DirectLog.info("updateExerciseSeries()")
         self.exerciseSeries = store.state.exerciseEntryValues.map { $0.toDatapoint() }
+    }
+
+    private func updateHeartRateLookup() {
+        var lookup: [Date: Int] = [:]
+        for point in store.state.heartRateSeries {
+            let rounded = point.0.toRounded(on: 1, .minute)
+            lookup[rounded] = Int(point.1)
+        }
+        self.heartRatePointInfos = lookup
+    }
+
+    private var mealDetailTitle: String {
+        guard let meal = tappedMealEntry else { return "" }
+        var title = "\(meal.timestamp.toLocalDateTime())\n\(meal.mealDescription)"
+        if let c = meal.carbsGrams { title += "\n\(Int(c))g carbs" }
+        if let p = meal.proteinGrams { title += " · \(Int(p))g P" }
+        if let f = meal.fatGrams { title += " · \(Int(f))g F" }
+        if let cal = meal.calories { title += " · \(Int(cal)) kcal" }
+        return title
+    }
+
+    private var insulinDetailTitle: String {
+        guard let insulin = tappedInsulinEntry else { return "" }
+        return "\(insulin.starts.toLocalDateTime())\n\(insulin.type.localizedDescription)\n\(insulin.units.asInsulin())"
+    }
+
+    /// Search within +/- 2 minutes for nearest heart rate sample
+    private func nearestHeartRate(at date: Date) -> Int? {
+        for offset in 0...2 {
+            let forward = Calendar.current.date(byAdding: .minute, value: offset, to: date)!.toRounded(on: 1, .minute)
+            if let hr = heartRatePointInfos[forward] { return hr }
+            if offset > 0 {
+                let backward = Calendar.current.date(byAdding: .minute, value: -offset, to: date)!.toRounded(on: 1, .minute)
+                if let hr = heartRatePointInfos[backward] { return hr }
+            }
+        }
+        return nil
     }
 
     private func populateValues(glucoseValues: [InsulinDelivery]) -> [InsulinDatapoint] {
@@ -826,6 +1120,64 @@ private struct GlucoseDatapoint: Identifiable {
     let time: Date
     let value: Double
     let info: String
+    var level: String = "inRange"
+}
+
+private struct GlucoseSegment: Identifiable {
+    let id: String
+    let level: String
+    let points: [GlucoseDatapoint]
+
+    var color: Color {
+        switch level {
+        case "low": return AmberTheme.cgaRed
+        case "lowBuffer": return AmberTheme.glucoseLowBuffer
+        case "inRange": return AmberTheme.cgaGreen
+        case "rising": return AmberTheme.glucoseRising
+        case "approaching": return AmberTheme.amber
+        case "highBuffer": return AmberTheme.glucoseHighBuffer
+        case "high": return AmberTheme.cgaRed
+        default: return AmberTheme.cgaGreen
+        }
+    }
+}
+
+/// Splits a glucose series into contiguous segments by level,
+/// with one overlapping boundary point so lines connect across transitions.
+private func segmentGlucoseSeries(_ series: [GlucoseDatapoint]) -> [GlucoseSegment] {
+    guard !series.isEmpty else { return [] }
+
+    var segments: [GlucoseSegment] = []
+    var currentLevel = series[0].level
+    var currentPoints: [GlucoseDatapoint] = [series[0]]
+
+    for i in 1..<series.count {
+        let point = series[i]
+        if point.level == currentLevel {
+            currentPoints.append(point)
+        } else {
+            // Include this boundary point in the current segment so the line reaches it
+            currentPoints.append(point)
+            segments.append(GlucoseSegment(
+                id: "seg-\(segments.count)-\(currentLevel)",
+                level: currentLevel,
+                points: currentPoints
+            ))
+            // Start new segment from previous point (overlap) so the new line starts connected
+            currentPoints = [series[i - 1], point]
+            currentLevel = point.level
+        }
+    }
+
+    if !currentPoints.isEmpty {
+        segments.append(GlucoseSegment(
+            id: "seg-\(segments.count)-\(currentLevel)",
+            level: currentLevel,
+            points: currentPoints
+        ))
+    }
+
+    return segments
 }
 
 private struct InsulinDatapoint: Identifiable {
@@ -936,13 +1288,15 @@ private extension SensorGlucose {
     func toSmoothDatapoint(glucoseUnit: GlucoseUnit, alarmLow: Int, alarmHigh: Int, shiftY: Int = 0) -> GlucoseDatapoint {
         let glucose = (smoothGlucoseValue ?? Double(glucoseValue))
         let info = glucose.toInteger()?.asGlucose(glucoseUnit: glucoseUnit, withUnit: true) ?? ""
+        let level = AmberTheme.glucoseLevel(forValue: Int(glucose), low: alarmLow, high: alarmHigh)
 
         if glucoseUnit == .mmolL {
             return GlucoseDatapoint(
                 id: toDatapointID(glucoseUnit: glucoseUnit),
                 time: timestamp,
                 value: glucose.toMmolL() + shiftY.toMmolL(),
-                info: info
+                info: info,
+                level: level
             )
         }
 
@@ -950,7 +1304,8 @@ private extension SensorGlucose {
             id: toDatapointID(glucoseUnit: glucoseUnit),
             time: timestamp,
             value: glucose + shiftY.toDouble(),
-            info: info
+            info: info,
+            level: level
         )
     }
 
@@ -963,12 +1318,15 @@ private extension SensorGlucose {
             info = glucoseValue.asGlucose(glucoseUnit: glucoseUnit, withUnit: true)
         }
 
+        let level = AmberTheme.glucoseLevel(forValue: glucoseValue, low: alarmLow, high: alarmHigh)
+
         if glucoseUnit == .mmolL {
             return GlucoseDatapoint(
                 id: toDatapointID(glucoseUnit: glucoseUnit),
                 time: timestamp,
                 value: glucoseValue.toMmolL() + shiftY.toMmolL(),
-                info: info
+                info: info,
+                level: level
             )
         }
 
@@ -976,7 +1334,8 @@ private extension SensorGlucose {
             id: toDatapointID(glucoseUnit: glucoseUnit),
             time: timestamp,
             value: glucoseValue.toDouble() + shiftY.toDouble(),
-            info: info
+            info: info,
+            level: level
         )
     }
 }

@@ -56,10 +56,8 @@ struct GlucoseView: View {
                         .background(AmberTheme.cgaRed)
                         .foregroundColor(AmberTheme.dosBlack)
                 } else {
-                    HStack(spacing: 40) {
-                        Text(latestGlucose.timestamp, style: .time)
-                        Text(verbatim: store.state.glucoseUnit.localizedDescription)
-                    }.opacity(0.5)
+                    Text(verbatim: store.state.glucoseUnit.localizedDescription)
+                        .opacity(0.5)
                 }
 
             } else {
@@ -67,7 +65,7 @@ struct GlucoseView: View {
                     .font(DOSTypography.mono(size: 52, weight: .bold))
                     .foregroundColor(AmberTheme.cgaRed)
 
-                Text(Date(), style: .time)
+                Text(verbatim: "---")
                     .opacity(0.5)
             }
 
@@ -137,53 +135,7 @@ struct GlucoseView: View {
         return glucose.glucoseValue < store.state.alarmLow
     }
 
-    /// Gradient glucose color based on value:
-    /// - 100 mg/dL = perfect green (cgaGreen)
-    /// - 100-alarmHigh = gradual green → amber
-    /// - alarmHigh+ = amber → red (proportional to how far over)
-    /// - Below alarmLow = red (dangerously low)
     private func getGlucoseColor(glucose: any Glucose) -> Color {
-        let value = Double(glucose.glucoseValue)
-        let low = Double(store.state.alarmLow)
-        let high = Double(store.state.alarmHigh)
-        let perfect = 100.0
-
-        // Dangerously low → red
-        if value < low {
-            return AmberTheme.cgaRed
-        }
-
-        // In range: interpolate green → amber
-        if value <= high {
-            if value <= perfect {
-                // Below or at perfect → pure green
-                return AmberTheme.cgaGreen
-            }
-            // perfect → high: green → amber
-            let t = min((value - perfect) / (high - perfect), 1.0)
-            return interpolateColor(from: AmberTheme.cgaGreen, to: AmberTheme.amber, t: t)
-        }
-
-        // Above high: amber → red (over ~60 mg/dL above threshold)
-        let veryHighRange = 60.0
-        let t = min((value - high) / veryHighRange, 1.0)
-        return interpolateColor(from: AmberTheme.amber, to: AmberTheme.cgaRed, t: t)
-    }
-
-    /// Linear color interpolation in RGB space
-    private func interpolateColor(from: Color, to: Color, t: Double) -> Color {
-        let f = UIColor(from)
-        let t2 = UIColor(to)
-        var fr: CGFloat = 0, fg: CGFloat = 0, fb: CGFloat = 0, fa: CGFloat = 0
-        var tr: CGFloat = 0, tg: CGFloat = 0, tb: CGFloat = 0, ta: CGFloat = 0
-        f.getRed(&fr, green: &fg, blue: &fb, alpha: &fa)
-        t2.getRed(&tr, green: &tg, blue: &tb, alpha: &ta)
-
-        let clamped = max(0, min(t, 1))
-        return Color(
-            red: Double(fr + (tr - fr) * CGFloat(clamped)),
-            green: Double(fg + (tg - fg) * CGFloat(clamped)),
-            blue: Double(fb + (tb - fb) * CGFloat(clamped))
-        )
+        AmberTheme.glucoseColor(forValue: glucose.glucoseValue, low: store.state.alarmLow, high: store.state.alarmHigh)
     }
 }

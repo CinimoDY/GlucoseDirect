@@ -17,8 +17,6 @@ struct OverviewView: View {
             GlucoseView()
                 .listRowSeparator(.hidden)
 
-            QuickActionsSection()
-
             if !store.state.sensorGlucoseValues.isEmpty || !store.state.bloodGlucoseValues.isEmpty {
                 if #available(iOS 16.0, *) {
                     ChartView()
@@ -26,6 +24,8 @@ struct OverviewView: View {
                     ChartViewCompatibility()
                 }
             }
+
+            QuickActionsSection()
 
             ConnectionView()
             SensorView()
@@ -38,17 +38,6 @@ struct OverviewView: View {
     private func QuickActionsSection() -> some View {
         Section {
             HStack(spacing: DOSSpacing.sm) {
-                QuickActionButton(
-                    title: "MEAL",
-                    icon: "fork.knife",
-                    action: { showingUnifiedFoodEntry = true }
-                )
-                .sheet(isPresented: $showingUnifiedFoodEntry) {
-                    UnifiedFoodEntryView()
-                        .environmentObject(store)
-                }
-                .frame(maxWidth: .infinity)
-
                 if DirectConfig.showInsulinInput, store.state.showInsulinInput {
                     QuickActionButton(
                         title: "INSULIN",
@@ -62,6 +51,17 @@ struct OverviewView: View {
                         }
                     }
                 }
+
+                QuickActionButton(
+                    title: "MEAL",
+                    icon: "fork.knife",
+                    action: { showingUnifiedFoodEntry = true }
+                )
+                .sheet(isPresented: $showingUnifiedFoodEntry) {
+                    UnifiedFoodEntryView()
+                        .environmentObject(store)
+                }
+                .frame(maxWidth: .infinity)
             }
             .padding(.horizontal, DOSSpacing.xs)
             .listRowBackground(Color.clear)
