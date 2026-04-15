@@ -9,25 +9,48 @@ struct UnifiedFoodEntryView: View {
     @EnvironmentObject var store: DirectStore
     @Environment(\.dismiss) var dismiss
 
+    var filterToHypoTreatments: Bool = false
+
     @State private var searchText = ""
     @State private var showingFavoriteManagement = false
     @State private var toastMealEntry: MealEntry?
     @State private var toastWorkItem: DispatchWorkItem?
 
+    private var displayedFavorites: [FavoriteFood] {
+        if filterToHypoTreatments {
+            return store.state.favoriteFoodValues.filter(\.isHypoTreatment)
+        }
+        return store.state.favoriteFoodValues
+    }
+
     var body: some View {
         NavigationView {
             List {
-                if !store.state.favoriteFoodValues.isEmpty {
+                if filterToHypoTreatments {
+                    if displayedFavorites.isEmpty {
+                        Section {
+                            Text("NO HYPO TREATMENTS CONFIGURED")
+                                .font(DOSTypography.caption)
+                                .foregroundColor(AmberTheme.amberDark)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .padding(.vertical, DOSSpacing.lg)
+                        }
+                    } else {
+                        favoritesSection
+                    }
+                } else if !store.state.favoriteFoodValues.isEmpty {
                     favoritesSection
                 }
 
-                actionsSection
+                if !filterToHypoTreatments {
+                    actionsSection
+                }
 
                 recentsSection
             }
             .listStyle(.grouped)
             .searchable(text: $searchText, prompt: "Search foods...")
-            .navigationTitle("Log Meal")
+            .navigationTitle(filterToHypoTreatments ? "Hypo Treatment" : "Log Meal")
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Done") {
@@ -282,8 +305,9 @@ struct UnifiedFoodEntryView: View {
     // MARK: - Filtering (local, no Redux dispatch)
 
     private var filteredFavorites: [FavoriteFood] {
-        guard !searchText.isEmpty else { return store.state.favoriteFoodValues }
-        return store.state.favoriteFoodValues.filter {
+        let base = filterToHypoTreatments ? displayedFavorites : store.state.favoriteFoodValues
+        guard !searchText.isEmpty else { return base }
+        return base.filter {
             $0.mealDescription.localizedCaseInsensitiveContains(searchText)
         }
     }

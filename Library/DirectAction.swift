@@ -139,6 +139,7 @@ enum DirectAction {
 
     // MARK: Treatment Cycle
     case showTreatmentPrompt(alarmFiredAt: Date)
+    case setShowTreatmentPrompt(show: Bool)
     case logHypoTreatment(favorite: FavoriteFood, alarmFiredAt: Date, overrideTimestamp: Date?)
     case startTreatmentCycle
     case endTreatmentCycle

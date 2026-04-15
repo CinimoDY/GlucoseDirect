@@ -365,6 +365,9 @@ func directReducer(state: inout DirectState, action: DirectAction) {
         state.showTreatmentPrompt = true
         state.alarmFiredAt = alarmFiredAt
 
+    case .setShowTreatmentPrompt(show: let show):
+        state.showTreatmentPrompt = show
+
     case .logHypoTreatment(favorite: _, alarmFiredAt: _, overrideTimestamp: let overrideTimestamp):
         state.treatmentLoggedAt = overrideTimestamp ?? Date()
         state.showTreatmentPrompt = false

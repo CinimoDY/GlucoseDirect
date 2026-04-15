@@ -118,6 +118,8 @@
 		E27ED97F2758ADF40099149C /* SensorConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = E27ED97E2758ADF40099149C /* SensorConnection.swift */; };
 		E283306726AF058500244343 /* ChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E283306626AF058500244343 /* ChartView.swift */; };
 		E28728AA26DE499200269F47 /* SnoozeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E28728A926DE499200269F47 /* SnoozeView.swift */; };
+		AA01000100000003000A0003 /* TreatmentModalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01000100000001000A0001 /* TreatmentModalView.swift */; };
+		AA01000100000004000A0004 /* TreatmentBannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01000100000002000A0002 /* TreatmentBannerView.swift */; };
 		E28BA1B9286F52C700F6273F /* WidgetCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E28BA1B8286F52C700F6273F /* WidgetCenter.swift */; };
 		E28C1299278AE6A900ECE0DF /* ConnectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E28C1298278AE6A900ECE0DF /* ConnectionView.swift */; };
 		E292E1B226A608C400011F64 /* NumberSelectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E292E1B126A608C400011F64 /* NumberSelectorView.swift */; };
@@ -386,6 +388,8 @@
 		E27ED97E2758ADF40099149C /* SensorConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorConnection.swift; sourceTree = "<group>"; };
 		E283306626AF058500244343 /* ChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartView.swift; sourceTree = "<group>"; };
 		E28728A926DE499200269F47 /* SnoozeView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SnoozeView.swift; sourceTree = "<group>"; };
+		AA01000100000001000A0001 /* TreatmentModalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreatmentModalView.swift; sourceTree = "<group>"; };
+		AA01000100000002000A0002 /* TreatmentBannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreatmentBannerView.swift; sourceTree = "<group>"; };
 		E28BA1B8286F52C700F6273F /* WidgetCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetCenter.swift; sourceTree = "<group>"; };
 		E28C1298278AE6A900ECE0DF /* ConnectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionView.swift; sourceTree = "<group>"; };
 		E28D3D91276DF9B70092D862 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
@@ -558,6 +562,7 @@
 				CB01000100000007000C0007 /* AIConsentView.swift */,
 				CB01000100000008000C0008 /* FoodPhotoAnalysisView.swift */,
 				FF01000200000003000F0003 /* UnifiedFoodEntryView.swift */,
+				AA01000100000001000A0001 /* TreatmentModalView.swift */,
 			);
 			path = AddViews;
 			sourceTree = "<group>";
@@ -813,6 +818,7 @@
 				E29ED230268C754F00CBD3F1 /* GlucoseView.swift */,
 				E223F866267A4D9800EC9BCA /* SensorView.swift */,
 				E28728A926DE499200269F47 /* SnoozeView.swift */,
+				AA01000100000002000A0002 /* TreatmentBannerView.swift */,
 			);
 			path = Overview;
 			sourceTree = "<group>";
@@ -1352,6 +1358,8 @@
 				10DD1301296A15B900C900EA /* AddCalibrationView.swift in Sources */,
 				E29ED231268C754F00CBD3F1 /* GlucoseView.swift in Sources */,
 				E28728AA26DE499200269F47 /* SnoozeView.swift in Sources */,
+				AA01000100000003000A0003 /* TreatmentModalView.swift in Sources */,
+				AA01000100000004000A0004 /* TreatmentBannerView.swift in Sources */,
 				E2BDE9D0290DF346004B8AB7 /* UIScreen.swift in Sources */,
 				E2FCAC702707438A00FE1CBF /* DirectState.swift in Sources */,
 				E2715804287ABF2E00B611D9 /* SensorGlucoseListView.swift in Sources */,
