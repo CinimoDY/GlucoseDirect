@@ -24,6 +24,7 @@ enum DirectAction {
     case addExerciseEntry(exerciseEntryValues: [ExerciseEntry])
     case addFavoriteFoodValues(favoriteFoodValues: [FavoriteFood])
     case addMealEntry(mealEntryValues: [MealEntry])
+    case addTreatmentEvent(treatmentEvent: TreatmentEvent)
     case deleteFavoriteFood(favoriteFood: FavoriteFood)
     case deleteExerciseEntry(exerciseEntry: ExerciseEntry)
     case deleteInsulinDelivery(insulinDelivery: InsulinDelivery)
@@ -135,6 +136,16 @@ enum DirectAction {
     case setRecentFoodCorrections(recentFoodCorrections: [FoodCorrection])
     case updateFavoriteFood(favoriteFood: FavoriteFood)
     case validateClaudeAPIKey
+
+    // MARK: Treatment Cycle
+    case showTreatmentPrompt(alarmFiredAt: Date)
+    case logHypoTreatment(favorite: FavoriteFood, alarmFiredAt: Date, overrideTimestamp: Date?)
+    case startTreatmentCycle
+    case endTreatmentCycle
+    case dismissTreatmentCycle
+    case treatmentCycleRecovered(glucoseValue: Int)
+    case treatmentCycleStillLow(glucoseValue: Int)
+    case setHypoTreatmentWaitMinutes(minutes: Int)
 
     case debugAlarm
     case debugNotification

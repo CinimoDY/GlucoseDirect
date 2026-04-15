@@ -32,6 +32,9 @@
 		FF01000100000004000F0004 /* UnifiedFoodEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF01000200000003000F0003 /* UnifiedFoodEntryView.swift */; };
 		BD098B7D516906B95F92737F /* MealEntryListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47988FB1F9466EE8DB163743 /* MealEntryListView.swift */; };
 		0A18373573D9BFB02935C90B /* MealStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 291E048F059A0A6C176A6315 /* MealStore.swift */; };
+		AB01000200000001000D0001 /* TreatmentEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01000100000001000D0001 /* TreatmentEvent.swift */; };
+		AB01000300000001000D0001 /* TreatmentEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01000100000001000D0001 /* TreatmentEvent.swift */; };
+		AB01000200000002000D0002 /* TreatmentEventStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01000100000002000D0002 /* TreatmentEventStore.swift */; };
 		AA01000228000001000B0001 /* ExerciseEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01000128000001000B0001 /* ExerciseEntry.swift */; };
 		AA01000328000001000B0001 /* ExerciseEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01000128000001000B0001 /* ExerciseEntry.swift */; };
 		AA01000228000002000B0002 /* ExerciseStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01000128000002000B0002 /* ExerciseStore.swift */; };
@@ -305,6 +308,8 @@
 		FF01000200000003000F0003 /* UnifiedFoodEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedFoodEntryView.swift; sourceTree = "<group>"; };
 		47988FB1F9466EE8DB163743 /* MealEntryListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealEntryListView.swift; sourceTree = "<group>"; };
 		291E048F059A0A6C176A6315 /* MealStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealStore.swift; sourceTree = "<group>"; };
+		AB01000100000001000D0001 /* TreatmentEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreatmentEvent.swift; sourceTree = "<group>"; };
+		AB01000100000002000D0002 /* TreatmentEventStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreatmentEventStore.swift; sourceTree = "<group>"; };
 		AA01000128000001000B0001 /* ExerciseEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseEntry.swift; sourceTree = "<group>"; };
 		AA01000128000002000B0002 /* ExerciseStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseStore.swift; sourceTree = "<group>"; };
 		AA01000128000003000B0003 /* AppleHealthImport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleHealthImport.swift; sourceTree = "<group>"; };
@@ -754,6 +759,7 @@
 				FF01000200000002000F0002 /* FavoriteStore.swift */,
 				FC01000200000003000A0003 /* FoodCorrectionStore.swift */,
 				291E048F059A0A6C176A6315 /* MealStore.swift */,
+				AB01000100000002000D0002 /* TreatmentEventStore.swift */,
 				E262DCBF287A432B00ECAB76 /* SensorErrorStore.swift */,
 				E23698E3288198B400FCF69F /* Migration.swift */,
 			);
@@ -848,6 +854,7 @@
 				FC01000200000001000A0001 /* FoodCorrection.swift */,
 				6587CE4929626070008518F4 /* InsulinDelivery.swift */,
 				F5B3B29325013D6A04E3E5A6 /* MealEntry.swift */,
+				AB01000100000001000D0001 /* TreatmentEvent.swift */,
 				CB01000100000003000C0003 /* NutritionEstimate.swift */,
 				FC01000200000002000A0002 /* PersonalFood.swift */,
 				DA01000200000001000E0001 /* ServingPreset.swift */,
@@ -1290,6 +1297,8 @@
 				6587CE4C2962651B008518F4 /* InsulinDeliveryStore.swift in Sources */,
 				AA01000228000002000B0002 /* ExerciseStore.swift in Sources */,
 				0A18373573D9BFB02935C90B /* MealStore.swift in Sources */,
+				AB01000200000001000D0001 /* TreatmentEvent.swift in Sources */,
+				AB01000200000002000D0002 /* TreatmentEventStore.swift in Sources */,
 				E2FCAC3B270741E600FE1CBF /* DirectLog.swift in Sources */,
 				E2D34BC4274D6BB500151895 /* OverviewView.swift in Sources */,
 				E298CF04279DEBF500C1C218 /* FactoryCalibrationView.swift in Sources */,
@@ -1368,6 +1377,7 @@
 				FC01000100000004000A0004 /* PersonalFood.swift in Sources */,
 				DA01000100000002000E0002 /* ServingPreset.swift in Sources */,
 				EFCE388A6BE1BC789C79E511 /* MealEntry.swift in Sources */,
+				AB01000300000001000D0001 /* TreatmentEvent.swift in Sources */,
 				CB01000300000003000C0003 /* NutritionEstimate.swift in Sources */,
 				E2591C5B28740E7A0009F27C /* SensorConnectionInfo.swift in Sources */,
 				E2E8DBFF2859F47D002C84FD /* CustomCalibration.swift in Sources */,
@@ -1642,7 +1652,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 47;
+				CURRENT_PROJECT_VERSION = 48;
 				DEVELOPMENT_ASSET_PATHS = "\"App/Preview Content\"";
 				DEVELOPMENT_TEAM = "${DEVELOPMENT_TEAM}";
 				ENABLE_PREVIEWS = YES;
@@ -1673,7 +1683,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 47;
+				CURRENT_PROJECT_VERSION = 48;
 				DEVELOPMENT_ASSET_PATHS = "\"App/Preview Content\"";
 				DEVELOPMENT_TEAM = "${DEVELOPMENT_TEAM}";
 				ENABLE_PREVIEWS = YES;
@@ -1706,7 +1716,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
 				CODE_SIGN_ENTITLEMENTS = Widgets/Widgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 47;
+				CURRENT_PROJECT_VERSION = 48;
 				DEVELOPMENT_TEAM = "${DEVELOPMENT_TEAM}";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Widgets/Info.plist;
@@ -1739,7 +1749,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
 				CODE_SIGN_ENTITLEMENTS = Widgets/Widgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 47;
+				CURRENT_PROJECT_VERSION = 48;
 				DEVELOPMENT_TEAM = "${DEVELOPMENT_TEAM}";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Widgets/Info.plist;

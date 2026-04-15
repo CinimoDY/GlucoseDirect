@@ -168,6 +168,38 @@ private extension DataStore {
                 """)
             }
 
+            // Seed hypo treatment favorites for existing users who already had
+            // non-hypo favorites (the initial seed above only runs when count == 0).
+            migrator.registerMigration("Seed hypo treatment favorites for existing users") { db in
+                let hypoCount = try FavoriteFood
+                    .filter(Column(FavoriteFood.Columns.isHypoTreatment.name) == true)
+                    .fetchCount(db)
+
+                if hypoCount == 0 {
+                    // Use negative sortOrder so seeded hypo items don't collide
+                    // with existing user favorites that start at 0.
+                    try FavoriteFood(
+                        mealDescription: "Dextrose tabs",
+                        carbsGrams: 15,
+                        proteinGrams: 0,
+                        fatGrams: 0,
+                        calories: 60,
+                        sortOrder: 0,
+                        isHypoTreatment: true
+                    ).insert(db)
+
+                    try FavoriteFood(
+                        mealDescription: "Juice box",
+                        carbsGrams: 25,
+                        proteinGrams: 0,
+                        fatGrams: 0,
+                        calories: 100,
+                        sortOrder: 1,
+                        isHypoTreatment: true
+                    ).insert(db)
+                }
+            }
+
             do {
                 try migrator.migrate(dbQueue)
             } catch {

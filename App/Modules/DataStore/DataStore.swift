@@ -209,6 +209,27 @@ extension FavoriteFood: FetchableRecord, PersistableRecord {
     }
 }
 
+// MARK: - TreatmentEvent + FetchableRecord, PersistableRecord
+
+extension TreatmentEvent: FetchableRecord, PersistableRecord {
+    static let databaseUUIDEncodingStrategy = DatabaseUUIDEncodingStrategy.uppercaseString
+
+    static var Table: String {
+        "TreatmentEvent"
+    }
+
+    enum Columns: String, ColumnExpression {
+        case id
+        case mealEntryId
+        case alarmFiredAt
+        case treatmentLoggedAt
+        case treatmentType
+        case glucoseAtTreatment
+        case countdownMinutes
+        case timegroup
+    }
+}
+
 // MARK: - MealEntry + FetchableRecord, PersistableRecord
 
 extension MealEntry: FetchableRecord, PersistableRecord {
