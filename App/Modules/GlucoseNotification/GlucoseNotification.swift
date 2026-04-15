@@ -35,6 +35,12 @@ private func glucoseNotificationMiddelware(service: LazyService<GlucoseNotificat
             let isSnoozed = state.isSnoozed(alarm: alarm)
             DirectLog.info("isSnoozed: \(isSnoozed)")
 
+            // Treatment cycle suppresses low alarm sound (but not banners).
+            // Critical-low floor (alarmLow - 15 mg/dL) breaks through.
+            let isTreatmentSnoozed = state.treatmentCycleActive &&
+                (state.treatmentCycleSnoozeUntil.map { Date() < $0 } ?? false)
+            DirectLog.info("isTreatmentSnoozed: \(isTreatmentSnoozed)")
+
             if alarm == .lowAlarm {
                 DirectLog.info("Glucose alert, low: \(glucose.glucoseValue) < \(state.alarmLow)")
 
@@ -42,7 +48,11 @@ private func glucoseNotificationMiddelware(service: LazyService<GlucoseNotificat
                     service.value.setLowGlucoseNotification(glucose: glucose, glucoseUnit: state.glucoseUnit, isSnoozed: isSnoozed)
                 }
 
-                if !isSnoozed {
+                // Critical-low floor: if glucose is more than 15 mg/dL below alarmLow,
+                // break through treatment snooze (safety override).
+                let isCriticalLow = glucose.glucoseValue < (state.alarmLow - 15)
+
+                if !isSnoozed && (!isTreatmentSnoozed || isCriticalLow) {
                     if state.hasLowGlucoseAlarm {
                         service.value.setLowGlucoseAlarm(sound: state.lowGlucoseAlarmSound, volume: state.alarmVolume, ignoreMute: state.ignoreMute)
                     }

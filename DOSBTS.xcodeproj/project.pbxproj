@@ -35,6 +35,7 @@
 		AB01000200000001000D0001 /* TreatmentEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01000100000001000D0001 /* TreatmentEvent.swift */; };
 		AB01000300000001000D0001 /* TreatmentEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01000100000001000D0001 /* TreatmentEvent.swift */; };
 		AB01000200000002000D0002 /* TreatmentEventStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01000100000002000D0002 /* TreatmentEventStore.swift */; };
+		AC01000200000001000E0001 /* TreatmentCycleMiddleware.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC01000100000001000E0001 /* TreatmentCycleMiddleware.swift */; };
 		AA01000228000001000B0001 /* ExerciseEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01000128000001000B0001 /* ExerciseEntry.swift */; };
 		AA01000328000001000B0001 /* ExerciseEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01000128000001000B0001 /* ExerciseEntry.swift */; };
 		AA01000228000002000B0002 /* ExerciseStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01000128000002000B0002 /* ExerciseStore.swift */; };
@@ -310,6 +311,7 @@
 		291E048F059A0A6C176A6315 /* MealStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealStore.swift; sourceTree = "<group>"; };
 		AB01000100000001000D0001 /* TreatmentEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreatmentEvent.swift; sourceTree = "<group>"; };
 		AB01000100000002000D0002 /* TreatmentEventStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreatmentEventStore.swift; sourceTree = "<group>"; };
+		AC01000100000001000E0001 /* TreatmentCycleMiddleware.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreatmentCycleMiddleware.swift; sourceTree = "<group>"; };
 		AA01000128000001000B0001 /* ExerciseEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseEntry.swift; sourceTree = "<group>"; };
 		AA01000128000002000B0002 /* ExerciseStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseStore.swift; sourceTree = "<group>"; };
 		AA01000128000003000B0003 /* AppleHealthImport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleHealthImport.swift; sourceTree = "<group>"; };
@@ -766,6 +768,14 @@
 			path = DataStore;
 			sourceTree = "<group>";
 		};
+		AC01000100000010000E0010 /* TreatmentCycle */ = {
+			isa = PBXGroup;
+			children = (
+				AC01000100000001000E0001 /* TreatmentCycleMiddleware.swift */,
+			);
+			path = TreatmentCycle;
+			sourceTree = "<group>";
+		};
 		E298CF01279DEB6600C1C218 /* Calibrations */ = {
 			isa = PBXGroup;
 			children = (
@@ -919,6 +929,7 @@
 				E2CDA01827722FA100A1E694 /* ReadAloud */,
 				E27ED96E2758A3EE0099149C /* SensorConnector */,
 				E2591C60287412670009F27C /* ScreenLock */,
+				AC01000100000010000E0010 /* TreatmentCycle */,
 				E28BA1B7286F52AC00F6273F /* WidgetCenter */,
 			);
 			path = Modules;
@@ -1299,6 +1310,7 @@
 				0A18373573D9BFB02935C90B /* MealStore.swift in Sources */,
 				AB01000200000001000D0001 /* TreatmentEvent.swift in Sources */,
 				AB01000200000002000D0002 /* TreatmentEventStore.swift in Sources */,
+				AC01000200000001000E0001 /* TreatmentCycleMiddleware.swift in Sources */,
 				E2FCAC3B270741E600FE1CBF /* DirectLog.swift in Sources */,
 				E2D34BC4274D6BB500151895 /* OverviewView.swift in Sources */,
 				E298CF04279DEBF500C1C218 /* FactoryCalibrationView.swift in Sources */,
