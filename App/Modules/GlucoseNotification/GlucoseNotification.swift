@@ -157,6 +157,7 @@ private class GlucoseNotificationService {
             notification.sound = .none
             notification.userInfo = self.actions
             notification.interruptionLevel = isSnoozed ? .passive : .timeSensitive
+            notification.categoryIdentifier = "lowGlucoseAlarm"
 
             if glucoseUnit == .mgdL {
                 notification.badge = glucose.glucoseValue as NSNumber
