@@ -45,7 +45,10 @@ View dispatches Action -> Store.dispatch() -> Reducer mutates State
 - **SwiftUI nested sheets are unreliable** — never present a `.sheet` from within a view that is itself presented as a `.sheet`. Use `NavigationLink` (push) instead. This applies to all iOS versions, not just iOS 15. See `docs/solutions/ui-bugs/swiftui-nested-sheets-present-wrong-view-20260316.md`.
 - **Cross-middleware listening** — multiple middlewares can handle the same action (e.g., `.addMealEntry` triggers both `mealEntryStoreMiddleware` and `favoriteFoodStoreMiddleware`). Comment these cross-dependencies for maintainability.
 - **Data load guards** — all DataStore middlewares guard `state.appState == .active` before loading. The `.active` state is set in `ContentView.onAppear`. If adding new data store middlewares, follow this pattern: handle `.setAppState(.active)` to trigger initial load, and guard `.active` in the load action handler. See `docs/solutions/logic-errors/appstate-inactive-blocks-data-loading-20260317.md`.
+- **OverviewView uses ActiveSheet enum** — all sheets (insulin, meal, blood glucose, treatment modal, filtered food entry, treatment recheck) are consolidated into a single `.sheet(item:)` with an `ActiveSheet` enum discriminator. This prevents iOS 15 sibling sheet collisions. Use `pendingSheet` + `onDismiss` for dismiss-then-present sequencing (not `asyncAfter`).
+- **Overview layout order** — hero glucose → treatment banner (if active) → chart (with report type selector) → action buttons → connection → sensor. Matches Libre-style flow. ChartView has a `@State selectedReportType` enum switching between GLUCOSE (chart), TIME IN RANGE (TAR/TIR/TBR bars), and STATISTICS (AVG/SD/CV/GMI). The chart content is extracted into a `GlucoseChartContent` computed property.
 - **Food analysis has three input paths** — `analyzeFood(imageData:)` for photos, `analyzeFoodText(query:history:)` for NL text (with optional multi-turn follow-up), and `analyzeFoodBarcode(code:)` for barcode scanning (Open Food Facts). All three share `foodAnalysisResult/Loading/Error` state and reuse `FoodPhotoAnalysisView` as the staging plate. Photo and text paths require `aiConsentFoodPhoto` consent gate; barcode path does NOT (OFF is free). Text path supports conversational follow-up (up to 3 rounds) when confidence is low — follow-up state lives in `@State` (not Redux), staging plate stays visible during follow-up loading.
+- **Treatment workflow (Rule of 15)** — `TreatmentCycleMiddleware` orchestrates guided hypo treatment: alarm fires → `.showTreatmentPrompt` → user logs treatment → 15-min countdown → recheck glucose → stabilised or treat again. Two UI surfaces: UNNotificationAction buttons (background/lock screen) and TreatmentModalView (foreground). Alarm suppression during countdown (sound-only, banners continue) with critical-low safety floor (`alarmLow - 15 mg/dL` breaks through). Treatment cycle state persists to UserDefaults (survives app kill). TreatmentEvent stored in GRDB (write-only V1) for future absorption analysis. `treatmentCycleSnoozeUntil` is separate from `alarmSnoozeUntil` — GlucoseNotification checks both. Configurable wait time via `hypoTreatmentWaitMinutes` (default 15). TreatmentBannerView has 4 states: countdown, rechecking, stale data, recovered (auto-dismiss 5s).
 
 ## Project Structure
 
@@ -73,6 +76,7 @@ App/
     ReadAloud/
     WidgetCenter/
     ScreenLock/
+    TreatmentCycle/            # Hypo treatment workflow (Rule of 15)
     Claude/                    # AI food photo analysis (Claude Haiku)
     Log/
     Debug/

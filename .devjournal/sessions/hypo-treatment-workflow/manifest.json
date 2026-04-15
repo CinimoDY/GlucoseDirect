@@ -1,0 +1,71 @@
+{
+  "project": "hypo-treatment-workflow",
+  "started": "2026-04-15T19:00:00+02:00",
+  "ended": "2026-04-16T00:30:00+02:00",
+  "builds": [49],
+  "commits": [
+    {
+      "hash": "f5421034",
+      "message": "feat(treatment): add TreatmentEvent model, cycle state, and seed fix"
+    },
+    {
+      "hash": "605db618",
+      "message": "feat(treatment): core middleware + alarm suppression with critical-low floor"
+    },
+    {
+      "hash": "a6ffd17c",
+      "message": "feat(treatment): treatment modal, countdown banner, and sheet consolidation"
+    },
+    {
+      "hash": "7f3b4c0e",
+      "message": "feat(treatment): notification actions + settings wait time picker"
+    },
+    {
+      "hash": "f0a20c44",
+      "message": "fix(overview): restore Blood Glucose button lost in sheet consolidation"
+    },
+    {
+      "hash": "361182b3",
+      "message": "fix(treatment): address P0/P1 code review findings"
+    },
+    {
+      "hash": "9e044eb6",
+      "message": "fix(treatment): address remaining P1/P2 review findings"
+    },
+    {
+      "hash": "b212d10f",
+      "message": "fix(treatment): fix compile errors — use correct design token names"
+    }
+  ],
+  "milestones": [
+    {
+      "timestamp": "2026-04-15T19:09:00+02:00",
+      "title": "DMNC-646 created in Linear"
+    },
+    {
+      "timestamp": "2026-04-15T20:30:00+02:00",
+      "title": "Requirements doc written and reviewed by 5 personas"
+    },
+    {
+      "timestamp": "2026-04-15T22:00:00+02:00",
+      "title": "Implementation plan written with 9 units"
+    },
+    {
+      "timestamp": "2026-04-15T23:30:00+02:00",
+      "title": "All 9 units implemented"
+    },
+    {
+      "timestamp": "2026-04-16T00:00:00+02:00",
+      "title": "Code review complete, all P0-P2 findings fixed"
+    },
+    {
+      "timestamp": "2026-04-16T00:25:00+02:00",
+      "title": "Build 49 uploaded to TestFlight"
+    }
+  ],
+  "artifacts": [
+    "docs/brainstorms/2026-04-15-hypo-treatment-workflow-requirements.md",
+    "docs/plans/2026-04-15-001-feat-hypo-treatment-workflow-plan.md"
+  ],
+  "linear": ["DMNC-646", "DMNC-647"]
+}
