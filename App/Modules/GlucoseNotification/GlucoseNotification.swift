@@ -156,7 +156,9 @@ private class GlucoseNotificationService {
 
             let notification = UNMutableNotificationContent()
             notification.sound = .none
-            notification.userInfo = self.actions
+            var userInfo = self.actions
+            userInfo["alarmFiredAt"] = Date().timeIntervalSince1970
+            notification.userInfo = userInfo
             notification.interruptionLevel = isSnoozed ? .passive : .timeSensitive
             notification.categoryIdentifier = "lowGlucoseAlarm"
 

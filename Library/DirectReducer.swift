@@ -372,6 +372,9 @@ func directReducer(state: inout DirectState, action: DirectAction) {
         state.treatmentLoggedAt = overrideTimestamp ?? Date()
         state.showTreatmentPrompt = false
         state.recheckDispatched = false
+        // Clear stale countdown expiry to prevent race: next addSensorGlucose arriving before
+        // startTreatmentCycle could see the old (expired) expiry and fire a premature recheck.
+        state.treatmentCycleCountdownExpiry = nil
 
     case .startTreatmentCycle:
         state.treatmentCycleActive = true

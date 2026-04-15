@@ -11,6 +11,7 @@ struct TreatmentBannerView: View {
 
     @State private var remainingSeconds: Int = 0
     @State private var timer: AnyCancellable?
+    @State private var autoDismissTask: DispatchWorkItem?
 
     private enum BannerState {
         case countdown
@@ -120,10 +121,17 @@ struct TreatmentBannerView: View {
                     .foregroundColor(AmberTheme.cgaGreen)
             }
             .onAppear {
-                // Auto-dismiss after 5 seconds
-                DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                // Auto-dismiss after 5 seconds (cancellable if user taps X first)
+                let task = DispatchWorkItem { [weak store] in
+                    guard let store = store, store.state.treatmentCycleActive else { return }
                     store.dispatch(.endTreatmentCycle)
                 }
+                autoDismissTask = task
+                DispatchQueue.main.asyncAfter(deadline: .now() + 5, execute: task)
+            }
+            .onDisappear {
+                autoDismissTask?.cancel()
+                autoDismissTask = nil
             }
         }
     }

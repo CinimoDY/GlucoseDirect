@@ -121,6 +121,14 @@ extension DOSBTSAppDelegate: UNUserNotificationCenterDelegate {
             return
         }
 
+        // Recover the original alarm timestamp from notification userInfo (set by GlucoseNotificationService)
+        let alarmFiredAt: Date
+        if let timestamp = response.notification.request.content.userInfo["alarmFiredAt"] as? TimeInterval {
+            alarmFiredAt = Date(timeIntervalSince1970: timestamp)
+        } else {
+            alarmFiredAt = Date()
+        }
+
         switch response.actionIdentifier {
         case "tookDextro":
             // Find the default hypo treatment (lowest sortOrder where isHypoTreatment)
@@ -129,14 +137,14 @@ extension DOSBTSAppDelegate: UNUserNotificationCenterDelegate {
                 .sorted { $0.sortOrder < $1.sortOrder }
 
             if let defaultTreatment = hypoTreatments.first {
-                store.dispatch(.logHypoTreatment(favorite: defaultTreatment, alarmFiredAt: Date(), overrideTimestamp: nil))
+                store.dispatch(.logHypoTreatment(favorite: defaultTreatment, alarmFiredAt: alarmFiredAt, overrideTimestamp: nil))
             } else {
                 // No hypo treatment configured — fall through to show treatment prompt
-                store.dispatch(.showTreatmentPrompt(alarmFiredAt: Date()))
+                store.dispatch(.showTreatmentPrompt(alarmFiredAt: alarmFiredAt))
             }
 
         case "moreOptions":
-            store.dispatch(.showTreatmentPrompt(alarmFiredAt: Date()))
+            store.dispatch(.showTreatmentPrompt(alarmFiredAt: alarmFiredAt))
 
         case UNNotificationDefaultActionIdentifier:
             // Body tap — keep existing 30-minute snooze behavior

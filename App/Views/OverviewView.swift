@@ -31,6 +31,7 @@ struct OverviewView: View {
     @EnvironmentObject var store: DirectStore
 
     @State private var activeSheet: ActiveSheet?
+    @State private var pendingSheet: ActiveSheet?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -58,7 +59,13 @@ struct OverviewView: View {
 
             StickyQuickActions()
         }
-        .sheet(item: $activeSheet) { sheet in
+        .sheet(item: $activeSheet, onDismiss: {
+            // Present pending sheet after current one fully dismisses (avoids asyncAfter timing hack)
+            if let pending = pendingSheet {
+                pendingSheet = nil
+                activeSheet = pending
+            }
+        }) { sheet in
             sheetContent(for: sheet)
         }
         .onAppear {
@@ -110,10 +117,9 @@ struct OverviewView: View {
             TreatmentModalView(
                 alarmFiredAt: alarmFiredAt,
                 onMoreTapped: {
-                    // Dismiss-then-present: set filtered food entry after modal dismisses
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        activeSheet = .filteredFoodEntry
-                    }
+                    // Set pending sheet — will be presented via onDismiss after this modal closes
+                    pendingSheet = .filteredFoodEntry
+                    activeSheet = nil
                 }
             )
             .environmentObject(store)
@@ -126,9 +132,8 @@ struct OverviewView: View {
             TreatmentModalView(
                 alarmFiredAt: store.state.alarmFiredAt ?? Date(),
                 onMoreTapped: {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        activeSheet = .filteredFoodEntry
-                    }
+                    pendingSheet = .filteredFoodEntry
+                    activeSheet = nil
                 },
                 isRecheckMode: true,
                 recheckGlucoseValue: glucoseValue
