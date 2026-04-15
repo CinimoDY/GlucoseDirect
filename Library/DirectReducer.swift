@@ -375,6 +375,7 @@ func directReducer(state: inout DirectState, action: DirectAction) {
 
     case .startTreatmentCycle:
         state.treatmentCycleActive = true
+        state.recheckDispatched = false
         state.treatmentCycleCountdownExpiry = Date().addingTimeInterval(Double(state.hypoTreatmentWaitMinutes * 60))
         state.treatmentCycleSnoozeUntil = state.treatmentCycleCountdownExpiry
 

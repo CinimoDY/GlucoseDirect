@@ -35,6 +35,7 @@ private func glucoseNotificationMiddelware(service: LazyService<GlucoseNotificat
             let isSnoozed = state.isSnoozed(alarm: alarm)
             DirectLog.info("isSnoozed: \(isSnoozed)")
 
+            // Cross-middleware: reads treatmentCycleActive and treatmentCycleSnoozeUntil set by treatmentCycleMiddleware.
             // Treatment cycle suppresses low alarm sound (but not banners).
             // Critical-low floor (alarmLow - 15 mg/dL) breaks through.
             let isTreatmentSnoozed = state.treatmentCycleActive &&

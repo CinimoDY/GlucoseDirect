@@ -25,6 +25,9 @@ func treatmentCycleMiddleware() -> Middleware<DirectState, DirectAction> {
                 countdownMinutes: state.hypoTreatmentWaitMinutes
             )
 
+            // Cancel any existing recheck notification before scheduling new one (chained cycle safety)
+            DirectNotifications.shared.removeNotification(identifier: recheckNotificationIdentifier)
+
             // Schedule recheck notification for when the countdown expires
             let content = UNMutableNotificationContent()
             content.title = LocalizedString("Treatment Recheck")
@@ -45,6 +48,7 @@ func treatmentCycleMiddleware() -> Middleware<DirectState, DirectAction> {
 
             DirectLog.info("Treatment cycle: logged treatment '\(favorite.mealDescription)', recheck in \(state.hypoTreatmentWaitMinutes) min")
 
+            // Cross-middleware: .addMealEntry also handled by mealEntryStoreMiddleware and favoriteFoodStoreMiddleware
             return Publishers.Merge3(
                 Just(DirectAction.addMealEntry(mealEntryValues: [mealEntry]))
                     .setFailureType(to: DirectError.self),
@@ -105,7 +109,12 @@ func treatmentCycleMiddleware() -> Middleware<DirectState, DirectAction> {
             }
 
             guard let expiryDate = state.treatmentCycleCountdownExpiry else {
-                break
+                // Defensive: active=true but expiry=nil means partial UserDefaults write (crash/kill).
+                // Reset to safe state to prevent indefinite alarm suppression.
+                DirectLog.warning("Treatment cycle: active but no countdown expiry — clearing corrupt state")
+                return Just(DirectAction.dismissTreatmentCycle)
+                    .setFailureType(to: DirectError.self)
+                    .eraseToAnyPublisher()
             }
 
             // If countdown not yet expired, re-schedule the recheck notification with remaining time

@@ -61,6 +61,13 @@ struct OverviewView: View {
         .sheet(item: $activeSheet) { sheet in
             sheetContent(for: sheet)
         }
+        .onAppear {
+            // Handle cold launch: showTreatmentPrompt may already be true before onChange subscribes
+            if store.state.showTreatmentPrompt, let alarmFiredAt = store.state.alarmFiredAt {
+                activeSheet = .treatmentModal(alarmFiredAt: alarmFiredAt)
+                store.dispatch(.setShowTreatmentPrompt(show: false))
+            }
+        }
         .onChange(of: store.state.showTreatmentPrompt) { newValue in
             if newValue, let alarmFiredAt = store.state.alarmFiredAt {
                 activeSheet = .treatmentModal(alarmFiredAt: alarmFiredAt)

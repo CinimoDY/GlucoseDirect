@@ -72,6 +72,12 @@ struct TreatmentModalView: View {
                 }
             }
         }
+        .onDisappear {
+            // Handle swipe-to-dismiss: clean up cycle state if recheck modal dismissed without treating
+            if isRecheckMode, store.state.recheckDispatched, store.state.treatmentCycleActive {
+                store.dispatch(.dismissTreatmentCycle)
+            }
+        }
     }
 
     // MARK: - Glucose Header
