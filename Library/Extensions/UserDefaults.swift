@@ -62,6 +62,12 @@ private enum Keys: String {
     case claudeAPIKeyValid = "libre-direct.settings.claude-api-key-valid"
     case thumbCalibrationMM = "libre-direct.settings.thumb-calibration-mm"
     case servingPresets = "libre-direct.settings.serving-presets"
+    case treatmentCycleActive = "libre-direct.settings.treatment-cycle-active"
+    case alarmFiredAt = "libre-direct.settings.alarm-fired-at"
+    case treatmentLoggedAt = "libre-direct.settings.treatment-logged-at"
+    case treatmentCycleCountdownExpiry = "libre-direct.settings.treatment-cycle-countdown-expiry"
+    case treatmentCycleSnoozeUntil = "libre-direct.settings.treatment-cycle-snooze-until"
+    case hypoTreatmentWaitMinutes = "libre-direct.settings.hypo-treatment-wait-minutes"
 }
 
 extension UserDefaults {
@@ -744,6 +750,88 @@ extension UserDefaults {
         }
         set {
             setArray(newValue, forKey: Keys.servingPresets.rawValue)
+        }
+    }
+
+    var treatmentCycleActive: Bool {
+        get {
+            if object(forKey: Keys.treatmentCycleActive.rawValue) != nil {
+                return bool(forKey: Keys.treatmentCycleActive.rawValue)
+            }
+
+            return false
+        }
+        set {
+            set(newValue, forKey: Keys.treatmentCycleActive.rawValue)
+        }
+    }
+
+    var alarmFiredAt: Date? {
+        get {
+            let ti = double(forKey: Keys.alarmFiredAt.rawValue)
+            return ti > 0 ? Date(timeIntervalSince1970: ti) : nil
+        }
+        set {
+            if let newValue = newValue {
+                set(newValue.timeIntervalSince1970, forKey: Keys.alarmFiredAt.rawValue)
+            } else {
+                removeObject(forKey: Keys.alarmFiredAt.rawValue)
+            }
+        }
+    }
+
+    var treatmentLoggedAt: Date? {
+        get {
+            let ti = double(forKey: Keys.treatmentLoggedAt.rawValue)
+            return ti > 0 ? Date(timeIntervalSince1970: ti) : nil
+        }
+        set {
+            if let newValue = newValue {
+                set(newValue.timeIntervalSince1970, forKey: Keys.treatmentLoggedAt.rawValue)
+            } else {
+                removeObject(forKey: Keys.treatmentLoggedAt.rawValue)
+            }
+        }
+    }
+
+    var treatmentCycleCountdownExpiry: Date? {
+        get {
+            let ti = double(forKey: Keys.treatmentCycleCountdownExpiry.rawValue)
+            return ti > 0 ? Date(timeIntervalSince1970: ti) : nil
+        }
+        set {
+            if let newValue = newValue {
+                set(newValue.timeIntervalSince1970, forKey: Keys.treatmentCycleCountdownExpiry.rawValue)
+            } else {
+                removeObject(forKey: Keys.treatmentCycleCountdownExpiry.rawValue)
+            }
+        }
+    }
+
+    var treatmentCycleSnoozeUntil: Date? {
+        get {
+            let ti = double(forKey: Keys.treatmentCycleSnoozeUntil.rawValue)
+            return ti > 0 ? Date(timeIntervalSince1970: ti) : nil
+        }
+        set {
+            if let newValue = newValue {
+                set(newValue.timeIntervalSince1970, forKey: Keys.treatmentCycleSnoozeUntil.rawValue)
+            } else {
+                removeObject(forKey: Keys.treatmentCycleSnoozeUntil.rawValue)
+            }
+        }
+    }
+
+    var hypoTreatmentWaitMinutes: Int {
+        get {
+            if object(forKey: Keys.hypoTreatmentWaitMinutes.rawValue) != nil {
+                return integer(forKey: Keys.hypoTreatmentWaitMinutes.rawValue)
+            }
+
+            return 15
+        }
+        set {
+            set(newValue, forKey: Keys.hypoTreatmentWaitMinutes.rawValue)
         }
     }
 }

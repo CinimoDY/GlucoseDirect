@@ -360,6 +360,55 @@ func directReducer(state: inout DirectState, action: DirectAction) {
     case .setThumbCalibration(widthMM: let widthMM):
         state.thumbCalibrationMM = widthMM
 
+    // MARK: Treatment Cycle
+    case .showTreatmentPrompt(alarmFiredAt: let alarmFiredAt):
+        state.showTreatmentPrompt = true
+        state.alarmFiredAt = alarmFiredAt
+
+    case .setShowTreatmentPrompt(show: let show):
+        state.showTreatmentPrompt = show
+
+    case .logHypoTreatment(favorite: _, alarmFiredAt: _, overrideTimestamp: let overrideTimestamp):
+        state.treatmentLoggedAt = overrideTimestamp ?? Date()
+        state.showTreatmentPrompt = false
+        state.recheckDispatched = false
+        // Clear stale countdown expiry to prevent race: next addSensorGlucose arriving before
+        // startTreatmentCycle could see the old (expired) expiry and fire a premature recheck.
+        state.treatmentCycleCountdownExpiry = nil
+
+    case .startTreatmentCycle:
+        state.treatmentCycleActive = true
+        state.recheckDispatched = false
+        state.treatmentCycleCountdownExpiry = Date().addingTimeInterval(Double(state.hypoTreatmentWaitMinutes * 60))
+        state.treatmentCycleSnoozeUntil = state.treatmentCycleCountdownExpiry
+
+    case .endTreatmentCycle:
+        state.treatmentCycleActive = false
+        state.alarmFiredAt = nil
+        state.treatmentLoggedAt = nil
+        state.treatmentCycleCountdownExpiry = nil
+        state.treatmentCycleSnoozeUntil = nil
+        state.recheckDispatched = false
+
+    case .dismissTreatmentCycle:
+        state.treatmentCycleActive = false
+        state.showTreatmentPrompt = false
+        state.alarmFiredAt = nil
+        state.treatmentLoggedAt = nil
+        state.treatmentCycleCountdownExpiry = nil
+        state.treatmentCycleSnoozeUntil = nil
+        state.recheckDispatched = false
+
+    case .treatmentCycleRecovered(glucoseValue: _):
+        state.recheckDispatched = true
+
+    case .treatmentCycleStillLow(glucoseValue: _):
+        state.recheckDispatched = true
+        state.showTreatmentPrompt = true
+
+    case .setHypoTreatmentWaitMinutes(minutes: let minutes):
+        state.hypoTreatmentWaitMinutes = minutes
+
     default:
         break
     }

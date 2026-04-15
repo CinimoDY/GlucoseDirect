@@ -96,7 +96,11 @@ class DirectNotifications {
 
         DirectLog.info("NotificationCenter, identifier: \(identifier)")
         DirectLog.info("NotificationCenter, content: \(content)")
-        center.add(request)
+        center.add(request) { error in
+            if let error = error {
+                DirectLog.error("NotificationCenter, failed to schedule \(identifier): \(error)")
+            }
+        }
     }
 
     func ensureCanSendNotification(_ completion: @escaping (_ state: NotificationState) -> Void) {

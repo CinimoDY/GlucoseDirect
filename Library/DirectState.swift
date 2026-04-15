@@ -86,6 +86,16 @@ protocol DirectState {
     var recentFoodCorrections: [FoodCorrection] { get set }
     var servingPresets: [ServingPreset] { get set }
     var thumbCalibrationMM: Double? { get set }
+
+    // MARK: Treatment Cycle
+    var treatmentCycleActive: Bool { get set }
+    var showTreatmentPrompt: Bool { get set }
+    var alarmFiredAt: Date? { get set }
+    var treatmentLoggedAt: Date? { get set }
+    var treatmentCycleCountdownExpiry: Date? { get set }
+    var treatmentCycleSnoozeUntil: Date? { get set }
+    var hypoTreatmentWaitMinutes: Int { get set }
+    var recheckDispatched: Bool { get set }
 }
 
 extension DirectState {

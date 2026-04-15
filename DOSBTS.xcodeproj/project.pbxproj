@@ -32,6 +32,10 @@
 		FF01000100000004000F0004 /* UnifiedFoodEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF01000200000003000F0003 /* UnifiedFoodEntryView.swift */; };
 		BD098B7D516906B95F92737F /* MealEntryListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47988FB1F9466EE8DB163743 /* MealEntryListView.swift */; };
 		0A18373573D9BFB02935C90B /* MealStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 291E048F059A0A6C176A6315 /* MealStore.swift */; };
+		AB01000200000001000D0001 /* TreatmentEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01000100000001000D0001 /* TreatmentEvent.swift */; };
+		AB01000300000001000D0001 /* TreatmentEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01000100000001000D0001 /* TreatmentEvent.swift */; };
+		AB01000200000002000D0002 /* TreatmentEventStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01000100000002000D0002 /* TreatmentEventStore.swift */; };
+		AC01000200000001000E0001 /* TreatmentCycleMiddleware.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC01000100000001000E0001 /* TreatmentCycleMiddleware.swift */; };
 		AA01000228000001000B0001 /* ExerciseEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01000128000001000B0001 /* ExerciseEntry.swift */; };
 		AA01000328000001000B0001 /* ExerciseEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01000128000001000B0001 /* ExerciseEntry.swift */; };
 		AA01000228000002000B0002 /* ExerciseStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01000128000002000B0002 /* ExerciseStore.swift */; };
@@ -114,6 +118,8 @@
 		E27ED97F2758ADF40099149C /* SensorConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = E27ED97E2758ADF40099149C /* SensorConnection.swift */; };
 		E283306726AF058500244343 /* ChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E283306626AF058500244343 /* ChartView.swift */; };
 		E28728AA26DE499200269F47 /* SnoozeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E28728A926DE499200269F47 /* SnoozeView.swift */; };
+		AA01000100000003000A0003 /* TreatmentModalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01000100000001000A0001 /* TreatmentModalView.swift */; };
+		AA01000100000004000A0004 /* TreatmentBannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01000100000002000A0002 /* TreatmentBannerView.swift */; };
 		E28BA1B9286F52C700F6273F /* WidgetCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E28BA1B8286F52C700F6273F /* WidgetCenter.swift */; };
 		E28C1299278AE6A900ECE0DF /* ConnectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E28C1298278AE6A900ECE0DF /* ConnectionView.swift */; };
 		E292E1B226A608C400011F64 /* NumberSelectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E292E1B126A608C400011F64 /* NumberSelectorView.swift */; };
@@ -305,6 +311,9 @@
 		FF01000200000003000F0003 /* UnifiedFoodEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedFoodEntryView.swift; sourceTree = "<group>"; };
 		47988FB1F9466EE8DB163743 /* MealEntryListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealEntryListView.swift; sourceTree = "<group>"; };
 		291E048F059A0A6C176A6315 /* MealStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealStore.swift; sourceTree = "<group>"; };
+		AB01000100000001000D0001 /* TreatmentEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreatmentEvent.swift; sourceTree = "<group>"; };
+		AB01000100000002000D0002 /* TreatmentEventStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreatmentEventStore.swift; sourceTree = "<group>"; };
+		AC01000100000001000E0001 /* TreatmentCycleMiddleware.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreatmentCycleMiddleware.swift; sourceTree = "<group>"; };
 		AA01000128000001000B0001 /* ExerciseEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseEntry.swift; sourceTree = "<group>"; };
 		AA01000128000002000B0002 /* ExerciseStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseStore.swift; sourceTree = "<group>"; };
 		AA01000128000003000B0003 /* AppleHealthImport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleHealthImport.swift; sourceTree = "<group>"; };
@@ -379,6 +388,8 @@
 		E27ED97E2758ADF40099149C /* SensorConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorConnection.swift; sourceTree = "<group>"; };
 		E283306626AF058500244343 /* ChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartView.swift; sourceTree = "<group>"; };
 		E28728A926DE499200269F47 /* SnoozeView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SnoozeView.swift; sourceTree = "<group>"; };
+		AA01000100000001000A0001 /* TreatmentModalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreatmentModalView.swift; sourceTree = "<group>"; };
+		AA01000100000002000A0002 /* TreatmentBannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreatmentBannerView.swift; sourceTree = "<group>"; };
 		E28BA1B8286F52C700F6273F /* WidgetCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetCenter.swift; sourceTree = "<group>"; };
 		E28C1298278AE6A900ECE0DF /* ConnectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionView.swift; sourceTree = "<group>"; };
 		E28D3D91276DF9B70092D862 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
@@ -551,6 +562,7 @@
 				CB01000100000007000C0007 /* AIConsentView.swift */,
 				CB01000100000008000C0008 /* FoodPhotoAnalysisView.swift */,
 				FF01000200000003000F0003 /* UnifiedFoodEntryView.swift */,
+				AA01000100000001000A0001 /* TreatmentModalView.swift */,
 			);
 			path = AddViews;
 			sourceTree = "<group>";
@@ -754,10 +766,19 @@
 				FF01000200000002000F0002 /* FavoriteStore.swift */,
 				FC01000200000003000A0003 /* FoodCorrectionStore.swift */,
 				291E048F059A0A6C176A6315 /* MealStore.swift */,
+				AB01000100000002000D0002 /* TreatmentEventStore.swift */,
 				E262DCBF287A432B00ECAB76 /* SensorErrorStore.swift */,
 				E23698E3288198B400FCF69F /* Migration.swift */,
 			);
 			path = DataStore;
+			sourceTree = "<group>";
+		};
+		AC01000100000010000E0010 /* TreatmentCycle */ = {
+			isa = PBXGroup;
+			children = (
+				AC01000100000001000E0001 /* TreatmentCycleMiddleware.swift */,
+			);
+			path = TreatmentCycle;
 			sourceTree = "<group>";
 		};
 		E298CF01279DEB6600C1C218 /* Calibrations */ = {
@@ -797,6 +818,7 @@
 				E29ED230268C754F00CBD3F1 /* GlucoseView.swift */,
 				E223F866267A4D9800EC9BCA /* SensorView.swift */,
 				E28728A926DE499200269F47 /* SnoozeView.swift */,
+				AA01000100000002000A0002 /* TreatmentBannerView.swift */,
 			);
 			path = Overview;
 			sourceTree = "<group>";
@@ -848,6 +870,7 @@
 				FC01000200000001000A0001 /* FoodCorrection.swift */,
 				6587CE4929626070008518F4 /* InsulinDelivery.swift */,
 				F5B3B29325013D6A04E3E5A6 /* MealEntry.swift */,
+				AB01000100000001000D0001 /* TreatmentEvent.swift */,
 				CB01000100000003000C0003 /* NutritionEstimate.swift */,
 				FC01000200000002000A0002 /* PersonalFood.swift */,
 				DA01000200000001000E0001 /* ServingPreset.swift */,
@@ -912,6 +935,7 @@
 				E2CDA01827722FA100A1E694 /* ReadAloud */,
 				E27ED96E2758A3EE0099149C /* SensorConnector */,
 				E2591C60287412670009F27C /* ScreenLock */,
+				AC01000100000010000E0010 /* TreatmentCycle */,
 				E28BA1B7286F52AC00F6273F /* WidgetCenter */,
 			);
 			path = Modules;
@@ -1290,6 +1314,9 @@
 				6587CE4C2962651B008518F4 /* InsulinDeliveryStore.swift in Sources */,
 				AA01000228000002000B0002 /* ExerciseStore.swift in Sources */,
 				0A18373573D9BFB02935C90B /* MealStore.swift in Sources */,
+				AB01000200000001000D0001 /* TreatmentEvent.swift in Sources */,
+				AB01000200000002000D0002 /* TreatmentEventStore.swift in Sources */,
+				AC01000200000001000E0001 /* TreatmentCycleMiddleware.swift in Sources */,
 				E2FCAC3B270741E600FE1CBF /* DirectLog.swift in Sources */,
 				E2D34BC4274D6BB500151895 /* OverviewView.swift in Sources */,
 				E298CF04279DEBF500C1C218 /* FactoryCalibrationView.swift in Sources */,
@@ -1331,6 +1358,8 @@
 				10DD1301296A15B900C900EA /* AddCalibrationView.swift in Sources */,
 				E29ED231268C754F00CBD3F1 /* GlucoseView.swift in Sources */,
 				E28728AA26DE499200269F47 /* SnoozeView.swift in Sources */,
+				AA01000100000003000A0003 /* TreatmentModalView.swift in Sources */,
+				AA01000100000004000A0004 /* TreatmentBannerView.swift in Sources */,
 				E2BDE9D0290DF346004B8AB7 /* UIScreen.swift in Sources */,
 				E2FCAC702707438A00FE1CBF /* DirectState.swift in Sources */,
 				E2715804287ABF2E00B611D9 /* SensorGlucoseListView.swift in Sources */,
@@ -1368,6 +1397,7 @@
 				FC01000100000004000A0004 /* PersonalFood.swift in Sources */,
 				DA01000100000002000E0002 /* ServingPreset.swift in Sources */,
 				EFCE388A6BE1BC789C79E511 /* MealEntry.swift in Sources */,
+				AB01000300000001000D0001 /* TreatmentEvent.swift in Sources */,
 				CB01000300000003000C0003 /* NutritionEstimate.swift in Sources */,
 				E2591C5B28740E7A0009F27C /* SensorConnectionInfo.swift in Sources */,
 				E2E8DBFF2859F47D002C84FD /* CustomCalibration.swift in Sources */,
@@ -1642,7 +1672,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 47;
+				CURRENT_PROJECT_VERSION = 49;
 				DEVELOPMENT_ASSET_PATHS = "\"App/Preview Content\"";
 				DEVELOPMENT_TEAM = "${DEVELOPMENT_TEAM}";
 				ENABLE_PREVIEWS = YES;
@@ -1673,7 +1703,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 47;
+				CURRENT_PROJECT_VERSION = 49;
 				DEVELOPMENT_ASSET_PATHS = "\"App/Preview Content\"";
 				DEVELOPMENT_TEAM = "${DEVELOPMENT_TEAM}";
 				ENABLE_PREVIEWS = YES;
@@ -1706,7 +1736,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
 				CODE_SIGN_ENTITLEMENTS = Widgets/Widgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 47;
+				CURRENT_PROJECT_VERSION = 49;
 				DEVELOPMENT_TEAM = "${DEVELOPMENT_TEAM}";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Widgets/Info.plist;
@@ -1739,7 +1769,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
 				CODE_SIGN_ENTITLEMENTS = Widgets/Widgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 47;
+				CURRENT_PROJECT_VERSION = 49;
 				DEVELOPMENT_TEAM = "${DEVELOPMENT_TEAM}";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Widgets/Info.plist;

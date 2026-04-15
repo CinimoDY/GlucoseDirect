@@ -61,6 +61,26 @@ class DOSBTSAppDelegate: NSObject, UIApplicationDelegate {
         let notificationCenter = UNUserNotificationCenter.current()
         notificationCenter.delegate = self
 
+        // Register notification categories with action buttons
+        let tookDextroAction = UNNotificationAction(
+            identifier: "tookDextro",
+            title: "TREAT NOW",
+            options: [.foreground]
+        )
+        let moreOptionsAction = UNNotificationAction(
+            identifier: "moreOptions",
+            title: "More...",
+            options: [.foreground]
+        )
+        let lowGlucoseCategory = UNNotificationCategory(
+            identifier: "lowGlucoseAlarm",
+            actions: [tookDextroAction, moreOptionsAction],
+            intentIdentifiers: [],
+            hiddenPreviewsBodyPlaceholder: "",
+            options: []
+        )
+        notificationCenter.setNotificationCategories([lowGlucoseCategory])
+
         return true
     }
 
@@ -94,11 +114,47 @@ extension DOSBTSAppDelegate: UNUserNotificationCenterDelegate {
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
-        DirectLog.info("Application did receive notification response")
+        DirectLog.info("Application did receive notification response, actionIdentifier: \(response.actionIdentifier)")
 
-        if let store = store, let action = response.notification.request.content.userInfo["action"] as? String, action == "snooze" {
-            store.dispatch(.selectView(viewTag: DirectConfig.overviewViewTag))
-            store.dispatch(.setAlarmSnoozeUntil(untilDate: Date().addingTimeInterval(30 * 60).toRounded(on: 1, .minute)))
+        guard let store = store else {
+            completionHandler()
+            return
+        }
+
+        // Recover the original alarm timestamp from notification userInfo (set by GlucoseNotificationService)
+        let alarmFiredAt: Date
+        if let timestamp = response.notification.request.content.userInfo["alarmFiredAt"] as? TimeInterval {
+            alarmFiredAt = Date(timeIntervalSince1970: timestamp)
+        } else {
+            alarmFiredAt = Date()
+        }
+
+        switch response.actionIdentifier {
+        case "tookDextro":
+            // Find the default hypo treatment (lowest sortOrder where isHypoTreatment)
+            let hypoTreatments = store.state.favoriteFoodValues
+                .filter { $0.isHypoTreatment }
+                .sorted { $0.sortOrder < $1.sortOrder }
+
+            if let defaultTreatment = hypoTreatments.first {
+                store.dispatch(.logHypoTreatment(favorite: defaultTreatment, alarmFiredAt: alarmFiredAt, overrideTimestamp: nil))
+            } else {
+                // No hypo treatment configured — fall through to show treatment prompt
+                store.dispatch(.showTreatmentPrompt(alarmFiredAt: alarmFiredAt))
+            }
+
+        case "moreOptions":
+            store.dispatch(.showTreatmentPrompt(alarmFiredAt: alarmFiredAt))
+
+        case UNNotificationDefaultActionIdentifier:
+            // Body tap — keep existing 30-minute snooze behavior
+            if let action = response.notification.request.content.userInfo["action"] as? String, action == "snooze" {
+                store.dispatch(.selectView(viewTag: DirectConfig.overviewViewTag))
+                store.dispatch(.setAlarmSnoozeUntil(untilDate: Date().addingTimeInterval(30 * 60).toRounded(on: 1, .minute)))
+            }
+
+        default:
+            break
         }
 
         completionHandler()
@@ -127,6 +183,8 @@ private func createSimulatorAppStore() -> DirectStore {
         favoriteFoodStoreMiddleware(),
         foodCorrectionStoreMiddleware(),
         exerciseEntryStoreMiddleware(),
+        treatmentEventStoreMiddleware(),
+        treatmentCycleMiddleware(),
         glucoseStatisticsMiddleware(),
         expiringNotificationMiddelware(),
         glucoseNotificationMiddelware(),
@@ -173,6 +231,8 @@ private func createAppStore() -> DirectStore {
         favoriteFoodStoreMiddleware(),
         foodCorrectionStoreMiddleware(),
         exerciseEntryStoreMiddleware(),
+        treatmentEventStoreMiddleware(),
+        treatmentCycleMiddleware(),
         glucoseStatisticsMiddleware(),
         expiringNotificationMiddelware(),
         glucoseNotificationMiddelware(),

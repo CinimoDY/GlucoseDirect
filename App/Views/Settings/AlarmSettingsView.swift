@@ -50,9 +50,18 @@ struct AlarmSettingsView: View {
                 }
 
                 Toggle("Ignore mute", isOn: ignoreMute).toggleStyle(SwitchToggleStyle(tint: AmberTheme.amber))
+
+                Picker("Treatment recheck", selection: selectedHypoTreatmentWaitMinutes) {
+                    ForEach([10, 15, 20, 25, 30], id: \.self) { minutes in
+                        Text("\(minutes) min")
+                    }
+                }.pickerStyle(.menu)
             },
             header: {
                 Label("Alarm settings", systemImage: "alarm")
+            },
+            footer: {
+                Text("Treatment recheck: time to wait before checking glucose after treating a low")
             }
         )
     }
@@ -78,6 +87,13 @@ struct AlarmSettingsView: View {
                     DirectNotifications.shared.testSound(sound: .alarm, volume: $0)
                 }
             }
+        )
+    }
+
+    private var selectedHypoTreatmentWaitMinutes: Binding<Int> {
+        Binding(
+            get: { store.state.hypoTreatmentWaitMinutes },
+            set: { store.dispatch(.setHypoTreatmentWaitMinutes(minutes: $0)) }
         )
     }
 

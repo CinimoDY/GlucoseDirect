@@ -89,6 +89,12 @@ struct AppState: DirectState {
             UserDefaults.standard.servingPresets = ServingPreset.defaults
         }
         self.servingPresets = UserDefaults.standard.servingPresets
+        self.treatmentCycleActive = UserDefaults.standard.treatmentCycleActive
+        self.alarmFiredAt = UserDefaults.standard.alarmFiredAt
+        self.treatmentLoggedAt = UserDefaults.standard.treatmentLoggedAt
+        self.treatmentCycleCountdownExpiry = UserDefaults.standard.treatmentCycleCountdownExpiry
+        self.treatmentCycleSnoozeUntil = UserDefaults.standard.treatmentCycleSnoozeUntil
+        self.hypoTreatmentWaitMinutes = UserDefaults.standard.hypoTreatmentWaitMinutes
     }
 
     // MARK: Internal
@@ -175,4 +181,14 @@ struct AppState: DirectState {
     var foodAnalysisResult: NutritionEstimate?
     var foodAnalysisError: String?
     var foodAnalysisLoading = false
+
+    // MARK: Treatment Cycle
+    var treatmentCycleActive: Bool { didSet { UserDefaults.standard.treatmentCycleActive = treatmentCycleActive } }
+    var showTreatmentPrompt: Bool = false
+    var alarmFiredAt: Date? { didSet { UserDefaults.standard.alarmFiredAt = alarmFiredAt } }
+    var treatmentLoggedAt: Date? { didSet { UserDefaults.standard.treatmentLoggedAt = treatmentLoggedAt } }
+    var treatmentCycleCountdownExpiry: Date? { didSet { UserDefaults.standard.treatmentCycleCountdownExpiry = treatmentCycleCountdownExpiry } }
+    var treatmentCycleSnoozeUntil: Date? { didSet { UserDefaults.standard.treatmentCycleSnoozeUntil = treatmentCycleSnoozeUntil } }
+    var hypoTreatmentWaitMinutes: Int { didSet { UserDefaults.standard.hypoTreatmentWaitMinutes = hypoTreatmentWaitMinutes } }
+    var recheckDispatched: Bool = false
 }
