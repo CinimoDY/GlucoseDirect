@@ -10,6 +10,7 @@ import SwiftUI
 private enum ActiveSheet: Identifiable {
     case insulin
     case meal
+    case bloodGlucose
     case treatmentModal(alarmFiredAt: Date)
     case filteredFoodEntry
     case treatmentRecheck(glucoseValue: Int)
@@ -18,6 +19,7 @@ private enum ActiveSheet: Identifiable {
         switch self {
         case .insulin: return "insulin"
         case .meal: return "meal"
+        case .bloodGlucose: return "bloodGlucose"
         case .treatmentModal: return "treatmentModal"
         case .filteredFoodEntry: return "filteredFoodEntry"
         case .treatmentRecheck: return "treatmentRecheck"
@@ -91,6 +93,12 @@ struct OverviewView: View {
             UnifiedFoodEntryView()
                 .environmentObject(store)
 
+        case .bloodGlucose:
+            AddBloodGlucoseView(glucoseUnit: store.state.glucoseUnit) { time, value in
+                let glucose = BloodGlucose(id: UUID(), timestamp: time, glucoseValue: value)
+                store.dispatch(.addBloodGlucose(glucoseValues: [glucose]))
+            }
+
         case .treatmentModal(let alarmFiredAt):
             TreatmentModalView(
                 alarmFiredAt: alarmFiredAt,
@@ -146,6 +154,13 @@ struct OverviewView: View {
                 )
                 .frame(maxWidth: .infinity)
 
+                if DirectConfig.bloodGlucoseInput {
+                    QuickActionButton(
+                        title: "BG",
+                        icon: "drop.fill",
+                        action: { activeSheet = .bloodGlucose }
+                    )
+                }
             }
             .padding(.horizontal, DOSSpacing.md)
             .padding(.vertical, DOSSpacing.xs)
