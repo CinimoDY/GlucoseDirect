@@ -91,25 +91,25 @@ struct TreatmentBannerView: View {
                     .foregroundColor(AmberTheme.cgaGreen)
                 Text("— recheck in \(formattedRemaining)")
                     .font(DOSTypography.caption)
-                    .foregroundColor(AmberTheme.amberPrimary)
+                    .foregroundColor(AmberTheme.amber)
             }
 
         case .rechecking:
             HStack(spacing: DOSSpacing.xs) {
                 ProgressView()
-                    .tint(AmberTheme.amberPrimary)
+                    .tint(AmberTheme.amber)
                 Text("RECHECKING...")
                     .font(DOSTypography.caption)
-                    .foregroundColor(AmberTheme.amberPrimary)
+                    .foregroundColor(AmberTheme.amber)
             }
 
         case .staleData:
             HStack(spacing: DOSSpacing.xs) {
                 Image(systemName: "exclamationmark.triangle")
-                    .foregroundColor(AmberTheme.amberPrimary)
+                    .foregroundColor(AmberTheme.amber)
                 Text("NO RECENT DATA — CHECK SENSOR")
                     .font(DOSTypography.caption)
-                    .foregroundColor(AmberTheme.amberPrimary)
+                    .foregroundColor(AmberTheme.amber)
             }
 
         case .recovered(let glucose):

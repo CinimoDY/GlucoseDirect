@@ -87,24 +87,24 @@ struct TreatmentModalView: View {
         VStack(spacing: DOSSpacing.sm) {
             if isRecheckMode {
                 Text("STILL LOW")
-                    .font(DOSTypography.headline)
+                    .font(DOSTypography.displayMedium)
                     .foregroundColor(AmberTheme.cgaRed)
 
                 Text("\(recheckGlucoseValue) \(store.state.glucoseUnit.localizedDescription)")
-                    .font(DOSTypography.displayLarge)
+                    .font(DOSTypography.glucoseHero)
                     .foregroundColor(AmberTheme.cgaRed)
 
                 Text("Treat again?")
                     .font(DOSTypography.body)
-                    .foregroundColor(AmberTheme.amberPrimary)
+                    .foregroundColor(AmberTheme.amber)
             } else {
                 Text("LOW GLUCOSE DETECTED")
-                    .font(DOSTypography.headline)
+                    .font(DOSTypography.displayMedium)
                     .foregroundColor(AmberTheme.cgaRed)
 
                 if let glucose = store.state.latestSensorGlucose {
                     Text("\(glucose.glucoseValue) \(store.state.glucoseUnit.localizedDescription)")
-                        .font(DOSTypography.displayLarge)
+                        .font(DOSTypography.glucoseHero)
                         .foregroundColor(AmberTheme.cgaRed)
                 }
             }
