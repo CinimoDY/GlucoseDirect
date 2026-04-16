@@ -203,13 +203,130 @@ struct ChartView: View {
                     carbsGrams: newCarbs
                 )
                 store.dispatch(.addMealEntry(mealEntryValues: [updated]))
+            } deleteCallback: {
+                store.dispatch(.deleteMealEntry(mealEntry: meal))
             }
         }
-        .alert(
+        .confirmationDialog(
             insulinDetailTitle,
-            isPresented: $showInsulinDetail
+            isPresented: $showInsulinDetail,
+            titleVisibility: .visible
         ) {
-            Button("OK", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                if let insulin = tappedInsulinEntry {
+                    store.dispatch(.deleteInsulinDelivery(insulinDelivery: insulin))
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        }
+        .sheet(item: $tappedMealGroup) { group in
+            NavigationView {
+                List {
+                    Section {
+                        HStack {
+                            Text("Total")
+                                .font(DOSTypography.body)
+                                .foregroundColor(AmberTheme.amber)
+                            Spacer()
+                            if let carbs = group.totalCarbs {
+                                Text("\(Int(carbs))g carbs")
+                                    .font(DOSTypography.body)
+                                    .foregroundColor(AmberTheme.cgaGreen)
+                            }
+                            if let cals = group.totalCalories {
+                                Text("\(Int(cals)) cal")
+                                    .font(DOSTypography.caption)
+                                    .foregroundColor(AmberTheme.amberDark)
+                            }
+                        }
+                    }
+
+                    Section(header: Text("\(group.count) items")) {
+                        ForEach(group.entries) { entry in
+                            Button {
+                                tappedMealGroup = nil
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                                    tappedMealEntry = entry
+                                }
+                            } label: {
+                                HStack {
+                                    Text(entry.mealDescription)
+                                        .font(DOSTypography.bodySmall)
+                                        .foregroundColor(AmberTheme.amberLight)
+                                    Spacer()
+                                    if let carbs = entry.carbsGrams {
+                                        Text("\(Int(carbs))g")
+                                            .font(DOSTypography.caption)
+                                            .foregroundColor(AmberTheme.cgaGreen)
+                                    }
+                                }
+                            }
+                            .swipeActions(edge: .trailing) {
+                                Button("Delete", role: .destructive) {
+                                    store.dispatch(.deleteMealEntry(mealEntry: entry))
+                                }
+                            }
+                        }
+                    }
+                }
+                .listStyle(.grouped)
+                .navigationTitle("\(group.count) Meals")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("Done") { tappedMealGroup = nil }
+                            .font(DOSTypography.caption)
+                    }
+                }
+            }
+        }
+        .sheet(item: $tappedInsulinGroup) { group in
+            NavigationView {
+                List {
+                    Section {
+                        HStack {
+                            Text("Total")
+                                .font(DOSTypography.body)
+                                .foregroundColor(AmberTheme.amber)
+                            Spacer()
+                            Text(group.totalUnits.asInsulin())
+                                .font(DOSTypography.body)
+                                .foregroundColor(AmberTheme.amberDark)
+                        }
+                    }
+
+                    Section(header: Text("\(group.count) doses")) {
+                        ForEach(group.entries) { entry in
+                            HStack {
+                                Text(entry.type.localizedDescription)
+                                    .font(DOSTypography.bodySmall)
+                                    .foregroundColor(AmberTheme.amberLight)
+                                Spacer()
+                                Text(entry.units.asInsulin())
+                                    .font(DOSTypography.caption)
+                                    .foregroundColor(AmberTheme.amberDark)
+                                Text(entry.starts.toLocalTime())
+                                    .font(DOSTypography.caption)
+                                    .foregroundColor(AmberTheme.amberDark)
+                            }
+                            .swipeActions(edge: .trailing) {
+                                Button("Delete", role: .destructive) {
+                                    store.dispatch(.deleteInsulinDelivery(insulinDelivery: entry))
+                                }
+                            }
+                        }
+                    }
+                }
+                .listStyle(.grouped)
+                .navigationTitle("\(group.count) Insulin Doses")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("Done") { tappedInsulinGroup = nil }
+                            .font(DOSTypography.caption)
+                    }
+                }
+            }
         }
     }
 
@@ -416,7 +533,7 @@ struct ChartView: View {
                         x: .value("Time", value.starts),
                         y: .value("Units", value.value.map(from: 0...20, to: convertToRequired(mgdLValue: 5)...Double(alarmLow)))
                     )
-                    .symbolSize(value.value.map(from: 0...20, to: 0...100))
+                    .symbolSize(value.value.map(from: 0...20, to: Config.insulinSymbolSizeRange))
                     .annotation {
                         Text(value.value.asInsulin())
                             .foregroundStyle(AmberTheme.amberDark)
@@ -468,22 +585,33 @@ struct ChartView: View {
                 }
             }
 
-            ForEach(Array(mealSeries.enumerated()), id: \.element.id) { index, value in
+            ForEach(Array(mealGroups.enumerated()), id: \.element.id) { index, group in
                 PointMark(
-                    x: .value("Time", value.time),
+                    x: .value("Time", group.time),
                     y: .value("Meal", chartMinimum * 0.85)
                 )
-                .symbolSize(40)
-                .symbol(.diamond)
+                .symbolSize(Config.mealSymbolSize)
+                .symbol(group.count > 1 ? .circle : .diamond)
                 .annotation(position: index % 2 == 0 ? .top : .bottom) {
-                    Text(value.carbs != nil ? "\(Int(value.carbs!))g" : String(value.label.prefix(6)))
-                        .foregroundStyle(AmberTheme.cgaGreen)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 4)
-                        .background(Color.black.opacity(0.6))
-                        .cornerRadius(2)
-                        .bold()
-                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    HStack(spacing: 2) {
+                        if group.count > 1 {
+                            Text("\(group.count)x")
+                                .foregroundStyle(AmberTheme.cgaGreen.opacity(0.6))
+                        }
+                        if let carbs = group.totalCarbs {
+                            Text("\(Int(carbs))g")
+                                .foregroundStyle(AmberTheme.cgaGreen)
+                        } else if let label = group.entries.first?.mealDescription {
+                            Text(String(label.prefix(6)))
+                                .foregroundStyle(AmberTheme.cgaGreen)
+                        }
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 4)
+                    .background(Color.black.opacity(0.6))
+                    .cornerRadius(2)
+                    .bold()
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
                 }
                 .foregroundStyle(AmberTheme.cgaGreen)
             }
@@ -708,20 +836,31 @@ struct ChartView: View {
                             guard let tappedDate: Date = overlayProxy.value(atX: currentX) else { return }
 
                             let threshold: TimeInterval = 20 * 60
-                            if let meal = store.state.mealEntryValues
-                                .filter({ abs($0.timestamp.timeIntervalSince(tappedDate)) < threshold })
-                                .min(by: { abs($0.timestamp.timeIntervalSince(tappedDate)) < abs($1.timestamp.timeIntervalSince(tappedDate)) })
+
+                            // Find nearest meal group
+                            if let group = mealGroups
+                                .filter({ abs($0.time.timeIntervalSince(tappedDate)) < threshold })
+                                .min(by: { abs($0.time.timeIntervalSince(tappedDate)) < abs($1.time.timeIntervalSince(tappedDate)) })
                             {
-                                tappedMealEntry = meal
+                                if group.count == 1, let entry = group.entries.first {
+                                    tappedMealEntry = entry
+                                } else {
+                                    tappedMealGroup = group
+                                }
                                 return
                             }
 
-                            if let insulin = store.state.insulinDeliveryValues
-                                .filter({ $0.type != .basal && abs($0.starts.timeIntervalSince(tappedDate)) < threshold })
-                                .min(by: { abs($0.starts.timeIntervalSince(tappedDate)) < abs($1.starts.timeIntervalSince(tappedDate)) })
+                            // Find nearest insulin group
+                            if let group = insulinGroups
+                                .filter({ abs($0.time.timeIntervalSince(tappedDate)) < threshold })
+                                .min(by: { abs($0.time.timeIntervalSince(tappedDate)) < abs($1.time.timeIntervalSince(tappedDate)) })
                             {
-                                tappedInsulinEntry = insulin
-                                showInsulinDetail = true
+                                if group.count == 1, let entry = group.entries.first {
+                                    tappedInsulinEntry = entry
+                                    showInsulinDetail = true
+                                } else {
+                                    tappedInsulinGroup = group
+                                }
                                 return
                             }
                         }
@@ -739,6 +878,8 @@ struct ChartView: View {
         static let insulinSize: MarkDimension = 10
         static let symbolSize: CGFloat = 20
         static let selectionSize: CGFloat = 100
+        static let mealSymbolSize: CGFloat = 120
+        static let insulinSymbolSizeRange: ClosedRange<Double> = 30...160
         static let spacerWidth: CGFloat = 50
         static let chartHeight: CGFloat = 250
         static let lineStyle: StrokeStyle = .init(lineWidth: 3, lineCap: .round)
@@ -766,6 +907,8 @@ struct ChartView: View {
     @State private var bloodGlucoseSeries: [GlucoseDatapoint] = []
     @State private var insulinSeries: [InsulinDatapoint] = []
     @State private var mealSeries: [MealDatapoint] = []
+    @State private var mealGroups: [MealGroup] = []
+    @State private var insulinGroups: [InsulinGroup] = []
     @State private var exerciseSeries: [ExerciseDatapoint] = []
 
     @State private var smoothSensorPointInfos: [Date: GlucoseDatapoint] = [:]
@@ -781,6 +924,8 @@ struct ChartView: View {
     @State private var tappedMealEntry: MealEntry? = nil
     @State private var tappedInsulinEntry: InsulinDelivery? = nil
     @State private var showInsulinDetail = false
+    @State private var tappedMealGroup: MealGroup? = nil
+    @State private var tappedInsulinGroup: InsulinGroup? = nil
 
     private let calculationQueue = DispatchQueue(label: "libre-direct.chart-calculation", qos: .utility)
 
@@ -1006,6 +1151,13 @@ struct ChartView: View {
 
             DispatchQueue.main.async {
                 self.insulinSeries = insulinSeries
+
+                // Group non-basal insulin by timegroup for chart display
+                let bolusEntries = store.state.insulinDeliveryValues.filter { $0.type != .basal }
+                let grouped = Dictionary(grouping: bolusEntries, by: \.timegroup)
+                self.insulinGroups = grouped.map { timegroup, entries in
+                    InsulinGroup(id: timegroup, entries: entries, time: timegroup)
+                }.sorted { $0.time < $1.time }
             }
         }
     }
@@ -1013,6 +1165,12 @@ struct ChartView: View {
     private func updateMealSeries() {
         DirectLog.info("updateMealSeries()")
         self.mealSeries = store.state.mealEntryValues.map { $0.toDatapoint() }
+
+        // Group meals by timegroup (15-min window) for chart display
+        let grouped = Dictionary(grouping: store.state.mealEntryValues, by: \.timegroup)
+        self.mealGroups = grouped.map { timegroup, entries in
+            MealGroup(id: timegroup, entries: entries, time: timegroup)
+        }.sorted { $0.time < $1.time }
     }
 
     private func updateExerciseSeries() {
@@ -1194,6 +1352,32 @@ private struct MealDatapoint: Identifiable {
     let time: Date
     let label: String
     let carbs: Double?
+}
+
+private struct MealGroup: Identifiable {
+    let id: Date // the timegroup
+    let entries: [MealEntry]
+    let time: Date
+
+    var totalCarbs: Double? {
+        let values = entries.compactMap(\.carbsGrams)
+        return values.isEmpty ? nil : values.reduce(0, +)
+    }
+
+    var totalCalories: Double? {
+        let values = entries.compactMap(\.calories)
+        return values.isEmpty ? nil : values.reduce(0, +)
+    }
+
+    var count: Int { entries.count }
+}
+
+private struct InsulinGroup: Identifiable {
+    let id: Date // the timegroup
+    let entries: [InsulinDelivery]
+    let time: Date
+    var totalUnits: Double { entries.reduce(0) { $0 + $1.units } }
+    var count: Int { entries.count }
 }
 
 private extension MealEntry {
