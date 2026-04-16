@@ -15,6 +15,7 @@ struct AddMealView: View {
     @State var carbsGrams: Double?
 
     var addCallback: (_ timestamp: Date, _ mealDescription: String, _ carbsGrams: Double?) -> Void
+    var deleteCallback: (() -> Void)? = nil
 
     var body: some View {
         NavigationView {
@@ -48,6 +49,16 @@ struct AddMealView: View {
                 }, footer: {
                     Text("Log meals to see them as markers on your glucose chart.")
                 })
+
+                if let deleteCallback = deleteCallback {
+                    Section {
+                        Button("Delete Meal", role: .destructive) {
+                            deleteCallback()
+                            dismiss()
+                        }
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    }
+                }
             }
             .navigationTitle("Meal")
             .toolbar {
