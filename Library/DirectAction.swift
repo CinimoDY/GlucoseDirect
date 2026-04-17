@@ -148,6 +148,10 @@ enum DirectAction {
     case treatmentCycleStillLow(glucoseValue: Int)
     case setHypoTreatmentWaitMinutes(minutes: Int)
 
+    // MARK: Predictive Low Alarm
+    case setShowPredictiveLowAlarm(enabled: Bool)
+    case setPredictiveLowAlarmFired(fired: Bool)
+
     case debugAlarm
     case debugNotification
 }
