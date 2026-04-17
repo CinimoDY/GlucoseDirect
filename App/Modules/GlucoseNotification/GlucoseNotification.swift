@@ -76,13 +76,19 @@ private func glucoseNotificationMiddelware(service: LazyService<GlucoseNotificat
                 }
             }
 
-            // R8c: Clear predictive flag when glucose rises above alarmLow + 10 (episode resolved)
-            // Returns the clear action — actual alarm logic runs on the NEXT reading since this returns early.
-            // This is safe because if glucose is at alarmLow+10, no alarm would fire anyway.
-            if state.predictiveLowAlarmFired, glucose.glucoseValue >= state.alarmLow + 10 {
-                return Just(DirectAction.setPredictiveLowAlarmFired(fired: false))
-                    .setFailureType(to: DirectError.self)
-                    .eraseToAnyPublisher()
+            // R8c: Clear predictive flag when glucose rises above alarmLow + 10 (episode resolved).
+            // Also clear when actual low alarm fires (prevents flag staying stuck after partial recovery).
+            // Uses a deferred action array instead of early return so normal notification logic still runs.
+            var deferredActions: [DirectAction] = []
+
+            if state.predictiveLowAlarmFired {
+                if glucose.glucoseValue >= state.alarmLow + 10 {
+                    // Episode resolved — glucose recovered
+                    deferredActions.append(.setPredictiveLowAlarmFired(fired: false))
+                } else if glucose.glucoseValue < state.alarmLow {
+                    // Actual low — clear flag so prediction can re-fire on next episode
+                    deferredActions.append(.setPredictiveLowAlarmFired(fired: false))
+                }
             }
 
             let alarm = state.isAlarm(glucoseValue: glucose.glucoseValue)
@@ -114,9 +120,15 @@ private func glucoseNotificationMiddelware(service: LazyService<GlucoseNotificat
                         service.value.setLowGlucoseAlarm(sound: state.lowGlucoseAlarmSound, volume: state.alarmVolume, ignoreMute: state.ignoreMute)
                     }
 
-                    return Just(.setAlarmSnoozeUntil(untilDate: Date().addingTimeInterval(5 * 60).toRounded(on: 1, .minute), autosnooze: true))
+                    let snoozeAction = Just(DirectAction.setAlarmSnoozeUntil(untilDate: Date().addingTimeInterval(5 * 60).toRounded(on: 1, .minute), autosnooze: true))
                         .setFailureType(to: DirectError.self)
-                        .eraseToAnyPublisher()
+                    if let deferredAction = deferredActions.first {
+                        return Publishers.Merge(
+                            snoozeAction,
+                            Just(deferredAction).setFailureType(to: DirectError.self)
+                        ).eraseToAnyPublisher()
+                    }
+                    return snoozeAction.eraseToAnyPublisher()
                 }
 
             } else if alarm == .highAlarm {
@@ -140,6 +152,13 @@ private func glucoseNotificationMiddelware(service: LazyService<GlucoseNotificat
                 service.value.setGlucoseNotification(glucose: glucose, glucoseUnit: state.glucoseUnit)
             } else {
                 service.value.clear()
+            }
+
+            // Emit any deferred predictive alarm actions (flag clear) that weren't merged above
+            if let deferredAction = deferredActions.first {
+                return Just(deferredAction)
+                    .setFailureType(to: DirectError.self)
+                    .eraseToAnyPublisher()
             }
 
         default:
