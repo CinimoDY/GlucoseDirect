@@ -29,6 +29,49 @@ private func glucoseNotificationMiddelware(service: LazyService<GlucoseNotificat
                 break
             }
 
+            // --- Predictive Low Alarm (R1-R4, R8a-R8c) ---
+            // Evaluates BEFORE the actual alarm check.
+            // CRITICAL: Does NOT trigger autosnooze — actual alarm must still fire independently.
+            predictiveCheck: if state.showPredictiveLowAlarm,
+                !state.predictiveLowAlarmFired,
+                glucose.glucoseValue >= state.alarmLow, // R4: only when still above threshold
+                glucose.timestamp.timeIntervalSinceNow > -5 * 60 // R8b: reading <5 min old
+            {
+                // Compute smoothed minuteChange (average of last 3 with non-nil values)
+                let recentChanges = state.sensorGlucoseValues
+                    .suffix(10)
+                    .compactMap(\.minuteChange)
+                    .suffix(3)
+
+                guard !recentChanges.isEmpty else { break predictiveCheck }
+                let smoothedChange = recentChanges.reduce(0, +) / Double(recentChanges.count)
+
+                // R3: Linear extrapolation over 20 minutes
+                let predictedGlucose = Double(glucose.glucoseValue) + (smoothedChange * 20.0)
+
+                // R2: Fire if predicted to cross below alarmLow
+                if predictedGlucose < Double(state.alarmLow) {
+                    DirectLog.info("Predictive low alarm: current=\(glucose.glucoseValue), predicted=\(Int(predictedGlucose)), alarmLow=\(state.alarmLow)")
+
+                    // R8a: NO autosnooze — return showTreatmentPrompt + flag, NOT setAlarmSnoozeUntil
+                    return Publishers.Merge(
+                        Just(DirectAction.showTreatmentPrompt(alarmFiredAt: Date()))
+                            .setFailureType(to: DirectError.self),
+                        Just(DirectAction.setPredictiveLowAlarmFired(fired: true))
+                            .setFailureType(to: DirectError.self)
+                    ).eraseToAnyPublisher()
+                }
+            }
+
+            // R8c: Clear predictive flag when glucose rises above alarmLow + 10 (episode resolved)
+            // Returns the clear action — actual alarm logic runs on the NEXT reading since this returns early.
+            // This is safe because if glucose is at alarmLow+10, no alarm would fire anyway.
+            if state.predictiveLowAlarmFired, glucose.glucoseValue >= state.alarmLow + 10 {
+                return Just(DirectAction.setPredictiveLowAlarmFired(fired: false))
+                    .setFailureType(to: DirectError.self)
+                    .eraseToAnyPublisher()
+            }
+
             let alarm = state.isAlarm(glucoseValue: glucose.glucoseValue)
             DirectLog.info("alarm: \(alarm)")
             
