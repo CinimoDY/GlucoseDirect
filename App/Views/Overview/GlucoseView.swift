@@ -50,6 +50,16 @@ struct GlucoseView: View {
                     }
                 }
 
+                if let staleMinutes = staleMinutes {
+                    HStack(spacing: DOSSpacing.xs) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                        Text("\(staleMinutes) MIN AGO")
+                    }
+                    .font(DOSTypography.caption)
+                    .foregroundColor(staleMinutes >= 15 ? AmberTheme.cgaRed : AmberTheme.amberDark)
+                    .padding(.top, 2)
+                }
+
                 if let warning = warning {
                     Text(verbatim: warning)
                         .font(DOSTypography.bodySmall)
@@ -132,6 +142,13 @@ struct GlucoseView: View {
         }
 
         return nil
+    }
+
+    /// Returns minutes since last reading if >5 min stale, nil otherwise
+    private var staleMinutes: Int? {
+        guard let glucose = store.state.latestSensorGlucose else { return nil }
+        let elapsed = Int(Date().timeIntervalSince(glucose.timestamp) / 60)
+        return elapsed >= 5 ? elapsed : nil
     }
 
     private var isDangerouslyLow: Bool {
