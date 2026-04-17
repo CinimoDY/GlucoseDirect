@@ -32,18 +32,22 @@ private func glucoseNotificationMiddelware(service: LazyService<GlucoseNotificat
             // --- Predictive Low Alarm (R1-R4, R8a-R8c) ---
             // Evaluates BEFORE the actual alarm check.
             // CRITICAL: Does NOT trigger autosnooze — actual alarm must still fire independently.
+            // CRITICAL: Does NOT fire when treatment cycle is already active — prevents
+            // activating treatmentCycleSnooze which would suppress the actual low alarm.
             predictiveCheck: if state.showPredictiveLowAlarm,
                 !state.predictiveLowAlarmFired,
+                !state.treatmentCycleActive, // Prevents snooze cascade + race/restart/oscillation issues
                 glucose.glucoseValue >= state.alarmLow, // R4: only when still above threshold
                 glucose.timestamp.timeIntervalSinceNow > -5 * 60 // R8b: reading <5 min old
             {
                 // Compute smoothed minuteChange (average of last 3 with non-nil values)
+                // Require at least 2 samples to avoid single-reading noise spikes
                 let recentChanges = state.sensorGlucoseValues
                     .suffix(10)
                     .compactMap(\.minuteChange)
                     .suffix(3)
 
-                guard !recentChanges.isEmpty else { break predictiveCheck }
+                guard recentChanges.count >= 2 else { break predictiveCheck }
                 let smoothedChange = recentChanges.reduce(0, +) / Double(recentChanges.count)
 
                 // R3: Linear extrapolation over 20 minutes
@@ -58,7 +62,8 @@ private func glucoseNotificationMiddelware(service: LazyService<GlucoseNotificat
                         glucose: glucose,
                         predictedGlucose: Int(predictedGlucose),
                         glucoseUnit: state.glucoseUnit,
-                        alarmLow: state.alarmLow
+                        alarmLow: state.alarmLow,
+                        smoothedMinuteChange: smoothedChange
                     )
 
                     // R8a: NO autosnooze — return showTreatmentPrompt + flag, NOT setAlarmSnoozeUntil
@@ -229,7 +234,7 @@ private class GlucoseNotificationService {
         }
     }
 
-    func setPredictiveLowNotification(glucose: SensorGlucose, predictedGlucose: Int, glucoseUnit: GlucoseUnit, alarmLow: Int) {
+    func setPredictiveLowNotification(glucose: SensorGlucose, predictedGlucose: Int, glucoseUnit: GlucoseUnit, alarmLow: Int, smoothedMinuteChange: Double) {
         DirectNotifications.shared.ensureCanSendNotification { state in
             guard state != .none else { return }
 
@@ -247,10 +252,13 @@ private class GlucoseNotificationService {
                 notification.badge = glucose.glucoseValue.asRoundedMmolL as NSNumber
             }
 
-            let minutesToCross = glucose.minuteChange.flatMap { change -> Int? in
-                guard change < 0 else { return nil }
-                return Int(Double(alarmLow - glucose.glucoseValue) / change)
-            } ?? 20
+            // Use the smoothed minuteChange that triggered the alarm (consistent with prediction logic)
+            let minutesToCross: Int
+            if smoothedMinuteChange < 0 {
+                minutesToCross = Int(Double(alarmLow - glucose.glucoseValue) / smoothedMinuteChange)
+            } else {
+                minutesToCross = 20
+            }
 
             notification.title = LocalizedString("Trending Low")
             notification.body = String(format: LocalizedString("Glucose %1$@ predicted to drop below %2$@ in ~%3$d minutes. Eat now to prevent a low."),
