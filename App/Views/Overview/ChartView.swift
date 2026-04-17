@@ -518,6 +518,53 @@ struct ChartView: View {
                 }
             }
 
+            // MARK: - Prediction projection line
+            if let latest = store.state.latestSensorGlucose,
+               let minuteChange = smoothedMinuteChange,
+               Date().timeIntervalSince(latest.timestamp) < 5 * 60,
+               store.state.selectedDate == nil
+            {
+                let currentGlucose = convertToRequired(mgdLValue: latest.glucoseValue)
+                let predictedGlucose = currentGlucose + minuteChange * 20.0 * (store.state.glucoseUnit == .mmolL ? (1.0 / 18.0182) : 1.0)
+                let endTime = latest.timestamp.addingTimeInterval(20 * 60)
+                let predColor = AmberTheme.glucoseColor(forValue: Int(store.state.glucoseUnit == .mmolL ? predictedGlucose * 18.0182 : predictedGlucose), low: store.state.alarmLow, high: store.state.alarmHigh)
+
+                LineMark(
+                    x: .value("Time", latest.timestamp),
+                    y: .value("Glucose", currentGlucose),
+                    series: .value("Series", "prediction")
+                )
+                .foregroundStyle(predColor)
+                .lineStyle(StrokeStyle(lineWidth: 2, dash: [5, 3]))
+
+                LineMark(
+                    x: .value("Time", endTime),
+                    y: .value("Glucose", predictedGlucose),
+                    series: .value("Series", "prediction")
+                )
+                .foregroundStyle(predColor)
+                .lineStyle(StrokeStyle(lineWidth: 2, dash: [5, 3]))
+
+                // Threshold crossing marker when prediction crosses alarmLow
+                if minuteChange < 0 {
+                    let currentMgdL = Double(latest.glucoseValue)
+                    let alarmLowMgdL = Double(store.state.alarmLow)
+                    if currentMgdL > alarmLowMgdL {
+                        let minutesToCross = (alarmLowMgdL - currentMgdL) / minuteChange
+                        if minutesToCross > 0, minutesToCross <= 20 {
+                            let crossingTime = latest.timestamp.addingTimeInterval(minutesToCross * 60)
+                            PointMark(
+                                x: .value("Time", crossingTime),
+                                y: .value("Glucose", alarmLow)
+                            )
+                            .symbol(.cross)
+                            .symbolSize(80)
+                            .foregroundStyle(AmberTheme.cgaRed)
+                        }
+                    }
+                }
+            }
+
             ForEach(bloodGlucoseSeries) { value in
                 PointMark(
                     x: .value("Time", value.time),
@@ -729,6 +776,7 @@ struct ChartView: View {
 
                 debounceSeriesMetadata()
                 updateSensorSeries()
+                updateSmoothedMinuteChange()
             }
 
         }.onChange(of: store.state.bloodGlucoseValues) { _ in
@@ -796,6 +844,7 @@ struct ChartView: View {
             updateMealSeries()
             updateExerciseSeries()
             updateHeartRateLookup()
+            updateSmoothedMinuteChange()
 
         }.chartOverlay { overlayProxy in
             GeometryReader { geometryProxy in
@@ -926,6 +975,8 @@ struct ChartView: View {
     @State private var showInsulinDetail = false
     @State private var tappedMealGroup: MealGroup? = nil
     @State private var tappedInsulinGroup: InsulinGroup? = nil
+
+    @State private var smoothedMinuteChange: Double? = nil
 
     private let calculationQueue = DispatchQueue(label: "libre-direct.chart-calculation", qos: .utility)
 
@@ -1176,6 +1227,17 @@ struct ChartView: View {
     private func updateExerciseSeries() {
         DirectLog.info("updateExerciseSeries()")
         self.exerciseSeries = store.state.exerciseEntryValues.map { $0.toDatapoint() }
+    }
+
+    private func updateSmoothedMinuteChange() {
+        let recentWithChange = store.state.sensorGlucoseValues.suffix(10).filter { $0.minuteChange != nil }
+        let last3 = recentWithChange.suffix(3)
+        guard !last3.isEmpty else {
+            smoothedMinuteChange = nil
+            return
+        }
+        let sum = last3.compactMap(\.minuteChange).reduce(0, +)
+        smoothedMinuteChange = sum / Double(last3.count)
     }
 
     private func updateHeartRateLookup() {

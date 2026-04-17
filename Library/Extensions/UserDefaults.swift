@@ -68,6 +68,7 @@ private enum Keys: String {
     case treatmentCycleCountdownExpiry = "libre-direct.settings.treatment-cycle-countdown-expiry"
     case treatmentCycleSnoozeUntil = "libre-direct.settings.treatment-cycle-snooze-until"
     case hypoTreatmentWaitMinutes = "libre-direct.settings.hypo-treatment-wait-minutes"
+    case showPredictiveLowAlarm = "libre-direct.settings.show-predictive-low-alarm"
 }
 
 extension UserDefaults {
@@ -819,6 +820,19 @@ extension UserDefaults {
             } else {
                 removeObject(forKey: Keys.treatmentCycleSnoozeUntil.rawValue)
             }
+        }
+    }
+
+    var showPredictiveLowAlarm: Bool {
+        get {
+            if object(forKey: Keys.showPredictiveLowAlarm.rawValue) != nil {
+                return bool(forKey: Keys.showPredictiveLowAlarm.rawValue)
+            }
+
+            return true
+        }
+        set {
+            set(newValue, forKey: Keys.showPredictiveLowAlarm.rawValue)
         }
     }
 

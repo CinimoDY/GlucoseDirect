@@ -409,6 +409,13 @@ func directReducer(state: inout DirectState, action: DirectAction) {
     case .setHypoTreatmentWaitMinutes(minutes: let minutes):
         state.hypoTreatmentWaitMinutes = minutes
 
+    // MARK: Predictive Low Alarm
+    case .setShowPredictiveLowAlarm(enabled: let enabled):
+        state.showPredictiveLowAlarm = enabled
+
+    case .setPredictiveLowAlarmFired(fired: let fired):
+        state.predictiveLowAlarmFired = fired
+
     default:
         break
     }

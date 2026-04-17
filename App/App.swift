@@ -79,7 +79,27 @@ class DOSBTSAppDelegate: NSObject, UIApplicationDelegate {
             hiddenPreviewsBodyPlaceholder: "",
             options: []
         )
-        notificationCenter.setNotificationCategories([lowGlucoseCategory])
+
+        // Predictive low alarm category — distinct from actual low alarm
+        let eatNowAction = UNNotificationAction(
+            identifier: "eatNow",
+            title: "EAT NOW",
+            options: [.foreground]
+        )
+        let predictiveMoreAction = UNNotificationAction(
+            identifier: "moreOptions",
+            title: "More...",
+            options: [.foreground]
+        )
+        let predictiveLowCategory = UNNotificationCategory(
+            identifier: "predictiveLowAlarm",
+            actions: [eatNowAction, predictiveMoreAction],
+            intentIdentifiers: [],
+            hiddenPreviewsBodyPlaceholder: "",
+            options: []
+        )
+
+        notificationCenter.setNotificationCategories([lowGlucoseCategory, predictiveLowCategory])
 
         return true
     }
@@ -130,8 +150,8 @@ extension DOSBTSAppDelegate: UNUserNotificationCenterDelegate {
         }
 
         switch response.actionIdentifier {
-        case "tookDextro":
-            // Find the default hypo treatment (lowest sortOrder where isHypoTreatment)
+        case "tookDextro", "eatNow":
+            // Handle both actual low alarm (tookDextro) and predictive alarm (eatNow)
             let hypoTreatments = store.state.favoriteFoodValues
                 .filter { $0.isHypoTreatment }
                 .sorted { $0.sortOrder < $1.sortOrder }
@@ -139,7 +159,6 @@ extension DOSBTSAppDelegate: UNUserNotificationCenterDelegate {
             if let defaultTreatment = hypoTreatments.first {
                 store.dispatch(.logHypoTreatment(favorite: defaultTreatment, alarmFiredAt: alarmFiredAt, overrideTimestamp: nil))
             } else {
-                // No hypo treatment configured — fall through to show treatment prompt
                 store.dispatch(.showTreatmentPrompt(alarmFiredAt: alarmFiredAt))
             }
 

@@ -96,6 +96,10 @@ protocol DirectState {
     var treatmentCycleSnoozeUntil: Date? { get set }
     var hypoTreatmentWaitMinutes: Int { get set }
     var recheckDispatched: Bool { get set }
+
+    // MARK: Predictive Low Alarm
+    var showPredictiveLowAlarm: Bool { get set }
+    var predictiveLowAlarmFired: Bool { get set }
 }
 
 extension DirectState {

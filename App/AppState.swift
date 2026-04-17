@@ -95,6 +95,7 @@ struct AppState: DirectState {
         self.treatmentCycleCountdownExpiry = UserDefaults.standard.treatmentCycleCountdownExpiry
         self.treatmentCycleSnoozeUntil = UserDefaults.standard.treatmentCycleSnoozeUntil
         self.hypoTreatmentWaitMinutes = UserDefaults.standard.hypoTreatmentWaitMinutes
+        self.showPredictiveLowAlarm = UserDefaults.standard.showPredictiveLowAlarm
     }
 
     // MARK: Internal
@@ -191,4 +192,8 @@ struct AppState: DirectState {
     var treatmentCycleSnoozeUntil: Date? { didSet { UserDefaults.standard.treatmentCycleSnoozeUntil = treatmentCycleSnoozeUntil } }
     var hypoTreatmentWaitMinutes: Int { didSet { UserDefaults.standard.hypoTreatmentWaitMinutes = hypoTreatmentWaitMinutes } }
     var recheckDispatched: Bool = false
+
+    // MARK: Predictive Low Alarm
+    var showPredictiveLowAlarm: Bool { didSet { UserDefaults.standard.showPredictiveLowAlarm = showPredictiveLowAlarm } }
+    var predictiveLowAlarmFired: Bool = false
 }

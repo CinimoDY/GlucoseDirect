@@ -56,12 +56,15 @@ struct AlarmSettingsView: View {
                         Text("\(minutes) min")
                     }
                 }.pickerStyle(.menu)
+
+                Toggle("Predictive low alarm", isOn: showPredictiveLowAlarm)
+                    .toggleStyle(SwitchToggleStyle(tint: AmberTheme.amber))
             },
             header: {
                 Label("Alarm settings", systemImage: "alarm")
             },
             footer: {
-                Text("Treatment recheck: time to wait before checking glucose after treating a low")
+                Text("Predictive low alarm: warns before glucose is predicted to drop below your low threshold")
             }
         )
     }
@@ -87,6 +90,13 @@ struct AlarmSettingsView: View {
                     DirectNotifications.shared.testSound(sound: .alarm, volume: $0)
                 }
             }
+        )
+    }
+
+    private var showPredictiveLowAlarm: Binding<Bool> {
+        Binding(
+            get: { store.state.showPredictiveLowAlarm },
+            set: { store.dispatch(.setShowPredictiveLowAlarm(enabled: $0)) }
         )
     }
 
