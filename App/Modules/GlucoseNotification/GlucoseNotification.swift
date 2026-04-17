@@ -53,6 +53,14 @@ private func glucoseNotificationMiddelware(service: LazyService<GlucoseNotificat
                 if predictedGlucose < Double(state.alarmLow) {
                     DirectLog.info("Predictive low alarm: current=\(glucose.glucoseValue), predicted=\(Int(predictedGlucose)), alarmLow=\(state.alarmLow)")
 
+                    // Fire the predictive notification (for background/lock screen)
+                    service.value.setPredictiveLowNotification(
+                        glucose: glucose,
+                        predictedGlucose: Int(predictedGlucose),
+                        glucoseUnit: state.glucoseUnit,
+                        alarmLow: state.alarmLow
+                    )
+
                     // R8a: NO autosnooze — return showTreatmentPrompt + flag, NOT setAlarmSnoozeUntil
                     return Publishers.Merge(
                         Just(DirectAction.showTreatmentPrompt(alarmFiredAt: Date()))
@@ -218,6 +226,40 @@ private class GlucoseNotificationService {
             )
 
             DirectNotifications.shared.addNotification(identifier: Identifier.sensorGlucoseAlarm.rawValue, content: notification)
+        }
+    }
+
+    func setPredictiveLowNotification(glucose: SensorGlucose, predictedGlucose: Int, glucoseUnit: GlucoseUnit, alarmLow: Int) {
+        DirectNotifications.shared.ensureCanSendNotification { state in
+            guard state != .none else { return }
+
+            let notification = UNMutableNotificationContent()
+            notification.sound = .default // Softer than the actual low alarm
+            var userInfo = self.actions
+            userInfo["alarmFiredAt"] = Date().timeIntervalSince1970
+            notification.userInfo = userInfo
+            notification.interruptionLevel = .timeSensitive
+            notification.categoryIdentifier = "predictiveLowAlarm"
+
+            if glucoseUnit == .mgdL {
+                notification.badge = glucose.glucoseValue as NSNumber
+            } else {
+                notification.badge = glucose.glucoseValue.asRoundedMmolL as NSNumber
+            }
+
+            let minutesToCross = glucose.minuteChange.flatMap { change -> Int? in
+                guard change < 0 else { return nil }
+                return Int(Double(alarmLow - glucose.glucoseValue) / change)
+            } ?? 20
+
+            notification.title = LocalizedString("Trending Low")
+            notification.body = String(format: LocalizedString("Glucose %1$@ predicted to drop below %2$@ in ~%3$d minutes. Eat now to prevent a low."),
+                                       glucose.glucoseValue.asGlucose(glucoseUnit: glucoseUnit, withUnit: true),
+                                       alarmLow.asGlucose(glucoseUnit: glucoseUnit, withUnit: true),
+                                       minutesToCross
+            )
+
+            DirectNotifications.shared.addNotification(identifier: Identifier.sensorGlucoseAlarm.rawValue + ".predictive", content: notification)
         }
     }
 
