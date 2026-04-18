@@ -1420,7 +1420,7 @@ struct ChartView: View {
                 if !currentMarkers.isEmpty {
                     let midTime = currentMarkers[currentMarkers.count / 2].time
                     groups.append(ConsolidatedMarkerGroup(
-                        id: "group-\(groups.count)",
+                        id: "group-\(currentMarkers[0].id)",
                         time: midTime,
                         markers: currentMarkers
                     ))
@@ -1433,7 +1433,7 @@ struct ChartView: View {
         if !currentMarkers.isEmpty {
             let midTime = currentMarkers[currentMarkers.count / 2].time
             groups.append(ConsolidatedMarkerGroup(
-                id: "group-\(groups.count)",
+                id: "group-\(currentMarkers[0].id)",
                 time: midTime,
                 markers: currentMarkers
             ))

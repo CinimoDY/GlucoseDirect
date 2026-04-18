@@ -30,6 +30,7 @@ struct EventMarkerLaneView: View {
                let group = markerGroups.first(where: { $0.id == expandedID }) {
                 expandedPanel(for: group)
                     .position(x: clampedPanelX(for: group.time), y: laneHeight + 4)
+                    .zIndex(10)
             }
         }
         .frame(height: laneHeight)
@@ -136,7 +137,6 @@ struct EventMarkerLaneView: View {
                 .stroke(AmberTheme.amberDark.opacity(0.4), lineWidth: 0.5)
         )
         .cornerRadius(4)
-        .zIndex(10)
     }
 
     // MARK: - Positioning
