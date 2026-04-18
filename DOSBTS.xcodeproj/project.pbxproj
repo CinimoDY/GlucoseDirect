@@ -47,6 +47,7 @@
 		CB01000200000007000C0007 /* AIConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB01000100000007000C0007 /* AIConsentView.swift */; };
 		CB01000200000008000C0008 /* FoodPhotoAnalysisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB01000100000008000C0008 /* FoodPhotoAnalysisView.swift */; };
 		CB01000200000009000C0009 /* AISettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB01000100000009000C0009 /* AISettingsView.swift */; };
+		EB01000300000001000A0001 /* InsulinSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB01000300000001000A0002 /* InsulinSettingsView.swift */; };
 		CB01000300000003000C0003 /* NutritionEstimate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB01000100000003000C0003 /* NutritionEstimate.swift */; };
 		DA01000100000001000E0001 /* ServingPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA01000200000001000E0001 /* ServingPreset.swift */; };
 		DA01000100000002000E0002 /* ServingPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA01000200000001000E0001 /* ServingPreset.swift */; };
@@ -335,6 +336,7 @@
 		CB01000100000007000C0007 /* AIConsentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIConsentView.swift; sourceTree = "<group>"; };
 		CB01000100000008000C0008 /* FoodPhotoAnalysisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPhotoAnalysisView.swift; sourceTree = "<group>"; };
 		CB01000100000009000C0009 /* AISettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AISettingsView.swift; sourceTree = "<group>"; };
+		EB01000300000001000A0002 /* InsulinSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsulinSettingsView.swift; sourceTree = "<group>"; };
 		D56C48D98E9C0A125B68A771 /* AddMealView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddMealView.swift; sourceTree = "<group>"; };
 		DA01000128000002000A0002 /* AmberTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmberTheme.swift; sourceTree = "<group>"; };
 		DA01000128000003000A0003 /* DOSTypography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DOSTypography.swift; sourceTree = "<group>"; };
@@ -876,6 +878,7 @@
 				CB01000100000009000C0009 /* AISettingsView.swift */,
 				E24B532226B863E20091417F /* AlarmSettingsView.swift */,
 				E2646F3C275FD3E800ADE451 /* AppleExportSettingsView.swift */,
+				EB01000300000001000A0002 /* InsulinSettingsView.swift */,
 				E25762D4279D519200A2E249 /* BellmanSettingsView.swift */,
 				E24B532026B863C00091417F /* GlucoseSettingsView.swift */,
 				DA01000228000001000B0001 /* HealthImportSourcesView.swift */,
@@ -1455,6 +1458,7 @@
 				CB01000200000008000C0008 /* FoodPhotoAnalysisView.swift in Sources */,
 				FF01000100000004000F0004 /* UnifiedFoodEntryView.swift in Sources */,
 				CB01000200000009000C0009 /* AISettingsView.swift in Sources */,
+				EB01000300000001000A0001 /* InsulinSettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

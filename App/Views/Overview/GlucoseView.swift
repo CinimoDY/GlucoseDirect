@@ -12,6 +12,8 @@ struct GlucoseView: View {
 
     @EnvironmentObject var store: DirectStore
     @State private var lowPulse = false
+    @State private var iobResult = IOBResult(total: 0, mealSnackIOB: 0, correctionBasalIOB: 0)
+    @State private var iobTimer: Timer?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -73,6 +75,13 @@ struct GlucoseView: View {
                         .opacity(0.5)
                 }
 
+                if iobResult.total > 0 {
+                    iobLabel
+                        .font(DOSTypography.caption)
+                        .foregroundColor(AmberTheme.amber)
+                        .opacity(0.5)
+                }
+
             } else {
                 Text("No Data")
                     .font(DOSTypography.mono(size: 42, weight: .bold))
@@ -81,6 +90,13 @@ struct GlucoseView: View {
                 Text(verbatim: "---")
                     .font(DOSTypography.caption)
                     .opacity(0.5)
+
+                if iobResult.total > 0 {
+                    iobLabel
+                        .font(DOSTypography.caption)
+                        .foregroundColor(AmberTheme.amber)
+                        .opacity(0.5)
+                }
             }
 
             HStack {
@@ -128,6 +144,19 @@ struct GlucoseView: View {
             .disabled(store.state.latestSensorGlucose == nil)
             .buttonStyle(.plain)
         }
+        .onChange(of: store.state.iobDeliveries.count) { _ in refreshIOB() }
+        .onChange(of: store.state.bolusInsulinPreset) { _ in refreshIOB() }
+        .onChange(of: store.state.basalDIAMinutes) { _ in refreshIOB() }
+        .onAppear {
+            refreshIOB()
+            iobTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { _ in
+                refreshIOB()
+            }
+        }
+        .onDisappear {
+            iobTimer?.invalidate()
+            iobTimer = nil
+        }
     }
 
     // MARK: Private
@@ -149,6 +178,32 @@ struct GlucoseView: View {
         guard let glucose = store.state.latestSensorGlucose else { return nil }
         let elapsed = Int(Date().timeIntervalSince(glucose.timestamp) / 60)
         return elapsed >= 5 ? elapsed : nil
+    }
+
+    @ViewBuilder
+    private var iobLabel: some View {
+        if store.state.showSplitIOB && (iobResult.mealSnackIOB > 0 || iobResult.correctionBasalIOB > 0) {
+            Text(verbatim: "IOB \(formatIOB(iobResult.mealSnackIOB))M · \(formatIOB(iobResult.correctionBasalIOB))B")
+        } else {
+            Text(verbatim: "IOB \(formatIOB(iobResult.total))")
+        }
+    }
+
+    private func formatIOB(_ value: Double) -> String {
+        String(format: "%.1fU", value)
+    }
+
+    private func refreshIOB() {
+        let bolusModel = store.state.bolusInsulinPreset.model
+        let basalModel = ExponentialInsulinModel(
+            actionDuration: Double(store.state.basalDIAMinutes) * 60,
+            peakActivityTime: 75 * 60
+        )
+        iobResult = computeIOB(
+            deliveries: store.state.iobDeliveries,
+            bolusModel: bolusModel,
+            basalModel: basalModel
+        )
     }
 
     private var isDangerouslyLow: Bool {
