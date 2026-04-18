@@ -210,7 +210,7 @@ extension DataStore {
                 do {
                     let db = try asyncDB.get()
                     let result = try InsulinDelivery
-                        .filter(sql: "\(InsulinDelivery.Columns.starts.name) >= datetime('now', '-\(diaMinutes) minutes')")
+                        .filter(sql: "\(InsulinDelivery.Columns.starts.name) >= datetime('now', '-\(diaMinutes) minutes') OR \(InsulinDelivery.Columns.ends.name) >= datetime('now', '-\(diaMinutes) minutes')")
                         .order(Column(InsulinDelivery.Columns.starts.name))
                         .fetchAll(db)
                     promise(.success(result))

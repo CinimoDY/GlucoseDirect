@@ -145,6 +145,7 @@ struct GlucoseView: View {
             .buttonStyle(.plain)
         }
         .onChange(of: store.state.iobDeliveries.count) { _ in refreshIOB() }
+        .onChange(of: store.state.latestSensorGlucose?.timestamp) { _ in refreshIOB() }
         .onChange(of: store.state.bolusInsulinPreset) { _ in refreshIOB() }
         .onChange(of: store.state.basalDIAMinutes) { _ in refreshIOB() }
         .onAppear {

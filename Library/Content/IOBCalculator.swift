@@ -56,13 +56,16 @@ struct ExponentialInsulinModel {
     let S: Double
 
     init(actionDuration: TimeInterval, peakActivityTime: TimeInterval) {
-        self.actionDuration = actionDuration
+        self.actionDuration = max(actionDuration, 60) // Guard: minimum 1 minute to prevent division by zero
         self.peakActivityTime = peakActivityTime
 
-        let td = actionDuration
+        let td = self.actionDuration
         let tp = peakActivityTime
 
-        self.tau = tp * (1 - tp / td) / (1 - 2 * tp / td)
+        // Guard: if tp == td/2, denominator is zero — clamp tp slightly
+        let safeTp = (1 - 2 * tp / td) == 0 ? tp * 0.99 : tp
+
+        self.tau = safeTp * (1 - safeTp / td) / (1 - 2 * safeTp / td)
         self.a = 2 * tau / td
         self.S = 1 / (1 - a + (1 + a) * exp(-td / tau))
     }
@@ -101,6 +104,9 @@ func computeIOB(
     var correctionBasalIOB: Double = 0
 
     for delivery in deliveries {
+        // Skip future deliveries entirely — insulin not yet delivered has zero IOB
+        guard date.timeIntervalSince(delivery.starts) >= 0 else { continue }
+
         let iob: Double
 
         if delivery.type == .basal {
@@ -120,7 +126,7 @@ func computeIOB(
 
     let total = mealSnackIOB + correctionBasalIOB
 
-    // Apply zero threshold
+    // Apply zero threshold — only on total, keep components consistent
     let threshold = 0.05
     if total < threshold {
         return IOBResult(total: 0, mealSnackIOB: 0, correctionBasalIOB: 0)
@@ -128,8 +134,8 @@ func computeIOB(
 
     return IOBResult(
         total: total,
-        mealSnackIOB: mealSnackIOB < threshold ? 0 : mealSnackIOB,
-        correctionBasalIOB: correctionBasalIOB < threshold ? 0 : correctionBasalIOB
+        mealSnackIOB: mealSnackIOB,
+        correctionBasalIOB: correctionBasalIOB
     )
 }
 
@@ -158,11 +164,11 @@ private func computeBasalIOB(
         let segmentMidpoint = delivery.starts.addingTimeInterval(segmentStart + segmentDuration / 2)
         let elapsed = date.timeIntervalSince(segmentMidpoint)
 
+        // Only count segments that have already been delivered (elapsed > 0)
         if elapsed > 0 {
             iob += segmentDose * model.percentEffectRemaining(at: elapsed)
-        } else {
-            iob += segmentDose // Future segment: full dose remains
         }
+        // Future segments (not yet infused) are skipped — no IOB from undelivered insulin
 
         segmentStart = segmentEnd
     }

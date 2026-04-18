@@ -12,8 +12,9 @@ struct TreatmentBannerView: View {
     @State private var remainingSeconds: Int = 0
     @State private var timer: AnyCancellable?
     @State private var autoDismissTask: DispatchWorkItem?
+    @State private var currentIOB: Double = 0
 
-    private var currentIOB: Double {
+    private func refreshBannerIOB() {
         let bolusModel = store.state.bolusInsulinPreset.model
         let basalModel = ExponentialInsulinModel(
             actionDuration: Double(store.state.basalDIAMinutes) * 60,
@@ -24,7 +25,7 @@ struct TreatmentBannerView: View {
             bolusModel: bolusModel,
             basalModel: basalModel
         )
-        return result.total
+        currentIOB = result.total
     }
 
     private enum BannerState {
@@ -85,10 +86,12 @@ struct TreatmentBannerView: View {
         .padding(.vertical, DOSSpacing.sm)
         .onAppear {
             startTimer()
+            refreshBannerIOB()
         }
         .onDisappear {
             timer?.cancel()
         }
+        .onChange(of: store.state.iobDeliveries.count) { _ in refreshBannerIOB() }
     }
 
     // MARK: - Banner Content
