@@ -52,7 +52,8 @@ View dispatches Action -> Store.dispatch() -> Reducer mutates State
 - **Predictive low alarm** — GlucoseNotification middleware extrapolates glucose trajectory using smoothed `minuteChange` (avg of 3 readings) projected 20 min forward. Fires "Trending Low" notification with `predictiveLowAlarm` UNNotificationCategory ("EAT NOW" button) when predicted to cross `alarmLow`. CRITICAL: does NOT trigger autosnooze — actual low alarm fires independently. Does NOT fire when `treatmentCycleActive` (prevents snooze cascade). Once-per-episode dedup via `predictiveLowAlarmFired` flag, cleared at `alarmLow + 10` or on actual low. Chart shows dashed projection line (iOS 16+ only) with red cross marker at predicted threshold crossing. Toggle: `showPredictiveLowAlarm` (default on).
 - **Chart markers** — Meal/insulin entries grouped by 15-min `timegroup`. Single entries show diamond, groups show circle with count + total carbs (e.g. "3x 45g"). Tapping a group opens detail sheet with individual items (swipe-to-delete, tap-to-edit). Meal edit sheet has Delete button (`deleteCallback`). Insulin tap shows `confirmationDialog` with Delete option.
 - **Stale data indicator** — GlucoseView shows "X MIN AGO" warning when latest reading is >5 min old. Amber text for 5-14 min, red for 15+. Prevents dosing decisions on silently stale data.
-- **Snapshot testing** — XCTest target `DOSBTSTests` with 13 reducer tests covering treatment cycle lifecycle, predictive alarm flags, alarm snooze auto-clear, and treatment prompt state. Swift Testing framework (`@Test`, `#expect`). Run with Cmd+U on simulator.
+- **Insulin-on-Board (IOB)** — `IOBCalculator.swift` implements OpenAPS oref0 Maksimovic exponential decay model. `InsulinPreset` enum (rapidActing peak 75m/DIA 6h, ultraRapid peak 55m/DIA 6h) with separate basal DIA (2-24h). IOB computed on-read from `iobDeliveries` (DIA-window filtered, loaded by `IOBMiddleware`). Hero display (GlucoseView) with 60s refresh timer, split display toggle (M=meal/snack, B=basal+corr). Chart AreaMark overlay (iOS 16+ only, cgaCyan/amberDark). Stacking warning in AddInsulinView (amber, correction bolus only, reactive to picker). IOB on TreatmentBannerView (countdown/rechecking states, second line). `InsulinSettingsView` with preset picker, basal DIA stepper, split toggle. Future deliveries excluded from IOB (not yet delivered). Zero threshold: 0.05U.
+- **Snapshot testing** — XCTest target `DOSBTSTests` with 38 tests covering IOB calculation engine (exponential model, basal segmentation, split IOB, thresholds), IOB reducer state, treatment cycle lifecycle, predictive alarm flags, alarm snooze auto-clear, and treatment prompt state. Swift Testing framework (`@Test`, `#expect`). Run with Cmd+U on simulator.
 
 ## Project Structure
 
@@ -82,6 +83,7 @@ App/
     ScreenLock/
     TreatmentCycle/            # Hypo treatment workflow (Rule of 15)
     Claude/                    # AI food photo analysis (Claude Haiku)
+    IOB/                       # Insulin-on-Board decay model middleware
     Log/
     Debug/
   Views/
