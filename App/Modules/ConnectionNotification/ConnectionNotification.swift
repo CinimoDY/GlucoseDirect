@@ -55,6 +55,13 @@ private func connectionNotificationMiddelware(service: LazyService<ConnectionNot
             service.value.clearAlarm()
 
         case .setConnectionState(connectionState: let connectionState):
+            // Haptic feedback on connection state transitions (always, regardless of alarm settings)
+            if connectionState == .connected, lastState.connectionState != .connected {
+                DirectNotifications.shared.hapticNotification(.success)
+            } else if connectionState == .disconnected, lastState.connectionState == .connected {
+                DirectNotifications.shared.hapticNotification(.error)
+            }
+
             guard state.hasConnectionAlarm else {
                 DirectLog.info("Guard: connectionAlarm disabled")
                 break

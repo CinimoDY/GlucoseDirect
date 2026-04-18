@@ -82,6 +82,16 @@ struct ChartView: View {
                             .font(.system(size: 9, weight: .medium, design: .monospaced))
                             .foregroundColor(AmberTheme.amberMuted)
                         Spacer()
+                        if !store.state.heartRateSeries.isEmpty {
+                            HStack(spacing: 3) {
+                                RoundedRectangle(cornerRadius: 1)
+                                    .fill(AmberTheme.cgaMagenta.opacity(0.4))
+                                    .frame(width: 12, height: 2)
+                                Text("HR")
+                                    .font(.system(size: 9, weight: .medium, design: .monospaced))
+                                    .foregroundColor(AmberTheme.cgaMagenta.opacity(0.5))
+                            }
+                        }
                     }
 
                     ZStack(alignment: .topLeading) {
@@ -174,21 +184,7 @@ struct ChartView: View {
                         }
                     }
 
-                    HStack(spacing: DOSSpacing.xs) {
-                        ZoomLevelsView
-
-                        if !store.state.heartRateSeries.isEmpty {
-                            Spacer()
-                            HStack(spacing: 3) {
-                                RoundedRectangle(cornerRadius: 1)
-                                    .fill(AmberTheme.cgaMagenta.opacity(0.4))
-                                    .frame(width: 12, height: 2)
-                                Text("HR")
-                                    .font(.system(size: 9, weight: .medium, design: .monospaced))
-                                    .foregroundColor(AmberTheme.cgaMagenta.opacity(0.5))
-                            }
-                        }
-                    }
+                    ZoomLevelsView
         }
         .sheet(item: $tappedMealEntry) { meal in
             AddMealView(
@@ -901,7 +897,7 @@ struct ChartView: View {
             }
         }
         .chartYAxis {
-            AxisMarks(position: .leading, values: .stride(by: yAxisSteps)) { value in
+            AxisMarks(position: .trailing, values: .stride(by: yAxisSteps)) { value in
                 AxisGridLine(stroke: Config.axisStyle)
 
                 if let glucoseValue = value.as(Double.self), glucoseValue > 0 {
