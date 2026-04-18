@@ -46,6 +46,12 @@ private func logMiddleware(service: SendService) -> Middleware<DirectState, Dire
         case .setRecentFoodCorrections:
             break
 
+        case .loadScoredMealEntryIds:
+            break
+
+        case .setScoredMealEntryIds:
+            break
+
         case .analyzeFoodBarcode:
             break
 

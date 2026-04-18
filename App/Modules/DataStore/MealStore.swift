@@ -100,6 +100,12 @@ private extension DataStore {
                 }
             }
 
+            migrator.registerMigration("Add analysisSessionId to MealEntry") { db in
+                try db.alter(table: MealEntry.Table) { t in
+                    t.add(column: MealEntry.Columns.analysisSessionId.name, .text)
+                }
+            }
+
             do {
                 try migrator.migrate(dbQueue)
             } catch {

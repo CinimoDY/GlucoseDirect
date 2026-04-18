@@ -799,11 +799,13 @@ struct FoodPhotoAnalysisView: View {
         }
 
         // View creates the MealEntry (UUID ownership per learning)
+        let sessionId = UUID()
         let meal = MealEntry(
             id: UUID(),
             timestamp: editTimestamp,
             mealDescription: clampedDescription,
-            carbsGrams: clamp(computedCarbs)
+            carbsGrams: clamp(computedCarbs),
+            analysisSessionId: sessionId
         )
 
         // Compute corrections by diffing staged items against original AI result

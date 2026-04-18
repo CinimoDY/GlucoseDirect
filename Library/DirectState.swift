@@ -106,6 +106,9 @@ protocol DirectState {
     var basalDIAMinutes: Int { get set }
     var showSplitIOB: Bool { get set }
     var iobDeliveries: [InsulinDelivery] { get set }
+
+    // MARK: Meal Impact
+    var scoredMealEntryIds: Set<UUID> { get set }
 }
 
 extension DirectState {

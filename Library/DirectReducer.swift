@@ -429,6 +429,10 @@ func directReducer(state: inout DirectState, action: DirectAction) {
     case .setIOBDeliveries(deliveries: let deliveries):
         state.iobDeliveries = deliveries
 
+    // MARK: Meal Impact
+    case .setScoredMealEntryIds(scoredMealEntryIds: let ids):
+        state.scoredMealEntryIds = ids
+
     default:
         break
     }

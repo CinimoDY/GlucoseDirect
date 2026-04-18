@@ -31,7 +31,7 @@ func foodCorrectionStoreMiddleware() -> Middleware<DirectState, DirectAction> {
             // Atomic write: corrections + PersonalFood upserts in one transaction.
             // Then emit .addMealEntry to chain into mealEntryStoreMiddleware.
             if !corrections.isEmpty {
-                DataStore.shared.insertFoodCorrectionsAndUpsertPersonalFoods(corrections)
+                DataStore.shared.insertFoodCorrectionsAndUpsertPersonalFoods(corrections, analysisSessionId: meal.analysisSessionId)
             }
 
             // Cross-middleware: .addMealEntry is also handled by mealEntryStoreMiddleware
@@ -135,6 +135,27 @@ private extension DataStore {
             } catch {
                 DirectLog.error("\(error)")
             }
+
+            var migrator = DatabaseMigrator()
+            migrator.registerMigration("Add analysisSessionId to PersonalFood") { db in
+                try db.alter(table: PersonalFood.Table) { t in
+                    t.add(column: PersonalFood.Columns.analysisSessionId.name, .text)
+                }
+            }
+
+            migrator.registerMigration("Add glycemic scoring to PersonalFood") { db in
+                try db.alter(table: PersonalFood.Table) { t in
+                    t.add(column: PersonalFood.Columns.avgDeltaMgDL.name, .double)
+                    t.add(column: PersonalFood.Columns.observationCount.name, .integer).defaults(to: 0)
+                    t.add(column: PersonalFood.Columns.lastScoredDate.name, .date)
+                }
+            }
+
+            do {
+                try migrator.migrate(dbQueue)
+            } catch {
+                DirectLog.error("\(error)")
+            }
         }
     }
 
@@ -168,7 +189,7 @@ private extension DataStore {
         }
     }
 
-    func insertFoodCorrectionsAndUpsertPersonalFoods(_ corrections: [FoodCorrection]) {
+    func insertFoodCorrectionsAndUpsertPersonalFoods(_ corrections: [FoodCorrection], analysisSessionId: UUID? = nil) {
         if let dbQueue = dbQueue {
             do {
                 try dbQueue.write { db in
@@ -219,7 +240,7 @@ private extension DataStore {
                                     arguments: [carbs, Date(), existing.id.uuidString.uppercased()]
                                 )
                             } else {
-                                try PersonalFood(name: name, carbsG: carbs).insert(db)
+                                try PersonalFood(name: name, carbsG: carbs, analysisSessionId: analysisSessionId).insert(db)
                             }
                         } catch {
                             DirectLog.error("\(error)")

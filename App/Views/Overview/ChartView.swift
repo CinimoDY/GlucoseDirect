@@ -672,7 +672,9 @@ struct ChartView: View {
                     x: .value("Time", group.time),
                     y: .value("Meal", chartMinimum * 0.85)
                 )
-                .symbolSize(Config.mealSymbolSize)
+                .symbolSize(group.count == 1 && group.entries.first.map({ store.state.scoredMealEntryIds.contains($0.id) }) == true
+                    ? Config.mealSymbolSize * 1.3
+                    : Config.mealSymbolSize)
                 .symbol(group.count > 1 ? .circle : .diamond)
                 .annotation(position: index % 2 == 0 ? .top : .bottom) {
                     HStack(spacing: 2) {
@@ -696,6 +698,121 @@ struct ChartView: View {
                     .font(.system(size: 10, weight: .bold, design: .monospaced))
                 }
                 .foregroundStyle(AmberTheme.cgaGreen)
+            }
+
+            // MARK: - Meal Impact Overlay
+            if let overlayMeal = activeMealOverlay {
+                let windowEnd = overlayMeal.timestamp.addingTimeInterval(2 * 60 * 60)
+                let isInProgress = Date() < windowEnd
+                let displayEnd = isInProgress ? Date() : windowEnd
+
+                // Shaded 2hr band
+                RectangleMark(
+                    xStart: .value("MealStart", overlayMeal.timestamp),
+                    xEnd: .value("MealEnd", displayEnd),
+                    yStart: .value("Bottom", 0),
+                    yEnd: .value("Top", chartMinimum)
+                )
+                .foregroundStyle(AmberTheme.cgaGreen.opacity(0.08))
+
+                // Delta annotation at the center of the band
+                let midTime = overlayMeal.timestamp.addingTimeInterval(displayEnd.timeIntervalSince(overlayMeal.timestamp) / 2)
+                let overlayDelta = computeMealOverlayDelta(meal: overlayMeal, isInProgress: isInProgress)
+
+                PointMark(
+                    x: .value("Time", midTime),
+                    y: .value("Label", chartMinimum * 0.85)
+                )
+                .symbolSize(0)
+                .annotation(position: .overlay) {
+                    VStack(spacing: 2) {
+                        let confounders = detectMealConfounders(meal: overlayMeal)
+                        let deltaOpacity = (overlayDelta.isLowConfidence ? 0.5 : 1.0) * (confounders.isClean ? 1.0 : 0.5)
+
+                        if isInProgress {
+                            Text("IN PROGRESS")
+                                .font(DOSTypography.caption)
+                                .foregroundStyle(AmberTheme.amberDark)
+                        }
+
+                        if let delta = overlayDelta.delta {
+                            let displayDelta: String = {
+                                let prefix = overlayDelta.isLowConfidence ? "~" : ""
+                                if store.state.glucoseUnit == .mgdL {
+                                    return prefix + (delta >= 0 ? "+" : "") + "\(delta)"
+                                } else {
+                                    let mmolDelta = Double(delta) / 18.0182
+                                    return prefix + (delta >= 0 ? "+" : "") + String(format: "%.1f", mmolDelta)
+                                }
+                            }()
+                            Text(displayDelta)
+                                .font(DOSTypography.body)
+                                .bold()
+                                .foregroundStyle(deltaColor(delta))
+                                .opacity(deltaOpacity)
+
+                            Text(store.state.glucoseUnit == .mgdL ? "mg/dL" : "mmol/L")
+                                .font(DOSTypography.caption)
+                                .foregroundStyle(AmberTheme.amberDark)
+                        } else {
+                            Text("--")
+                                .font(DOSTypography.body)
+                                .foregroundStyle(AmberTheme.amberDark)
+                        }
+
+                        // Confounder indicators
+                        if !confounders.isClean {
+                            HStack(spacing: 4) {
+                                if confounders.hasCorrectionBolus {
+                                    Image(systemName: "syringe.fill")
+                                        .font(.system(size: 10))
+                                        .foregroundStyle(AmberTheme.amberDark)
+                                }
+                                if confounders.hasExercise {
+                                    Image(systemName: "figure.run")
+                                        .font(.system(size: 10))
+                                        .foregroundStyle(AmberTheme.amberDark)
+                                }
+                                if confounders.hasStackedMeal {
+                                    Image(systemName: "fork.knife")
+                                        .font(.system(size: 10))
+                                        .foregroundStyle(AmberTheme.amberDark)
+                                }
+                            }
+                        }
+
+                        // PersonalFood glycemic average
+                        if let sessionId = overlayMeal.analysisSessionId,
+                           let food = store.state.personalFoodValues.first(where: { $0.analysisSessionId == sessionId }),
+                           food.observationCount >= 2,
+                           let avg = food.avgDeltaMgDL {
+                            let avgDisplay: String = {
+                                if store.state.glucoseUnit == .mgdL {
+                                    return "avg +\(Int(avg))"
+                                } else {
+                                    return "avg +\(String(format: "%.1f", avg / 18.0182))"
+                                }
+                            }()
+                            Text("\(avgDisplay) (\(food.observationCount))")
+                                .font(DOSTypography.caption)
+                                .foregroundStyle(AmberTheme.amberDark)
+                        }
+
+                        // Edit button
+                        Button(action: {
+                            tappedMealEntry = activeMealOverlay
+                            activeMealOverlay = nil
+                        }) {
+                            Image(systemName: "pencil")
+                                .font(.system(size: 12))
+                                .foregroundStyle(AmberTheme.amber)
+                        }
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                    .background(Color.black.opacity(0.85))
+                    .cornerRadius(4)
+                }
             }
 
             ForEach(exerciseSeries) { exercise in
@@ -945,12 +1062,21 @@ struct ChartView: View {
                                 .min(by: { abs($0.time.timeIntervalSince(tappedDate)) < abs($1.time.timeIntervalSince(tappedDate)) })
                             {
                                 if group.count == 1, let entry = group.entries.first {
-                                    tappedMealEntry = entry
+                                    // Toggle meal impact overlay instead of opening edit sheet
+                                    if activeMealOverlay?.id == entry.id {
+                                        activeMealOverlay = nil
+                                    } else {
+                                        activeMealOverlay = entry
+                                    }
                                 } else {
+                                    activeMealOverlay = nil
                                     tappedMealGroup = group
                                 }
                                 return
                             }
+
+                            // Dismiss overlay on any non-meal tap
+                            activeMealOverlay = nil
 
                             // Find nearest insulin group
                             if let group = insulinGroups
@@ -1029,6 +1155,7 @@ struct ChartView: View {
     @State private var showInsulinDetail = false
     @State private var tappedMealGroup: MealGroup? = nil
     @State private var tappedInsulinGroup: InsulinGroup? = nil
+    @State private var activeMealOverlay: MealEntry? = nil
 
     @State private var smoothedMinuteChange: Double? = nil
 
@@ -1355,6 +1482,86 @@ struct ChartView: View {
             }
         }
         return nil
+    }
+
+    private struct MealOverlayDelta {
+        let delta: Int?
+        let isLowConfidence: Bool
+    }
+
+    private func computeMealOverlayDelta(meal: MealEntry, isInProgress: Bool) -> MealOverlayDelta {
+        let windowEnd = isInProgress ? Date() : meal.timestamp.addingTimeInterval(2 * 60 * 60)
+
+        // Filter glucose readings in the window
+        let readings = store.state.sensorGlucoseValues.filter { glucose in
+            glucose.timestamp >= meal.timestamp && glucose.timestamp <= windowEnd
+        }
+
+        guard !readings.isEmpty else {
+            return MealOverlayDelta(delta: nil, isLowConfidence: false)
+        }
+
+        // Baseline: closest reading before meal within 15 min
+        let baselineStart = meal.timestamp.addingTimeInterval(-15 * 60)
+        let baseline = store.state.sensorGlucoseValues
+            .filter { $0.timestamp >= baselineStart && $0.timestamp < meal.timestamp }
+            .last // already sorted by time
+
+        let referenceGlucose: Int
+        if let baseline = baseline {
+            referenceGlucose = baseline.glucoseValue
+        } else if let first = readings.first {
+            referenceGlucose = first.glucoseValue
+        } else {
+            return MealOverlayDelta(delta: nil, isLowConfidence: false)
+        }
+
+        // Peak
+        guard let peak = readings.max(by: { $0.glucoseValue < $1.glucoseValue }) else {
+            return MealOverlayDelta(delta: nil, isLowConfidence: false)
+        }
+        let delta = peak.glucoseValue - referenceGlucose
+
+        // Low confidence: 2hr elapsed but < 4 readings
+        let isLowConfidence = !isInProgress && readings.count < 4
+
+        return MealOverlayDelta(delta: delta, isLowConfidence: isLowConfidence)
+    }
+
+    private struct MealConfounders {
+        let hasCorrectionBolus: Bool
+        let hasExercise: Bool
+        let hasStackedMeal: Bool
+
+        var isClean: Bool { !hasCorrectionBolus && !hasExercise && !hasStackedMeal }
+    }
+
+    private func detectMealConfounders(meal: MealEntry) -> MealConfounders {
+        let windowEnd = meal.timestamp.addingTimeInterval(2 * 60 * 60)
+
+        let hasCorrectionBolus = store.state.insulinDeliveryValues.contains { delivery in
+            delivery.starts >= meal.timestamp && delivery.starts <= windowEnd && delivery.type == .correctionBolus
+        }
+
+        let hasExercise = store.state.exerciseEntryValues.contains { exercise in
+            exercise.startTime <= windowEnd && exercise.endTime >= meal.timestamp
+        }
+
+        let hasStackedMeal = store.state.mealEntryValues.contains { other in
+            other.id != meal.id && other.timestamp >= meal.timestamp && other.timestamp <= windowEnd
+        }
+
+        return MealConfounders(hasCorrectionBolus: hasCorrectionBolus, hasExercise: hasExercise, hasStackedMeal: hasStackedMeal)
+    }
+
+    private func deltaColor(_ delta: Int) -> Color {
+        if delta < 30 {
+            return AmberTheme.cgaGreen
+        } else if delta < 60 {
+            return AmberTheme.amber
+        } else {
+            return AmberTheme.cgaRed
+        }
     }
 
     private func populateValues(glucoseValues: [InsulinDelivery]) -> [InsulinDatapoint] {
