@@ -197,3 +197,27 @@ private extension DataStore {
         }
     }
 }
+
+extension DataStore {
+    func getIOBDeliveries(diaMinutes: Int) -> Future<[InsulinDelivery], DirectError> {
+        return Future { promise in
+            guard let dbQueue = self.dbQueue else {
+                promise(.success([]))
+                return
+            }
+
+            dbQueue.asyncRead { asyncDB in
+                do {
+                    let db = try asyncDB.get()
+                    let result = try InsulinDelivery
+                        .filter(sql: "\(InsulinDelivery.Columns.starts.name) >= datetime('now', '-\(diaMinutes) minutes')")
+                        .order(Column(InsulinDelivery.Columns.starts.name))
+                        .fetchAll(db)
+                    promise(.success(result))
+                } catch {
+                    promise(.failure(.withError(error)))
+                }
+            }
+        }
+    }
+}

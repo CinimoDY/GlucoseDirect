@@ -416,6 +416,19 @@ func directReducer(state: inout DirectState, action: DirectAction) {
     case .setPredictiveLowAlarmFired(fired: let fired):
         state.predictiveLowAlarmFired = fired
 
+    // MARK: IOB
+    case .setBolusInsulinPreset(preset: let preset):
+        state.bolusInsulinPreset = preset
+
+    case .setBasalDIAMinutes(minutes: let minutes):
+        state.basalDIAMinutes = minutes
+
+    case .setShowSplitIOB(enabled: let enabled):
+        state.showSplitIOB = enabled
+
+    case .setIOBDeliveries(deliveries: let deliveries):
+        state.iobDeliveries = deliveries
+
     default:
         break
     }

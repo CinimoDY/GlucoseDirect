@@ -96,6 +96,9 @@ struct AppState: DirectState {
         self.treatmentCycleSnoozeUntil = UserDefaults.standard.treatmentCycleSnoozeUntil
         self.hypoTreatmentWaitMinutes = UserDefaults.standard.hypoTreatmentWaitMinutes
         self.showPredictiveLowAlarm = UserDefaults.standard.showPredictiveLowAlarm
+        self.bolusInsulinPreset = UserDefaults.standard.bolusInsulinPreset
+        self.basalDIAMinutes = UserDefaults.standard.basalDIAMinutes
+        self.showSplitIOB = UserDefaults.standard.showSplitIOB
     }
 
     // MARK: Internal
@@ -196,4 +199,10 @@ struct AppState: DirectState {
     // MARK: Predictive Low Alarm
     var showPredictiveLowAlarm: Bool { didSet { UserDefaults.standard.showPredictiveLowAlarm = showPredictiveLowAlarm } }
     var predictiveLowAlarmFired: Bool = false
+
+    // MARK: IOB
+    var bolusInsulinPreset: InsulinPreset { didSet { UserDefaults.standard.bolusInsulinPreset = bolusInsulinPreset } }
+    var basalDIAMinutes: Int { didSet { UserDefaults.standard.basalDIAMinutes = basalDIAMinutes } }
+    var showSplitIOB: Bool { didSet { UserDefaults.standard.showSplitIOB = showSplitIOB } }
+    var iobDeliveries: [InsulinDelivery] = []
 }

@@ -69,6 +69,9 @@ private enum Keys: String {
     case treatmentCycleSnoozeUntil = "libre-direct.settings.treatment-cycle-snooze-until"
     case hypoTreatmentWaitMinutes = "libre-direct.settings.hypo-treatment-wait-minutes"
     case showPredictiveLowAlarm = "libre-direct.settings.show-predictive-low-alarm"
+    case bolusInsulinPreset = "libre-direct.settings.bolus-insulin-preset"
+    case basalDIAMinutes = "libre-direct.settings.basal-dia-minutes"
+    case showSplitIOB = "libre-direct.settings.show-split-iob"
 }
 
 extension UserDefaults {
@@ -846,6 +849,43 @@ extension UserDefaults {
         }
         set {
             set(newValue, forKey: Keys.hypoTreatmentWaitMinutes.rawValue)
+        }
+    }
+
+    var bolusInsulinPreset: InsulinPreset {
+        get {
+            if let rawValue = string(forKey: Keys.bolusInsulinPreset.rawValue),
+               let preset = InsulinPreset(rawValue: rawValue) {
+                return preset
+            }
+            return .rapidActing
+        }
+        set {
+            set(newValue.rawValue, forKey: Keys.bolusInsulinPreset.rawValue)
+        }
+    }
+
+    var basalDIAMinutes: Int {
+        get {
+            if object(forKey: Keys.basalDIAMinutes.rawValue) != nil {
+                return integer(forKey: Keys.basalDIAMinutes.rawValue)
+            }
+            return 360
+        }
+        set {
+            set(newValue, forKey: Keys.basalDIAMinutes.rawValue)
+        }
+    }
+
+    var showSplitIOB: Bool {
+        get {
+            if object(forKey: Keys.showSplitIOB.rawValue) != nil {
+                return bool(forKey: Keys.showSplitIOB.rawValue)
+            }
+            return false
+        }
+        set {
+            set(newValue, forKey: Keys.showSplitIOB.rawValue)
         }
     }
 }
