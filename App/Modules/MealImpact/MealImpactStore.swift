@@ -12,9 +12,8 @@ func mealImpactStoreMiddleware() -> Middleware<DirectState, DirectAction> {
         switch action {
         case .startup:
             DataStore.shared.createMealImpactTable()
-            return Just(DirectAction.loadScoredMealEntryIds)
-                .setFailureType(to: DirectError.self)
-                .eraseToAnyPublisher()
+            // Table creation only — loadScoredMealEntryIds is triggered by .setAppState(.active)
+            return Empty().eraseToAnyPublisher()
 
         case .setAppState(appState: let appState):
             guard appState == .active else {
@@ -26,6 +25,8 @@ func mealImpactStoreMiddleware() -> Middleware<DirectState, DirectAction> {
                     .setFailureType(to: DirectError.self)
             }.eraseToAnyPublisher()
 
+        // Cross-middleware: .addSensorGlucose is also handled by SensorConnector,
+        // GlucoseNotification, IOBMiddleware, WidgetCenter, and others
         case .addSensorGlucose:
             // Incremental: check if any meals just completed their 2hr window
             return DataStore.shared.computePendingMealImpacts().flatMap { _ in
@@ -89,9 +90,12 @@ private extension DataStore {
 
             dbQueue.asyncWrite({ db in
                 // Find meals whose 2hr window has elapsed and that don't have a MealImpact yet
+                // Lower bound (30 days) prevents unbounded historical scans on every glucose reading
                 let twoHoursAgo = Date().addingTimeInterval(-2 * 60 * 60)
+                let thirtyDaysAgo = Date().addingTimeInterval(-30 * 24 * 60 * 60)
 
                 let pendingMeals = try MealEntry
+                    .filter(Column(MealEntry.Columns.timestamp.name) >= thirtyDaysAgo)
                     .filter(Column(MealEntry.Columns.timestamp.name) <= twoHoursAgo)
                     .filter(sql: """
                         \(MealEntry.Columns.id.name) NOT IN (
@@ -101,6 +105,8 @@ private extension DataStore {
                     .fetchAll(db)
 
                 for meal in pendingMeals {
+                    // Per-meal savepoint: a failure on one meal doesn't roll back others
+                    do { try db.inSavepoint {
                     // Get glucose readings in the 2hr window after meal
                     let windowEnd = meal.timestamp.addingTimeInterval(2 * 60 * 60)
                     let glucoseReadings = try SensorGlucose
@@ -197,6 +203,8 @@ private extension DataStore {
                             )
                         }
                     }
+                    return .commit
+                    } } catch { DirectLog.error("MealImpact computation skipped for meal \(meal.id): \(error)") }
                 }
             }, completion: { _, result in
                 switch result {

@@ -1522,8 +1522,8 @@ struct ChartView: View {
         }
         let delta = peak.glucoseValue - referenceGlucose
 
-        // Low confidence: 2hr elapsed but < 4 readings
-        let isLowConfidence = !isInProgress && readings.count < 4
+        // Low confidence: fewer than 4 readings regardless of in-progress state
+        let isLowConfidence = readings.count < 4
 
         return MealOverlayDelta(delta: delta, isLowConfidence: isLowConfidence)
     }

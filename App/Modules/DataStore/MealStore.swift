@@ -28,6 +28,8 @@ func mealEntryStoreMiddleware() -> Middleware<DirectState, DirectAction> {
                 .setFailureType(to: DirectError.self)
                 .eraseToAnyPublisher()
 
+        // Cross-middleware: mealImpactStoreMiddleware also handles .deleteMealEntry
+        // to cascade-delete MealImpact rows
         case .deleteMealEntry(mealEntry: let mealEntry):
             DataStore.shared.deleteMealEntry(mealEntry)
 
