@@ -159,6 +159,10 @@ enum DirectAction {
     case setIOBDeliveries(deliveries: [InsulinDelivery])
     case loadIOBDeliveries
 
+    // MARK: Meal Impact
+    case loadScoredMealEntryIds
+    case setScoredMealEntryIds(scoredMealEntryIds: Set<UUID>)
+
     case debugAlarm
     case debugNotification
 }

@@ -179,6 +179,10 @@ extension PersonalFood: FetchableRecord, PersistableRecord {
         case name
         case carbsG
         case lastUsed
+        case analysisSessionId
+        case avgDeltaMgDL
+        case observationCount
+        case lastScoredDate
     }
 }
 
@@ -249,5 +253,27 @@ extension MealEntry: FetchableRecord, PersistableRecord {
         case calories
         case fiberGrams
         case timegroup
+        case analysisSessionId
+    }
+}
+
+// MARK: - MealImpact + FetchableRecord, PersistableRecord
+
+extension MealImpact: FetchableRecord, PersistableRecord {
+    static let databaseUUIDEncodingStrategy = DatabaseUUIDEncodingStrategy.uppercaseString
+
+    static var Table: String {
+        "MealImpact"
+    }
+
+    enum Columns: String, ColumnExpression {
+        case id
+        case mealEntryId
+        case baselineGlucose
+        case peakGlucose
+        case deltaMgDL
+        case timeToPeakMinutes
+        case isClean
+        case timestamp
     }
 }

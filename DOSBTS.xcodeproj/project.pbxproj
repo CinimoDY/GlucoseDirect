@@ -17,6 +17,9 @@
 		10DD1301296A15B900C900EA /* AddCalibrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10DD1300296A15B900C900EA /* AddCalibrationView.swift */; };
 		10DD1303296A15CA00C900EA /* AddBloodGlucoseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10DD1302296A15CA00C900EA /* AddBloodGlucoseView.swift */; };
 		12028E4ACD3A51BE09BB9CFA /* MealEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5B3B29325013D6A04E3E5A6 /* MealEntry.swift */; };
+		MI01000100000001000B0001 /* MealImpact.swift in Sources */ = {isa = PBXBuildFile; fileRef = MI01000100000001000B0002 /* MealImpact.swift */; };
+		MI01000100000002000B0002 /* MealImpact.swift in Sources */ = {isa = PBXBuildFile; fileRef = MI01000100000001000B0002 /* MealImpact.swift */; };
+		MI02000100000001000B0001 /* MealImpactStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = MI02000100000001000B0002 /* MealImpactStore.swift */; };
 		1C31A44FB629EF4C11F75A0B /* AddMealView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D56C48D98E9C0A125B68A771 /* AddMealView.swift */; };
 		6587CE4629621507008518F4 /* AddInsulinView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6587CE4529621507008518F4 /* AddInsulinView.swift */; };
 		6587CE4829625E94008518F4 /* InsulinDeliveryListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6587CE4729625E94008518F4 /* InsulinDeliveryListView.swift */; };
@@ -531,6 +534,8 @@
 		E898E0DE2F92CC580041E080 /* DOSBTSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DOSBTSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		EA01000200000001000F0001 /* ItemBarcodeScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemBarcodeScannerView.swift; sourceTree = "<group>"; };
 		F5B3B29325013D6A04E3E5A6 /* MealEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealEntry.swift; sourceTree = "<group>"; };
+		MI01000100000001000B0002 /* MealImpact.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealImpact.swift; sourceTree = "<group>"; };
+		MI02000100000001000B0002 /* MealImpactStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealImpactStore.swift; sourceTree = "<group>"; };
 		FC01000200000001000A0001 /* FoodCorrection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodCorrection.swift; sourceTree = "<group>"; };
 		FC01000200000002000A0002 /* PersonalFood.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalFood.swift; sourceTree = "<group>"; };
 		FC01000200000003000A0003 /* FoodCorrectionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodCorrectionStore.swift; sourceTree = "<group>"; };
@@ -614,6 +619,14 @@
 				EB01000200000001000A0002 /* IOBMiddleware.swift */,
 			);
 			path = IOB;
+			sourceTree = "<group>";
+		};
+		MI02000200000001000B0001 /* MealImpact */ = {
+			isa = PBXGroup;
+			children = (
+				MI02000100000001000B0002 /* MealImpactStore.swift */,
+			);
+			path = MealImpact;
 			sourceTree = "<group>";
 		};
 		CB01000100000010000C0010 /* Claude */ = {
@@ -953,6 +966,7 @@
 				6587CE4929626070008518F4 /* InsulinDelivery.swift */,
 				EB01000100000001000A0002 /* IOBCalculator.swift */,
 				F5B3B29325013D6A04E3E5A6 /* MealEntry.swift */,
+				MI01000100000001000B0002 /* MealImpact.swift */,
 				AB01000100000001000D0001 /* TreatmentEvent.swift */,
 				CB01000100000003000C0003 /* NutritionEstimate.swift */,
 				FC01000200000002000A0002 /* PersonalFood.swift */,
@@ -1020,6 +1034,7 @@
 				E2591C60287412670009F27C /* ScreenLock */,
 				AC01000100000010000E0010 /* TreatmentCycle */,
 				EB01000200000010000A0010 /* IOB */,
+				MI02000200000001000B0001 /* MealImpact */,
 				E28BA1B7286F52AC00F6273F /* WidgetCenter */,
 			);
 			path = Modules;
@@ -1368,6 +1383,8 @@
 				FC01000100000005000A0005 /* FoodCorrectionStore.swift in Sources */,
 				FF01000100000002000F0002 /* FavoriteStore.swift in Sources */,
 				12028E4ACD3A51BE09BB9CFA /* MealEntry.swift in Sources */,
+				MI01000100000001000B0001 /* MealImpact.swift in Sources */,
+				MI02000100000001000B0001 /* MealImpactStore.swift in Sources */,
 				E26D19C8288143550028962C /* ChartViewCompatibility.swift in Sources */,
 				E2CAC1DA2905BDA900C87B17 /* StoreExport.swift in Sources */,
 				6587CE4829625E94008518F4 /* InsulinDeliveryListView.swift in Sources */,
@@ -1474,6 +1491,7 @@
 				FC01000100000004000A0004 /* PersonalFood.swift in Sources */,
 				DA01000100000002000E0002 /* ServingPreset.swift in Sources */,
 				EFCE388A6BE1BC789C79E511 /* MealEntry.swift in Sources */,
+				MI01000100000002000B0002 /* MealImpact.swift in Sources */,
 				AB01000300000001000D0001 /* TreatmentEvent.swift in Sources */,
 				CB01000300000003000C0003 /* NutritionEstimate.swift in Sources */,
 				E2591C5B28740E7A0009F27C /* SensorConnectionInfo.swift in Sources */,

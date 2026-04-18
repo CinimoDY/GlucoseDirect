@@ -80,3 +80,6 @@ fastlane/FastlaneRunner
 
 # Custom
 GlucoseDirectOverride.xcconfig
+
+# Worktrees
+.worktrees/

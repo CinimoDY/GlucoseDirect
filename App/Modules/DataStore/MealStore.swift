@@ -28,6 +28,8 @@ func mealEntryStoreMiddleware() -> Middleware<DirectState, DirectAction> {
                 .setFailureType(to: DirectError.self)
                 .eraseToAnyPublisher()
 
+        // Cross-middleware: mealImpactStoreMiddleware also handles .deleteMealEntry
+        // to cascade-delete MealImpact rows
         case .deleteMealEntry(mealEntry: let mealEntry):
             DataStore.shared.deleteMealEntry(mealEntry)
 
@@ -97,6 +99,12 @@ private extension DataStore {
                     t.add(column: MealEntry.Columns.fatGrams.name, .double)
                     t.add(column: MealEntry.Columns.calories.name, .double)
                     t.add(column: MealEntry.Columns.fiberGrams.name, .double)
+                }
+            }
+
+            migrator.registerMigration("Add analysisSessionId to MealEntry") { db in
+                try db.alter(table: MealEntry.Table) { t in
+                    t.add(column: MealEntry.Columns.analysisSessionId.name, .text)
                 }
             }
 

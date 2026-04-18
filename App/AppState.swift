@@ -205,4 +205,7 @@ struct AppState: DirectState {
     var basalDIAMinutes: Int { didSet { UserDefaults.standard.basalDIAMinutes = basalDIAMinutes } }
     var showSplitIOB: Bool { didSet { UserDefaults.standard.showSplitIOB = showSplitIOB } }
     var iobDeliveries: [InsulinDelivery] = []
+
+    // MARK: Meal Impact
+    var scoredMealEntryIds: Set<UUID> = []
 }

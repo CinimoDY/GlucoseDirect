@@ -14,18 +14,26 @@ import Foundation
 struct PersonalFood: Codable, Identifiable {
     // MARK: Lifecycle
 
-    init(name: String, carbsG: Double) {
+    init(name: String, carbsG: Double, analysisSessionId: UUID? = nil, avgDeltaMgDL: Double? = nil, observationCount: Int = 0, lastScoredDate: Date? = nil) {
         self.id = UUID()
         self.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         self.carbsG = carbsG
         self.lastUsed = Date()
+        self.analysisSessionId = analysisSessionId
+        self.avgDeltaMgDL = avgDeltaMgDL
+        self.observationCount = observationCount
+        self.lastScoredDate = lastScoredDate
     }
 
-    init(id: UUID, name: String, carbsG: Double, lastUsed: Date) {
+    init(id: UUID, name: String, carbsG: Double, lastUsed: Date, analysisSessionId: UUID? = nil, avgDeltaMgDL: Double? = nil, observationCount: Int = 0, lastScoredDate: Date? = nil) {
         self.id = id
         self.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         self.carbsG = carbsG
         self.lastUsed = lastUsed
+        self.analysisSessionId = analysisSessionId
+        self.avgDeltaMgDL = avgDeltaMgDL
+        self.observationCount = observationCount
+        self.lastScoredDate = lastScoredDate
     }
 
     // MARK: Internal
@@ -34,6 +42,10 @@ struct PersonalFood: Codable, Identifiable {
     let name: String
     let carbsG: Double
     let lastUsed: Date
+    let analysisSessionId: UUID?
+    let avgDeltaMgDL: Double?
+    let observationCount: Int
+    let lastScoredDate: Date?
 }
 
 // MARK: Equatable
