@@ -53,7 +53,9 @@ View dispatches Action -> Store.dispatch() -> Reducer mutates State
 - **Chart markers** — Meal/insulin entries grouped by 15-min `timegroup`. Single entries show diamond, groups show circle with count + total carbs (e.g. "3x 45g"). Tapping a group opens detail sheet with individual items (swipe-to-delete, tap-to-edit). Meal edit sheet has Delete button (`deleteCallback`). Insulin tap shows `confirmationDialog` with Delete option.
 - **Stale data indicator** — GlucoseView shows "X MIN AGO" warning when latest reading is >5 min old. Amber text for 5-14 min, red for 15+. Prevents dosing decisions on silently stale data.
 - **Insulin-on-Board (IOB)** — `IOBCalculator.swift` implements OpenAPS oref0 Maksimovic exponential decay model. `InsulinPreset` enum (rapidActing peak 75m/DIA 6h, ultraRapid peak 55m/DIA 6h) with separate basal DIA (2-24h). IOB computed on-read from `iobDeliveries` (DIA-window filtered, loaded by `IOBMiddleware`). Hero display (GlucoseView) with 60s refresh timer, split display toggle (M=meal/snack, B=basal+corr). Chart AreaMark overlay (iOS 16+ only, cgaCyan/amberDark). Stacking warning in AddInsulinView (amber, correction bolus only, reactive to picker). IOB on TreatmentBannerView (countdown/rechecking states, second line). `InsulinSettingsView` with preset picker, basal DIA stepper, split toggle. Future deliveries excluded from IOB (not yet delivered). Zero threshold: 0.05U.
-- **Snapshot testing** — XCTest target `DOSBTSTests` with 38 tests covering IOB calculation engine (exponential model, basal segmentation, split IOB, thresholds), IOB reducer state, treatment cycle lifecycle, predictive alarm flags, alarm snooze auto-clear, and treatment prompt state. Swift Testing framework (`@Test`, `#expect`). Run with Cmd+U on simulator.
+- **Meal impact overlay** — Tap single meal markers to see 2-hour post-meal glucose delta (color-coded green/amber/red), confounder detection (correction bolus, exercise, stacked meal), and PersonalFood rolling glycemic average. `MealImpactStore` middleware computes impacts on dual triggers (retroactive on app activation + real-time on new glucose readings). `analysisSessionId` links AI-analyzed meals to PersonalFood glycemic scores.
+- **Event marker lane** — Dedicated 32px lane above the glucose chart replacing in-chart meal/insulin annotations. SF Symbol icons per type (`fork.knife` meals, `syringe.fill` insulin, `figure.run` exercise). Zoom-dependent consolidation groups nearby markers at wider zoom levels. `EventMarkerLaneView` is a self-contained view receiving pre-computed `ConsolidatedMarkerGroup` data and tap callbacks. Tap meal → meal impact overlay; tap insulin → confirmation dialog; tap group → expanded panel.
+- **Snapshot testing** — XCTest target `DOSBTSTests` with 61 tests covering IOB calculation engine, IOB reducer state, treatment cycle lifecycle, predictive alarm flags, alarm snooze auto-clear, treatment prompt state, MealImpact model, MealImpact reducer, delta thresholds, rolling average math, analysisSessionId linkage, and PersonalFood glycemic fields. Swift Testing framework (`@Test`, `#expect`). Run with Cmd+U on simulator.
 
 ## Project Structure
 
@@ -84,6 +86,7 @@ App/
     TreatmentCycle/            # Hypo treatment workflow (Rule of 15)
     Claude/                    # AI food photo analysis (Claude Haiku)
     IOB/                       # Insulin-on-Board decay model middleware
+    MealImpact/                # Meal impact overlay computation middleware
     Log/
     Debug/
   Views/
