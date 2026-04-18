@@ -116,7 +116,7 @@ private extension DataStore {
                         .fetchAll(db)
 
                     // Need at least 4 readings (R13 threshold)
-                    guard glucoseReadings.count >= 4 else { continue }
+                    guard glucoseReadings.count >= 4 else { return .rollback }
 
                     // Find baseline: closest reading before meal within 15 min
                     let baselineStart = meal.timestamp.addingTimeInterval(-15 * 60)
@@ -135,7 +135,7 @@ private extension DataStore {
                     }
 
                     // Find peak glucose in the window
-                    guard let peakReading = glucoseReadings.max(by: { $0.glucoseValue < $1.glucoseValue }) else { continue }
+                    guard let peakReading = glucoseReadings.max(by: { $0.glucoseValue < $1.glucoseValue }) else { return .rollback }
                     let peakGlucose = peakReading.glucoseValue
                     let deltaMgDL = peakGlucose - referenceGlucose
                     let timeToPeakMinutes = Int(peakReading.timestamp.timeIntervalSince(meal.timestamp) / 60)
