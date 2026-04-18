@@ -83,3 +83,6 @@ GlucoseDirectOverride.xcconfig
 
 # Worktrees
 .worktrees/
+
+# Superpowers brainstorm sessions
+.superpowers/
