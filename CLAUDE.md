@@ -208,3 +208,4 @@ Additional documentation in `docs/`:
 - `project-structure.md` — Directory layout
 - `ui-mockups.md` — UI mockups
 - `apple-watch-architecture.md` — Watch extension plans
+- `solutions/` — Documented solutions to past problems (bugs, best practices, workflow patterns), organized by category with YAML frontmatter (`module`, `tags`, `problem_type`). Relevant when implementing or debugging in documented areas.
