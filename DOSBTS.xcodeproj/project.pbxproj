@@ -258,6 +258,7 @@
 		FF01000100000002000F0002 /* FavoriteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF01000200000002000F0002 /* FavoriteStore.swift */; };
 		FF01000100000003000F0003 /* FavoriteFood.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF01000200000001000F0001 /* FavoriteFood.swift */; };
 		FF01000100000004000F0004 /* UnifiedFoodEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF01000200000003000F0003 /* UnifiedFoodEntryView.swift */; };
+		EV01000100000001000B0001 /* EventMarkerLaneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EV01000100000001000B0002 /* EventMarkerLaneView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -542,6 +543,7 @@
 		FF01000200000001000F0001 /* FavoriteFood.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteFood.swift; sourceTree = "<group>"; };
 		FF01000200000002000F0002 /* FavoriteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteStore.swift; sourceTree = "<group>"; };
 		FF01000200000003000F0003 /* UnifiedFoodEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedFoodEntryView.swift; sourceTree = "<group>"; };
+		EV01000100000001000B0002 /* EventMarkerLaneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventMarkerLaneView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -914,6 +916,7 @@
 				E223F866267A4D9800EC9BCA /* SensorView.swift */,
 				E28728A926DE499200269F47 /* SnoozeView.swift */,
 				AA01000100000002000A0002 /* TreatmentBannerView.swift */,
+				EV01000100000001000B0002 /* EventMarkerLaneView.swift */,
 			);
 			path = Overview;
 			sourceTree = "<group>";
@@ -1335,6 +1338,7 @@
 				E27ED97A2758A4470099149C /* SensorConnector.swift in Sources */,
 				E20B8540266F4A9800AA4224 /* ContentView.swift in Sources */,
 				E283306726AF058500244343 /* ChartView.swift in Sources */,
+				EV01000100000001000B0001 /* EventMarkerLaneView.swift in Sources */,
 				E2FCAC1C270741BC00FE1CBF /* SensorType.swift in Sources */,
 				E2B5FDA828789ED200D35D87 /* SensorGlucoseStore.swift in Sources */,
 				E2E353F928DC6E4100824732 /* LibreConnection.swift in Sources */,

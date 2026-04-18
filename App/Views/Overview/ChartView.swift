@@ -97,8 +97,33 @@ struct ChartView: View {
                     ZStack(alignment: .topLeading) {
                         ScrollViewReader { scrollViewProxy in
                             ScrollView(.horizontal, showsIndicators: false) {
-                                ChartView
-                                    .frame(width: max(0, screenWidth, seriesWidth), height: min(screenHeight, Config.chartHeight))
+                                VStack(spacing: 0) {
+                                    EventMarkerLaneView(
+                                        markerGroups: markerGroups,
+                                        totalWidth: max(0, screenWidth, seriesWidth),
+                                        timeRange: (startMarker ?? Date())...(endMarker ?? Date()),
+                                        scoredMealEntryIds: store.state.scoredMealEntryIds,
+                                        onTapMeal: { mealID in
+                                            if let meal = store.state.mealEntryValues.first(where: { $0.id == mealID }) {
+                                                if activeMealOverlay?.id == meal.id {
+                                                    activeMealOverlay = nil
+                                                } else {
+                                                    activeMealOverlay = meal
+                                                }
+                                            }
+                                        },
+                                        onTapInsulin: { insulinID in
+                                            if let insulin = store.state.insulinDeliveryValues.first(where: { $0.id == insulinID }) {
+                                                tappedInsulinEntry = insulin
+                                                showInsulinDetail = true
+                                            }
+                                        },
+                                        expandedGroupID: $expandedGroupID
+                                    )
+                                    .frame(width: max(0, screenWidth, seriesWidth), height: Config.markerLaneHeight)
+
+                                    ChartView
+                                        .frame(width: max(0, screenWidth, seriesWidth), height: min(screenHeight, Config.chartHeight))
                                     .onChange(of: store.state.sensorGlucoseValues) { _ in
                                         scrollToEnd(scrollViewProxy: scrollViewProxy)
 
@@ -117,6 +142,7 @@ struct ChartView: View {
                                     }.onTapGesture(count: 2) {
                                         showUnsmoothedValues = !showUnsmoothedValues
                                     }
+                                } // VStack
                             }
                         }
 
@@ -570,62 +596,24 @@ struct ChartView: View {
                 .foregroundStyle(AmberTheme.cgaRed)
             }
 
-            ForEach(insulinSeries) { value in
-                if value.type != .basal {
-                    PointMark(
-                        x: .value("Time", value.starts),
-                        y: .value("Units", value.value.map(from: 0...20, to: convertToRequired(mgdLValue: 5)...Double(alarmLow)))
-                    )
-                    .symbolSize(value.value.map(from: 0...20, to: Config.insulinSymbolSizeRange))
-                    .annotation {
-                        Text(value.value.asInsulin())
-                            .foregroundStyle(AmberTheme.amberDark)
-                            .padding(.horizontal, 2.5)
-                            .background(Color.black.opacity(0.5))
-                            .cornerRadius(2)
-                            .bold()
-                            .font(DOSTypography.caption)
-                    }
-                    .foregroundStyle(AmberTheme.amberDark)
-                } else {
-//                    AreaMark(
-//                        x: .value("Time", value.starts),
-//                        y: .value("Units", value.value.map(from: 0...20, to: 0...Double(alarmLow))),
-//                        series: .value("Series", value.id),
-//                        stacking: .standard
-//                    )
-//                    .opacity(0.25)
-//                    .interpolationMethod(.stepEnd)
-//                    .foregroundStyle(AmberTheme.amberDark)
-//
-//                    AreaMark(
-//                        x: .value("Time", value.ends),
-//                        y: .value("Units", value.value.map(from: 0...20, to: 0...Double(alarmLow))),
-//                        series: .value("Series", value.id),
-//                        stacking: .standard
-//                    )
-//                    .opacity(0.25)
-//                    .interpolationMethod(.stepEnd)
-//                    .foregroundStyle(AmberTheme.amberDark)
-                    
-                    RectangleMark(
-                        xStart: .value("Starts", value.starts),
-                        xEnd: .value("Ends", value.ends),
-                        yStart: .value("Units", 0),
-                        yEnd: .value("Units", value.value.map(from: 0...20, to: 0...Double(alarmLow)))
-                    )
-                    .opacity(0.25)
-                    .annotation(position: .overlay, alignment: .bottom) {
-                        Text(value.value.asInsulin())
-                            .foregroundStyle(AmberTheme.amberDark)
-                            .padding(.horizontal, 2.5)
-                            .background(Color.black.opacity(0.5))
-                            .cornerRadius(2)
-                            .bold()
-                            .font(DOSTypography.caption)
-                    }
-                    .foregroundStyle(AmberTheme.amberDark)
+            ForEach(insulinSeries.filter { $0.type == .basal }) { value in
+                RectangleMark(
+                    xStart: .value("Starts", value.starts),
+                    xEnd: .value("Ends", value.ends),
+                    yStart: .value("Units", 0),
+                    yEnd: .value("Units", value.value.map(from: 0...20, to: 0...Double(alarmLow)))
+                )
+                .opacity(0.25)
+                .annotation(position: .overlay, alignment: .bottom) {
+                    Text(value.value.asInsulin())
+                        .foregroundStyle(AmberTheme.amberDark)
+                        .padding(.horizontal, 2.5)
+                        .background(Color.black.opacity(0.5))
+                        .cornerRadius(2)
+                        .bold()
+                        .font(DOSTypography.caption)
                 }
+                .foregroundStyle(AmberTheme.amberDark)
             }
 
             // MARK: - IOB decay curve
@@ -661,39 +649,6 @@ struct ChartView: View {
                         .interpolationMethod(.monotone)
                     }
                 }
-            }
-
-            ForEach(Array(mealGroups.enumerated()), id: \.element.id) { index, group in
-                PointMark(
-                    x: .value("Time", group.time),
-                    y: .value("Meal", chartMinimum * 0.85)
-                )
-                .symbolSize(group.count == 1 && group.entries.first.map({ store.state.scoredMealEntryIds.contains($0.id) }) == true
-                    ? Config.mealSymbolSize * 1.3
-                    : Config.mealSymbolSize)
-                .symbol(group.count > 1 ? .circle : .diamond)
-                .annotation(position: index % 2 == 0 ? .top : .bottom) {
-                    HStack(spacing: 2) {
-                        if group.count > 1 {
-                            Text("\(group.count)x")
-                                .foregroundStyle(AmberTheme.cgaGreen.opacity(0.6))
-                        }
-                        if let carbs = group.totalCarbs {
-                            Text("\(Int(carbs))g")
-                                .foregroundStyle(AmberTheme.cgaGreen)
-                        } else if let label = group.entries.first?.mealDescription {
-                            Text(String(label.prefix(6)))
-                                .foregroundStyle(AmberTheme.cgaGreen)
-                        }
-                    }
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 4)
-                    .background(Color.black.opacity(0.6))
-                    .cornerRadius(2)
-                    .bold()
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                }
-                .foregroundStyle(AmberTheme.cgaGreen)
             }
 
             // MARK: - Meal Impact Overlay
@@ -941,6 +896,7 @@ struct ChartView: View {
 
                 debounceSeriesMetadata()
                 updateInsulinSeries()
+                updateMarkerGroups()
             }
 
         }.onChange(of: store.state.iobDeliveries.count) { _ in
@@ -967,6 +923,7 @@ struct ChartView: View {
 
                 debounceSeriesMetadata()
                 updateMealSeries()
+                updateMarkerGroups()
             }
 
         }.onChange(of: store.state.exerciseEntryValues) { _ in
@@ -975,6 +932,7 @@ struct ChartView: View {
 
                 debounceSeriesMetadata()
                 updateExerciseSeries()
+                updateMarkerGroups()
             }
 
         }.onChange(of: store.state.chartZoomLevel) { _ in
@@ -982,6 +940,7 @@ struct ChartView: View {
                 DirectLog.info("onChange: chartZoomLevel")
 
                 debounceSeriesMetadata()
+                updateMarkerGroups()
             }
 
         }.onChange(of: store.state.showSmoothedGlucose) { _ in
@@ -1011,6 +970,7 @@ struct ChartView: View {
             updateExerciseSeries()
             updateHeartRateLookup()
             updateSmoothedMinuteChange()
+            updateMarkerGroups()
 
         }.chartOverlay { overlayProxy in
             GeometryReader { geometryProxy in
@@ -1046,47 +1006,9 @@ struct ChartView: View {
 
                             guard wasTap else { return }
 
-                            // Detect tap on meal/insulin marker
-                            let currentX = dragValue.location.x - geometryProxy[overlayProxy.plotAreaFrame].origin.x
-                            guard let tappedDate: Date = overlayProxy.value(atX: currentX) else { return }
-
-                            let threshold: TimeInterval = 20 * 60
-
-                            // Find nearest meal group
-                            if let group = mealGroups
-                                .filter({ abs($0.time.timeIntervalSince(tappedDate)) < threshold })
-                                .min(by: { abs($0.time.timeIntervalSince(tappedDate)) < abs($1.time.timeIntervalSince(tappedDate)) })
-                            {
-                                if group.count == 1, let entry = group.entries.first {
-                                    // Toggle meal impact overlay instead of opening edit sheet
-                                    if activeMealOverlay?.id == entry.id {
-                                        activeMealOverlay = nil
-                                    } else {
-                                        activeMealOverlay = entry
-                                    }
-                                } else {
-                                    activeMealOverlay = nil
-                                    tappedMealGroup = group
-                                }
-                                return
-                            }
-
-                            // Dismiss overlay on any non-meal tap
+                            // Dismiss meal overlay and expanded marker group on any chart tap
                             activeMealOverlay = nil
-
-                            // Find nearest insulin group
-                            if let group = insulinGroups
-                                .filter({ abs($0.time.timeIntervalSince(tappedDate)) < threshold })
-                                .min(by: { abs($0.time.timeIntervalSince(tappedDate)) < abs($1.time.timeIntervalSince(tappedDate)) })
-                            {
-                                if group.count == 1, let entry = group.entries.first {
-                                    tappedInsulinEntry = entry
-                                    showInsulinDetail = true
-                                } else {
-                                    tappedInsulinGroup = group
-                                }
-                                return
-                            }
+                            expandedGroupID = nil
                         }
                     )
             }
@@ -1120,6 +1042,13 @@ struct ChartView: View {
             ZoomLevel(level: 12, name: LocalizedString("12h"), visibleHours: 12, labelEvery: 3),
             ZoomLevel(level: 24, name: LocalizedString("24h"), visibleHours: 24, labelEvery: 4)
         ]
+        static let markerLaneHeight: CGFloat = 32
+        static let consolidationWindows: [Int: TimeInterval] = [
+            3: 0,
+            6: 10 * 60,
+            12: 20 * 60,
+            24: 30 * 60
+        ]
     }
 
     @State private var showUnsmoothedValues: Bool = false
@@ -1152,6 +1081,9 @@ struct ChartView: View {
     @State private var tappedMealGroup: MealGroup? = nil
     @State private var tappedInsulinGroup: InsulinGroup? = nil
     @State private var activeMealOverlay: MealEntry? = nil
+
+    @State private var markerGroups: [ConsolidatedMarkerGroup] = []
+    @State private var expandedGroupID: String? = nil
 
     @State private var smoothedMinuteChange: Double? = nil
 
@@ -1430,6 +1362,84 @@ struct ChartView: View {
     private func updateExerciseSeries() {
         DirectLog.info("updateExerciseSeries()")
         self.exerciseSeries = store.state.exerciseEntryValues.map { $0.toDatapoint() }
+    }
+
+    private func updateMarkerGroups() {
+        let window = Config.consolidationWindows[store.state.chartZoomLevel] ?? 0
+        var allMarkers: [EventMarker] = []
+
+        for meal in store.state.mealEntryValues {
+            let label: String
+            if let carbs = meal.carbsGrams {
+                label = "\(Int(carbs))g"
+            } else {
+                label = String(meal.mealDescription.prefix(6))
+            }
+            allMarkers.append(EventMarker(
+                id: "meal-\(meal.id.uuidString)",
+                time: meal.timestamp,
+                type: .meal,
+                label: label,
+                rawValue: meal.carbsGrams ?? 0,
+                sourceID: meal.id
+            ))
+        }
+
+        for insulin in store.state.insulinDeliveryValues where insulin.type != .basal {
+            allMarkers.append(EventMarker(
+                id: "insulin-\(insulin.id.uuidString)",
+                time: insulin.starts,
+                type: .bolus,
+                label: insulin.units.asInsulin(),
+                rawValue: insulin.units,
+                sourceID: insulin.id
+            ))
+        }
+
+        for exercise in store.state.exerciseEntryValues {
+            let mins = Int(exercise.durationMinutes)
+            allMarkers.append(EventMarker(
+                id: "exercise-\(exercise.id.uuidString)",
+                time: exercise.startTime,
+                type: .exercise,
+                label: "\(mins)m",
+                rawValue: Double(mins),
+                sourceID: exercise.id
+            ))
+        }
+
+        allMarkers.sort { $0.time < $1.time }
+
+        // Consolidate into groups based on zoom-level window
+        var groups: [ConsolidatedMarkerGroup] = []
+        var currentMarkers: [EventMarker] = []
+
+        for marker in allMarkers {
+            if let last = currentMarkers.last, window > 0, marker.time.timeIntervalSince(last.time) > window {
+                // New group
+                if !currentMarkers.isEmpty {
+                    let midTime = currentMarkers[currentMarkers.count / 2].time
+                    groups.append(ConsolidatedMarkerGroup(
+                        id: "group-\(groups.count)",
+                        time: midTime,
+                        markers: currentMarkers
+                    ))
+                }
+                currentMarkers = [marker]
+            } else {
+                currentMarkers.append(marker)
+            }
+        }
+        if !currentMarkers.isEmpty {
+            let midTime = currentMarkers[currentMarkers.count / 2].time
+            groups.append(ConsolidatedMarkerGroup(
+                id: "group-\(groups.count)",
+                time: midTime,
+                markers: currentMarkers
+            ))
+        }
+
+        markerGroups = groups
     }
 
     private func updateSmoothedMinuteChange() {
@@ -1866,5 +1876,66 @@ private extension SensorGlucose {
             info: info,
             level: level
         )
+    }
+}
+
+// MARK: - Marker Lane Types
+
+enum MarkerType: Hashable {
+    case meal
+    case bolus
+    case exercise
+
+    var icon: String {
+        switch self {
+        case .meal: return "fork.knife"
+        case .bolus: return "syringe.fill"
+        case .exercise: return "figure.run"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .meal: return AmberTheme.cgaGreen
+        case .bolus: return AmberTheme.amberDark
+        case .exercise: return AmberTheme.cgaCyan
+        }
+    }
+}
+
+struct EventMarker: Identifiable {
+    let id: String
+    let time: Date
+    let type: MarkerType
+    let label: String
+    let rawValue: Double
+    let sourceID: UUID
+}
+
+struct ConsolidatedMarkerGroup: Identifiable {
+    let id: String
+    let time: Date
+    let markers: [EventMarker]
+
+    var isSingle: Bool { markers.count == 1 }
+
+    var dominantType: MarkerType {
+        let counts = Dictionary(grouping: markers, by: \.type).mapValues(\.count)
+        return counts.max(by: { $0.value < $1.value })?.key ?? .meal
+    }
+
+    var summaryLabel: String {
+        let totalCarbs = markers
+            .filter { $0.type == .meal }
+            .reduce(0.0) { $0 + $1.rawValue }
+        if totalCarbs > 0 {
+            return "\(Int(totalCarbs))g"
+        }
+        return "\(markers.count)"
+    }
+
+    var totalCarbs: Double? {
+        let carbs = markers.filter { $0.type == .meal }.reduce(0.0) { $0 + $1.rawValue }
+        return carbs > 0 ? carbs : nil
     }
 }
