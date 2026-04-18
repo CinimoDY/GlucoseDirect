@@ -21,8 +21,11 @@
 		6587CE4629621507008518F4 /* AddInsulinView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6587CE4529621507008518F4 /* AddInsulinView.swift */; };
 		6587CE4829625E94008518F4 /* InsulinDeliveryListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6587CE4729625E94008518F4 /* InsulinDeliveryListView.swift */; };
 		6587CE4A29626070008518F4 /* InsulinDelivery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6587CE4929626070008518F4 /* InsulinDelivery.swift */; };
+		EB01000100000001000A0001 /* IOBCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB01000100000001000A0002 /* IOBCalculator.swift */; };
+		EB01000200000001000A0001 /* IOBMiddleware.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB01000200000001000A0002 /* IOBMiddleware.swift */; };
 		6587CE4C2962651B008518F4 /* InsulinDeliveryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6587CE4B2962651B008518F4 /* InsulinDeliveryStore.swift */; };
 		6587CE4D29626AD5008518F4 /* InsulinDelivery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6587CE4929626070008518F4 /* InsulinDelivery.swift */; };
+		EB01000100000001000A0003 /* IOBCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB01000100000001000A0002 /* IOBCalculator.swift */; };
 		AA01000100000003000A0003 /* TreatmentModalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01000100000001000A0001 /* TreatmentModalView.swift */; };
 		AA01000100000004000A0004 /* TreatmentBannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01000100000002000A0002 /* TreatmentBannerView.swift */; };
 		AA01000228000001000B0001 /* ExerciseEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01000128000001000B0001 /* ExerciseEntry.swift */; };
@@ -44,6 +47,7 @@
 		CB01000200000007000C0007 /* AIConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB01000100000007000C0007 /* AIConsentView.swift */; };
 		CB01000200000008000C0008 /* FoodPhotoAnalysisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB01000100000008000C0008 /* FoodPhotoAnalysisView.swift */; };
 		CB01000200000009000C0009 /* AISettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB01000100000009000C0009 /* AISettingsView.swift */; };
+		EB01000300000001000A0001 /* InsulinSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB01000300000001000A0002 /* InsulinSettingsView.swift */; };
 		CB01000300000003000C0003 /* NutritionEstimate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB01000100000003000C0003 /* NutritionEstimate.swift */; };
 		DA01000100000001000E0001 /* ServingPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA01000200000001000E0001 /* ServingPreset.swift */; };
 		DA01000100000002000E0002 /* ServingPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA01000200000001000E0001 /* ServingPreset.swift */; };
@@ -311,6 +315,8 @@
 		6587CE4529621507008518F4 /* AddInsulinView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddInsulinView.swift; sourceTree = "<group>"; };
 		6587CE4729625E94008518F4 /* InsulinDeliveryListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsulinDeliveryListView.swift; sourceTree = "<group>"; };
 		6587CE4929626070008518F4 /* InsulinDelivery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsulinDelivery.swift; sourceTree = "<group>"; };
+		EB01000100000001000A0002 /* IOBCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOBCalculator.swift; sourceTree = "<group>"; };
+		EB01000200000001000A0002 /* IOBMiddleware.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOBMiddleware.swift; sourceTree = "<group>"; };
 		6587CE4B2962651B008518F4 /* InsulinDeliveryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsulinDeliveryStore.swift; sourceTree = "<group>"; };
 		AA01000100000001000A0001 /* TreatmentModalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreatmentModalView.swift; sourceTree = "<group>"; };
 		AA01000100000002000A0002 /* TreatmentBannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreatmentBannerView.swift; sourceTree = "<group>"; };
@@ -330,6 +336,7 @@
 		CB01000100000007000C0007 /* AIConsentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIConsentView.swift; sourceTree = "<group>"; };
 		CB01000100000008000C0008 /* FoodPhotoAnalysisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPhotoAnalysisView.swift; sourceTree = "<group>"; };
 		CB01000100000009000C0009 /* AISettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AISettingsView.swift; sourceTree = "<group>"; };
+		EB01000300000001000A0002 /* InsulinSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsulinSettingsView.swift; sourceTree = "<group>"; };
 		D56C48D98E9C0A125B68A771 /* AddMealView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddMealView.swift; sourceTree = "<group>"; };
 		DA01000128000002000A0002 /* AmberTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmberTheme.swift; sourceTree = "<group>"; };
 		DA01000128000003000A0003 /* DOSTypography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DOSTypography.swift; sourceTree = "<group>"; };
@@ -601,6 +608,14 @@
 			path = TreatmentCycle;
 			sourceTree = "<group>";
 		};
+		EB01000200000010000A0010 /* IOB */ = {
+			isa = PBXGroup;
+			children = (
+				EB01000200000001000A0002 /* IOBMiddleware.swift */,
+			);
+			path = IOB;
+			sourceTree = "<group>";
+		};
 		CB01000100000010000C0010 /* Claude */ = {
 			isa = PBXGroup;
 			children = (
@@ -863,6 +878,7 @@
 				CB01000100000009000C0009 /* AISettingsView.swift */,
 				E24B532226B863E20091417F /* AlarmSettingsView.swift */,
 				E2646F3C275FD3E800ADE451 /* AppleExportSettingsView.swift */,
+				EB01000300000001000A0002 /* InsulinSettingsView.swift */,
 				E25762D4279D519200A2E249 /* BellmanSettingsView.swift */,
 				E24B532026B863C00091417F /* GlucoseSettingsView.swift */,
 				DA01000228000001000B0001 /* HealthImportSourcesView.swift */,
@@ -935,6 +951,7 @@
 				FF01000200000001000F0001 /* FavoriteFood.swift */,
 				FC01000200000001000A0001 /* FoodCorrection.swift */,
 				6587CE4929626070008518F4 /* InsulinDelivery.swift */,
+				EB01000100000001000A0002 /* IOBCalculator.swift */,
 				F5B3B29325013D6A04E3E5A6 /* MealEntry.swift */,
 				AB01000100000001000D0001 /* TreatmentEvent.swift */,
 				CB01000100000003000C0003 /* NutritionEstimate.swift */,
@@ -1002,6 +1019,7 @@
 				E27ED96E2758A3EE0099149C /* SensorConnector */,
 				E2591C60287412670009F27C /* ScreenLock */,
 				AC01000100000010000E0010 /* TreatmentCycle */,
+				EB01000200000010000A0010 /* IOB */,
 				E28BA1B7286F52AC00F6273F /* WidgetCenter */,
 			);
 			path = Modules;
@@ -1340,6 +1358,8 @@
 				E2FCAC1F270741BC00FE1CBF /* SensorRegion.swift in Sources */,
 				E2591C62287412740009F27C /* ScreenLock.swift in Sources */,
 				6587CE4A29626070008518F4 /* InsulinDelivery.swift in Sources */,
+				EB01000100000001000A0001 /* IOBCalculator.swift in Sources */,
+				EB01000200000001000A0001 /* IOBMiddleware.swift in Sources */,
 				AA01000228000001000B0001 /* ExerciseEntry.swift in Sources */,
 				FF01000100000001000F0001 /* FavoriteFood.swift in Sources */,
 				FC01000100000001000A0001 /* FoodCorrection.swift in Sources */,
@@ -1438,6 +1458,7 @@
 				CB01000200000008000C0008 /* FoodPhotoAnalysisView.swift in Sources */,
 				FF01000100000004000F0004 /* UnifiedFoodEntryView.swift in Sources */,
 				CB01000200000009000C0009 /* AISettingsView.swift in Sources */,
+				EB01000300000001000A0001 /* InsulinSettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1446,6 +1467,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				6587CE4D29626AD5008518F4 /* InsulinDelivery.swift in Sources */,
+				EB01000100000001000A0003 /* IOBCalculator.swift in Sources */,
 				AA01000328000001000B0001 /* ExerciseEntry.swift in Sources */,
 				FF01000100000003000F0003 /* FavoriteFood.swift in Sources */,
 				FC01000100000002000A0002 /* FoodCorrection.swift in Sources */,

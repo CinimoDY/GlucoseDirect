@@ -14,6 +14,7 @@ struct SettingsView: View {
             SensorConnectionConfigurationView()
             GlucoseSettingsView()
             AlarmSettingsView()
+            InsulinSettingsView()
             NightscoutSettingsView()
             AppleExportSettingsView()
             AISettingsView()

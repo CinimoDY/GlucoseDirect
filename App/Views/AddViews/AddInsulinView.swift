@@ -16,7 +16,8 @@ struct AddInsulinView: View {
     @State var insulinType: InsulinType = .snackBolus
 
     var addCallback: (_ starts: Date, _ ends: Date, _ units: Double, _ insulinType: InsulinType) -> Void
-    
+    var currentIOB: Double? = nil
+
     var body: some View {
         NavigationView {
             HStack {
@@ -65,6 +66,15 @@ struct AddInsulinView: View {
                                     displayedComponents: [.date, .hourAndMinute]
                                 )
                             }
+                        }
+
+                        if insulinType == .correctionBolus, (currentIOB ?? 0) > 0.05 {
+                            HStack(spacing: DOSSpacing.xs) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                Text("ACTIVE IOB: \(String(format: "%.1f", currentIOB ?? 0))U")
+                            }
+                            .font(DOSTypography.caption)
+                            .foregroundColor(AmberTheme.amber)
                         }
                     }, footer: {
                         VStack(alignment: .leading, spacing: 20) {

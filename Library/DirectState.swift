@@ -100,6 +100,12 @@ protocol DirectState {
     // MARK: Predictive Low Alarm
     var showPredictiveLowAlarm: Bool { get set }
     var predictiveLowAlarmFired: Bool { get set }
+
+    // MARK: IOB
+    var bolusInsulinPreset: InsulinPreset { get set }
+    var basalDIAMinutes: Int { get set }
+    var showSplitIOB: Bool { get set }
+    var iobDeliveries: [InsulinDelivery] { get set }
 }
 
 extension DirectState {

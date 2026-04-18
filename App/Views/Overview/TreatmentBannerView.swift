@@ -12,6 +12,21 @@ struct TreatmentBannerView: View {
     @State private var remainingSeconds: Int = 0
     @State private var timer: AnyCancellable?
     @State private var autoDismissTask: DispatchWorkItem?
+    @State private var currentIOB: Double = 0
+
+    private func refreshBannerIOB() {
+        let bolusModel = store.state.bolusInsulinPreset.model
+        let basalModel = ExponentialInsulinModel(
+            actionDuration: Double(store.state.basalDIAMinutes) * 60,
+            peakActivityTime: 75 * 60
+        )
+        let result = computeIOB(
+            deliveries: store.state.iobDeliveries,
+            bolusModel: bolusModel,
+            basalModel: basalModel
+        )
+        currentIOB = result.total
+    }
 
     private enum BannerState {
         case countdown
@@ -71,10 +86,12 @@ struct TreatmentBannerView: View {
         .padding(.vertical, DOSSpacing.sm)
         .onAppear {
             startTimer()
+            refreshBannerIOB()
         }
         .onDisappear {
             timer?.cancel()
         }
+        .onChange(of: store.state.iobDeliveries.count) { _ in refreshBannerIOB() }
     }
 
     // MARK: - Banner Content
@@ -83,24 +100,38 @@ struct TreatmentBannerView: View {
     private var bannerContent: some View {
         switch bannerState {
         case .countdown:
-            HStack(spacing: DOSSpacing.xs) {
-                Image(systemName: "timer")
-                    .foregroundColor(AmberTheme.cgaGreen)
-                Text("HYPO TREATMENT")
-                    .font(DOSTypography.caption)
-                    .foregroundColor(AmberTheme.cgaGreen)
-                Text("— recheck in \(formattedRemaining)")
-                    .font(DOSTypography.caption)
-                    .foregroundColor(AmberTheme.amber)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: DOSSpacing.xs) {
+                    Image(systemName: "timer")
+                        .foregroundColor(AmberTheme.cgaGreen)
+                    Text("HYPO TREATMENT")
+                        .font(DOSTypography.caption)
+                        .foregroundColor(AmberTheme.cgaGreen)
+                    Text("— recheck in \(formattedRemaining)")
+                        .font(DOSTypography.caption)
+                        .foregroundColor(AmberTheme.amber)
+                }
+                if currentIOB > 0.05 {
+                    Text("IOB \(String(format: "%.1fU", currentIOB))")
+                        .font(DOSTypography.caption)
+                        .foregroundColor(AmberTheme.amber)
+                }
             }
 
         case .rechecking:
-            HStack(spacing: DOSSpacing.xs) {
-                ProgressView()
-                    .tint(AmberTheme.amber)
-                Text("RECHECKING...")
-                    .font(DOSTypography.caption)
-                    .foregroundColor(AmberTheme.amber)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: DOSSpacing.xs) {
+                    ProgressView()
+                        .tint(AmberTheme.amber)
+                    Text("RECHECKING...")
+                        .font(DOSTypography.caption)
+                        .foregroundColor(AmberTheme.amber)
+                }
+                if currentIOB > 0.05 {
+                    Text("IOB \(String(format: "%.1fU", currentIOB))")
+                        .font(DOSTypography.caption)
+                        .foregroundColor(AmberTheme.amber)
+                }
             }
 
         case .staleData:

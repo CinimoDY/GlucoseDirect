@@ -632,6 +632,41 @@ struct ChartView: View {
                 }
             }
 
+            // MARK: - IOB decay curve
+            if !iobSeries.isEmpty {
+                let maxIOB = iobSeries.map(\.total).max() ?? 1.0
+                let iobCeiling = max(maxIOB, 1.0)
+
+                if store.state.showSplitIOB {
+                    ForEach(Array(iobSeries.enumerated()), id: \.offset) { _, point in
+                        AreaMark(
+                            x: .value("Time", point.date),
+                            y: .value("IOB", point.mealSnack.map(from: 0...iobCeiling, to: 0...Double(alarmLow)))
+                        )
+                        .foregroundStyle(AmberTheme.cgaCyan.opacity(0.3))
+                        .interpolationMethod(.monotone)
+                    }
+
+                    ForEach(Array(iobSeries.enumerated()), id: \.offset) { _, point in
+                        AreaMark(
+                            x: .value("Time", point.date),
+                            y: .value("IOB-corr", point.corrBasal.map(from: 0...iobCeiling, to: 0...Double(alarmLow)))
+                        )
+                        .foregroundStyle(AmberTheme.amberDark.opacity(0.3))
+                        .interpolationMethod(.monotone)
+                    }
+                } else {
+                    ForEach(Array(iobSeries.enumerated()), id: \.offset) { _, point in
+                        AreaMark(
+                            x: .value("Time", point.date),
+                            y: .value("IOB", point.total.map(from: 0...iobCeiling, to: 0...Double(alarmLow)))
+                        )
+                        .foregroundStyle(AmberTheme.cgaCyan.opacity(0.3))
+                        .interpolationMethod(.monotone)
+                    }
+                }
+            }
+
             ForEach(Array(mealGroups.enumerated()), id: \.element.id) { index, group in
                 PointMark(
                     x: .value("Time", group.time),
@@ -792,6 +827,24 @@ struct ChartView: View {
                 DirectLog.info("onChange: insulinDeliveryValues")
 
                 debounceSeriesMetadata()
+                updateInsulinSeries()
+            }
+
+        }.onChange(of: store.state.iobDeliveries.count) { _ in
+            if shouldRefresh {
+                DirectLog.info("onChange: iobDeliveries")
+                updateInsulinSeries()
+            }
+
+        }.onChange(of: store.state.bolusInsulinPreset) { _ in
+            if shouldRefresh {
+                DirectLog.info("onChange: bolusInsulinPreset")
+                updateInsulinSeries()
+            }
+
+        }.onChange(of: store.state.basalDIAMinutes) { _ in
+            if shouldRefresh {
+                DirectLog.info("onChange: basalDIAMinutes")
                 updateInsulinSeries()
             }
 
@@ -959,6 +1012,7 @@ struct ChartView: View {
     @State private var mealGroups: [MealGroup] = []
     @State private var insulinGroups: [InsulinGroup] = []
     @State private var exerciseSeries: [ExerciseDatapoint] = []
+    @State private var iobSeries: [(date: Date, total: Double, mealSnack: Double, corrBasal: Double)] = []
 
     @State private var smoothSensorPointInfos: [Date: GlucoseDatapoint] = [:]
     @State private var rawSensorPointInfos: [Date: GlucoseDatapoint] = [:]
@@ -1200,8 +1254,34 @@ struct ChartView: View {
         calculationQueue.async {
             let insulinSeries = populateValues(glucoseValues: store.state.insulinDeliveryValues)
 
+            // Compute IOB decay curve
+            let bolusModel = store.state.bolusInsulinPreset.model
+            let basalModel = ExponentialInsulinModel(
+                actionDuration: Double(store.state.basalDIAMinutes) * 60,
+                peakActivityTime: 75 * 60
+            )
+            let iobDeliveries = store.state.iobDeliveries
+
+            var iobPoints: [(date: Date, total: Double, mealSnack: Double, corrBasal: Double)] = []
+
+            if !iobDeliveries.isEmpty, let first = firstTimestamp, let last = lastTimestamp {
+                let step: TimeInterval = 5 * 60 // 5-minute intervals
+                var current = first
+                while current <= last {
+                    let result = computeIOB(
+                        deliveries: iobDeliveries,
+                        bolusModel: bolusModel,
+                        basalModel: basalModel,
+                        at: current
+                    )
+                    iobPoints.append((date: current, total: result.total, mealSnack: result.mealSnackIOB, corrBasal: result.correctionBasalIOB))
+                    current = current.addingTimeInterval(step)
+                }
+            }
+
             DispatchQueue.main.async {
                 self.insulinSeries = insulinSeries
+                self.iobSeries = iobPoints
 
                 // Group non-basal insulin by timegroup for chart display
                 let bolusEntries = store.state.insulinDeliveryValues.filter { $0.type != .basal }

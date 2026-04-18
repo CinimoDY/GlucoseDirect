@@ -152,6 +152,13 @@ enum DirectAction {
     case setShowPredictiveLowAlarm(enabled: Bool)
     case setPredictiveLowAlarmFired(fired: Bool)
 
+    // MARK: IOB
+    case setBolusInsulinPreset(preset: InsulinPreset)
+    case setBasalDIAMinutes(minutes: Int)
+    case setShowSplitIOB(enabled: Bool)
+    case setIOBDeliveries(deliveries: [InsulinDelivery])
+    case loadIOBDeliveries
+
     case debugAlarm
     case debugNotification
 }

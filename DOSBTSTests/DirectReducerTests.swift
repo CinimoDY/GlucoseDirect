@@ -195,3 +195,55 @@ struct TreatmentPromptTests {
         #expect(state.showTreatmentPrompt == false)
     }
 }
+
+// MARK: - IOB State Tests
+
+@Suite("IOB State")
+struct IOBStateTests {
+
+    @Test("setBolusInsulinPreset updates preset")
+    func setPreset() {
+        var state: DirectState = makeState()
+        reduce(&state, .setBolusInsulinPreset(preset: .ultraRapid))
+        #expect(state.bolusInsulinPreset == .ultraRapid)
+    }
+
+    @Test("setBasalDIAMinutes updates basalDIAMinutes")
+    func setBasalDIA() {
+        var state: DirectState = makeState()
+        reduce(&state, .setBasalDIAMinutes(minutes: 240))
+        #expect(state.basalDIAMinutes == 240)
+    }
+
+    @Test("setShowSplitIOB toggles flag")
+    func setSplitIOB() {
+        var state: DirectState = makeState()
+        reduce(&state, .setShowSplitIOB(enabled: true))
+        #expect(state.showSplitIOB == true)
+    }
+
+    @Test("setIOBDeliveries populates array")
+    func setDeliveries() {
+        var state: DirectState = makeState()
+        let delivery = InsulinDelivery(id: UUID(), starts: Date(), ends: Date(), units: 1.0, type: .correctionBolus)
+        reduce(&state, .setIOBDeliveries(deliveries: [delivery]))
+        #expect(state.iobDeliveries.count == 1)
+    }
+
+    @Test("setIOBDeliveries with empty array clears list")
+    func clearDeliveries() {
+        var state: DirectState = makeState()
+        let delivery = InsulinDelivery(id: UUID(), starts: Date(), ends: Date(), units: 1.0, type: .mealBolus)
+        reduce(&state, .setIOBDeliveries(deliveries: [delivery]))
+        reduce(&state, .setIOBDeliveries(deliveries: []))
+        #expect(state.iobDeliveries.isEmpty)
+    }
+
+    @Test("default state has rapidActing preset and 360 basalDIAMinutes")
+    func defaultState() {
+        let state: DirectState = makeState()
+        #expect(state.bolusInsulinPreset == .rapidActing)
+        #expect(state.basalDIAMinutes == 360)
+        #expect(state.showSplitIOB == false)
+    }
+}
