@@ -204,8 +204,7 @@ struct GlucoseActivityView: View, GlucoseStatusContext {
                 }
 
                 // Center: Mini sparkline (3h)
-                let sparkline = UserDefaults.shared.sharedGlucoseSparkline
-                if let sparkline = sparkline, sparkline.count >= 2 {
+                if let sparkline = context.sparkline, sparkline.count >= 2 {
                     // Take last ~6 points for 3h view
                     let recentPoints = sparkline.count > 6 ? Array(sparkline.suffix(6)) : sparkline
                     GeometryReader { geo in
@@ -290,6 +289,7 @@ struct GlucoseActivityWidget_Previews: PreviewProvider {
                 glucose: SensorGlucose(glucoseValue: 120, minuteChange: 2),
                 glucoseUnit: .mgdL,
                 iob: 2.3,
+                sparkline: [95, 100, 110, 125, 118, 120],
                 startDate: Date(),
                 restartDate: Date(),
                 stopDate: Date()

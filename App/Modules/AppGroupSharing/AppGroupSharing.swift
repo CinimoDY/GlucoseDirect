@@ -80,14 +80,22 @@ private func appGroupSharingMiddleware(service: LazyService<AppGroupSharingServi
             service.value.addSensorGlucose(glucoseValues: [glucose])
 
             // Widget expanded data: TIR, IOB, last meal, sparkline
-            service.value.setWidgetData(
-                tir: state.glucoseStatistics?.tir,
-                iobDeliveries: state.iobDeliveries,
-                bolusPreset: state.bolusInsulinPreset,
-                basalDIAMinutes: state.basalDIAMinutes,
-                lastMeal: state.mealEntryValues.last,
-                glucoseValues: state.sensorGlucoseValues
-            )
+            // Capture values from state on main thread, write on background
+            let tir = state.glucoseStatistics?.tir
+            let iob = UserDefaults.shared.sharedIOB
+            let todayMeal = state.mealEntryValues
+                .filter { Calendar.current.isDateInToday($0.timestamp) }
+                .max(by: { $0.timestamp < $1.timestamp })
+            let glucoseValues = state.sensorGlucoseValues
+
+            DispatchQueue.global(qos: .utility).async {
+                service.value.setWidgetData(
+                    tir: tir,
+                    iob: iob,
+                    lastMeal: todayMeal,
+                    glucoseValues: glucoseValues
+                )
+            }
 
         default:
             break
@@ -157,30 +165,12 @@ private class AppGroupSharingService {
 
     func setWidgetData(
         tir: Double?,
-        iobDeliveries: [InsulinDelivery],
-        bolusPreset: InsulinPreset,
-        basalDIAMinutes: Int,
+        iob: Double?,
         lastMeal: MealEntry?,
         glucoseValues: [SensorGlucose]
     ) {
-        // TIR
         UserDefaults.shared.sharedTIR = tir
-
-        // IOB
-        if !iobDeliveries.isEmpty {
-            let basalModel = ExponentialInsulinModel(
-                actionDuration: Double(basalDIAMinutes) * 60,
-                peakActivityTime: bolusPreset.model.peakActivityTime
-            )
-            let result = computeIOB(
-                deliveries: iobDeliveries,
-                bolusModel: bolusPreset.model,
-                basalModel: basalModel
-            )
-            UserDefaults.shared.sharedIOB = result.total > 0 ? result.total : nil
-        } else {
-            UserDefaults.shared.sharedIOB = nil
-        }
+        UserDefaults.shared.sharedIOB = iob
 
         // Last meal
         UserDefaults.shared.sharedLastMealDescription = lastMeal?.mealDescription
