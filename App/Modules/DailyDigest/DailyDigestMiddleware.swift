@@ -47,6 +47,9 @@ private func dailyDigestMiddleware(service: LazyService<ClaudeService>) -> Middl
                             alarmHigh: state.alarmHigh
                         ).asyncValue()
 
+                        // Save to GRDB cache (outside the read transaction)
+                        DataStore.shared.saveDailyDigest(digest)
+
                         promise(.success(.setDailyDigest(digest: digest)))
                     } catch {
                         DirectLog.error("DailyDigest computation failed: \(error)")

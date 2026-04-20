@@ -205,9 +205,6 @@ extension DataStore {
                         insulinCount: insulin.count
                     )
 
-                    // Save to cache
-                    self.saveDailyDigest(digest)
-
                     promise(.success(digest))
                 } catch {
                     promise(.failure(.withError(error)))
