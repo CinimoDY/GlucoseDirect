@@ -148,18 +148,26 @@ private func dailyDigestMiddleware(service: LazyService<ClaudeService>) -> Middl
 private extension Future where Failure == DirectError {
     func asyncValue() async throws -> Output {
         try await withCheckedThrowingContinuation { continuation in
+            var resumed = false
             var cancellable: AnyCancellable?
             cancellable = self.sink(
                 receiveCompletion: { completion in
+                    guard !resumed else {
+                        cancellable?.cancel()
+                        return
+                    }
                     switch completion {
                     case .finished:
                         break
                     case .failure(let error):
+                        resumed = true
                         continuation.resume(throwing: error)
                     }
                     cancellable?.cancel()
                 },
                 receiveValue: { value in
+                    guard !resumed else { return }
+                    resumed = true
                     continuation.resume(returning: value)
                 }
             )
