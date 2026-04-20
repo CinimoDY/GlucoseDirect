@@ -58,7 +58,10 @@ View dispatches Action -> Store.dispatch() -> Reducer mutates State
 - **Daily Digest tab** — Fourth tab (Overview > Lists > Settings > Digest) showing daily glucose summary. `DailyDigestMiddleware` computes stats from raw GRDB data (glucose, meals, insulin, exercise) and generates AI insight via Claude Haiku with full context + 7-day cross-day history. `DailyDigest` model persisted to GRDB for history browsing. Date navigation for past days. Today always recomputes (no stale cache). Separate `aiConsentDailyDigest` consent toggle. Events loaded into `dailyDigestEvents` state for timeline display. `DigestView` has date nav bar, 2x3 stats grid (color-coded), AI insight card (cyan border), and chronological event timeline.
 - **GRDB deadlock: never write inside asyncRead** — `DatabaseQueue` serializes all access. Calling `dbQueue.write` from inside a `dbQueue.asyncRead` callback deadlocks (read holds queue, write waits for queue). Always return data via the Future promise and do writes separately. See `docs/solutions/logic-errors/grdb-write-inside-asyncread-deadlock-20260420.md`.
 - **Combine Future-to-async bridge: guard double-resume** — When bridging a `Future` to async/await via `withCheckedThrowingContinuation`, the `receiveValue` and `receiveCompletion` callbacks both fire (Future emits one value then completes). Must use a `resumed` flag to call `continuation.resume` exactly once. See `docs/solutions/logic-errors/combine-future-async-bridge-double-resume-20260420.md`.
-- **Snapshot testing** — XCTest target `DOSBTSTests` with 138 tests covering IOB calculation engine, IOB reducer state, treatment cycle lifecycle, predictive alarm flags, alarm snooze auto-clear, treatment prompt state, MealImpact model, MealImpact reducer, delta thresholds, rolling average math, analysisSessionId linkage, PersonalFood glycemic fields, DailyDigest model/reducer, GlucoseStatistics computed properties, SensorGlucose clamping/minuteChange, SensorTrend slope classification, CustomCalibration regression, Sensor lifecycle, alarm thresholds, connection state, and glucose unit switching. Swift Testing framework (`@Test`, `#expect`). Run with Cmd+U on simulator.
+- **Widget target has separate design system** — `Widgets/WidgetDesignSystem.swift` mirrors AmberTheme/DOSTypography colors and fonts for the widget extension (can't import app module). Pure logic types (`SparklineBuilder`, `DataStaleness`) live in `Library/Content/SparklineBuilder.swift` (both targets) for testability. Widget-specific color properties are extensions in the widget file.
+- **Widget shared data via App Group** — `AppGroupSharing` middleware writes TIR, IOB, last meal, and sparkline to `UserDefaults.shared` (App Group suite) on each glucose update. IOB is pre-computed (read from `sharedIOB`), not recomputed in the sharing middleware. Widget data writes dispatch to background queue.
+- **Live Activity data flows through ContentState** — never read `UserDefaults.shared` directly in Live Activity views. All data (glucose, IOB, sparkline) must pass through `SensorGlucoseActivityAttributes.ContentState` via `ActivityGlucoseService.getStatus()`. Direct UserDefaults reads bypass ActivityKit's sync mechanism and serve stale data on lock screen/rehydration.
+- **Snapshot testing** — XCTest target `DOSBTSTests` with 137 tests covering IOB calculation engine, IOB reducer state, treatment cycle lifecycle, predictive alarm flags, alarm snooze auto-clear, treatment prompt state, MealImpact model, MealImpact reducer, delta thresholds, rolling average math, analysisSessionId linkage, PersonalFood glycemic fields, DailyDigest model/reducer, GlucoseStatistics computed properties, SensorGlucose clamping/minuteChange, SensorTrend slope classification, CustomCalibration regression, Sensor lifecycle, alarm thresholds, connection state, and glucose unit switching. Swift Testing framework (`@Test`, `#expect`). Run with Cmd+U on simulator.
 
 ## Project Structure
 
@@ -103,6 +106,13 @@ App/
     Settings/                  # Individual settings screens
     SharedViews/               # Reusable components
     AddViews/                  # Meal entry, photo analysis, insulin, blood glucose, calibration
+Widgets/
+  Widgets.swift                  # @main WidgetBundle
+  WidgetDesignSystem.swift       # Widget-local colors, fonts, phosphor glow
+  GlucoseWidget.swift            # Home screen (small/medium/large) + lock screen widgets
+  GlucoseActivityWidget.swift    # Live Activity + Dynamic Island
+  SensorWidget.swift             # Lock screen sensor lifetime gauge
+  TransmitterWidget.swift        # Lock screen transmitter battery gauge
 Library/
   Extensions/State.swift       # Store class, Reducer/Middleware typealiases
   DirectState.swift            # State protocol
