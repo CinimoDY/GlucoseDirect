@@ -247,3 +247,144 @@ struct IOBStateTests {
         #expect(state.showSplitIOB == false)
     }
 }
+
+// MARK: - Alarm Snooze Extended Tests
+
+@Suite("Alarm Snooze — extended")
+struct AlarmSnoozeExtendedTests {
+
+    @Test("setAlarmSnoozeUntil with nil clears snooze and kind")
+    func clearSnooze() {
+        var state: DirectState = makeState()
+        let future = Date().addingTimeInterval(5 * 60)
+        reduce(&state, .setAlarmSnoozeUntil(untilDate: future, autosnooze: true))
+        #expect(state.alarmSnoozeUntil != nil)
+
+        reduce(&state, .setAlarmSnoozeUntil(untilDate: nil, autosnooze: false))
+        #expect(state.alarmSnoozeUntil == nil)
+        #expect(state.alarmSnoozeKind == nil)
+    }
+}
+
+// MARK: - Connection State Tests
+
+@Suite("Connection State")
+struct ConnectionStateTests {
+
+    @Test("setConnectionState with resetable state clears error")
+    func resetableStateClearsError() {
+        var state: DirectState = makeState()
+        reduce(&state, .setConnectionError(errorMessage: "test error", errorTimestamp: Date()))
+        #expect(state.connectionError != nil)
+
+        // .connected is in resetableStates
+        reduce(&state, .setConnectionState(connectionState: .connected))
+        #expect(state.connectionError == nil)
+        #expect(state.connectionErrorTimestamp == nil)
+    }
+
+    @Test("setConnectionState with non-resetable state preserves error")
+    func nonResetablePreservesError() {
+        var state: DirectState = makeState()
+        reduce(&state, .setConnectionError(errorMessage: "test error", errorTimestamp: Date()))
+
+        // .connecting is NOT in resetableStates
+        reduce(&state, .setConnectionState(connectionState: .connecting))
+        #expect(state.connectionError == "test error")
+    }
+
+    @Test("setConnectionError sets both message and timestamp")
+    func setConnectionError() {
+        var state: DirectState = makeState()
+        let ts = Date()
+        reduce(&state, .setConnectionError(errorMessage: "BLE fail", errorTimestamp: ts))
+
+        #expect(state.connectionError == "BLE fail")
+        #expect(state.connectionErrorTimestamp == ts)
+    }
+}
+
+// MARK: - Alarm Threshold Tests
+
+@Suite("Alarm Thresholds")
+struct AlarmThresholdTests {
+
+    @Test("setAlarmHigh updates upper limit")
+    func setHigh() {
+        var state: DirectState = makeState()
+        reduce(&state, .setAlarmHigh(upperLimit: 200))
+        #expect(state.alarmHigh == 200)
+    }
+
+    @Test("setAlarmLow updates lower limit")
+    func setLow() {
+        var state: DirectState = makeState()
+        reduce(&state, .setAlarmLow(lowerLimit: 60))
+        #expect(state.alarmLow == 60)
+    }
+
+    @Test("isAlarm returns lowAlarm when below alarmLow")
+    func isAlarmLow() {
+        var state: DirectState = makeState()
+        reduce(&state, .setAlarmLow(lowerLimit: 70))
+        #expect(state.isAlarm(glucoseValue: 65) == .lowAlarm)
+    }
+
+    @Test("isAlarm returns highAlarm when above alarmHigh")
+    func isAlarmHigh() {
+        var state: DirectState = makeState()
+        reduce(&state, .setAlarmHigh(upperLimit: 180))
+        #expect(state.isAlarm(glucoseValue: 200) == .highAlarm)
+    }
+
+    @Test("isAlarm returns none when in range")
+    func isAlarmNone() {
+        var state: DirectState = makeState()
+        reduce(&state, .setAlarmLow(lowerLimit: 70))
+        reduce(&state, .setAlarmHigh(upperLimit: 180))
+        #expect(state.isAlarm(glucoseValue: 120) == .none)
+    }
+}
+
+// MARK: - Glucose Unit Tests
+
+@Suite("Glucose Unit State")
+struct GlucoseUnitTests {
+
+    @Test("setGlucoseUnit switches unit")
+    func switchUnit() {
+        var state: DirectState = makeState()
+        reduce(&state, .setGlucoseUnit(unit: .mmolL))
+        #expect(state.glucoseUnit == .mmolL)
+
+        reduce(&state, .setGlucoseUnit(unit: .mgdL))
+        #expect(state.glucoseUnit == .mgdL)
+    }
+}
+
+// MARK: - Sensor Reset Tests
+
+@Suite("Sensor Reset")
+struct SensorResetTests {
+
+    @Test("resetSensor clears sensor, calibrations, and errors")
+    func resetSensor() {
+        var state: DirectState = makeState()
+        let sensor = Sensor(
+            family: .libre2,
+            type: .libre2EU,
+            region: .european,
+            serial: "TEST",
+            state: .ready,
+            age: 100,
+            lifetime: 20160
+        )
+        reduce(&state, .setSensor(sensor: sensor, keepDevice: false))
+        reduce(&state, .setConnectionError(errorMessage: "err", errorTimestamp: Date()))
+
+        reduce(&state, .resetSensor)
+        #expect(state.sensor == nil)
+        #expect(state.customCalibration.isEmpty)
+        #expect(state.connectionError == nil)
+    }
+}
