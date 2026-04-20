@@ -28,6 +28,10 @@ struct ContentView: View {
                 SettingsView().tabItem {
                     Label("Settings view", systemImage: "gearshape")
                 }.tag(DirectConfig.settingsViewTag)
+
+                DigestView().tabItem {
+                    Label("Daily digest", systemImage: "doc.text.magnifyingglass")
+                }.tag(DirectConfig.digestViewTag)
             }
             .overlay {
                 if store.state.showScanlines {

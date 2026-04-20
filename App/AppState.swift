@@ -82,6 +82,7 @@ struct AppState: DirectState {
         self.showInsulinInput = UserDefaults.standard.showInsulinInput
         self.showScanlines = UserDefaults.standard.showScanlines
         self.aiConsentFoodPhoto = UserDefaults.standard.aiConsentFoodPhoto
+        self.aiConsentDailyDigest = UserDefaults.standard.aiConsentDailyDigest
         self.claudeAPIKeyValid = UserDefaults.standard.claudeAPIKeyValid
         self.thumbCalibrationMM = UserDefaults.standard.thumbCalibrationMM
         // Persist defaults on first launch so UUIDs are stable
@@ -208,4 +209,11 @@ struct AppState: DirectState {
 
     // MARK: Meal Impact
     var scoredMealEntryIds: Set<UUID> = []
+
+    // MARK: Daily Digest
+    var currentDailyDigest: DailyDigest?
+    var dailyDigestLoading: Bool = false
+    var dailyDigestInsightLoading: Bool = false
+    var dailyDigestEvents: DailyDigestEvents?
+    var aiConsentDailyDigest: Bool { didSet { UserDefaults.standard.aiConsentDailyDigest = aiConsentDailyDigest } }
 }

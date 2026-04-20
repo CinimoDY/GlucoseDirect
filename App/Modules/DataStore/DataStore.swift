@@ -277,3 +277,33 @@ extension MealImpact: FetchableRecord, PersistableRecord {
         case timestamp
     }
 }
+
+// MARK: - DailyDigest + FetchableRecord, PersistableRecord
+
+extension DailyDigest: FetchableRecord, PersistableRecord {
+    static let databaseUUIDEncodingStrategy = DatabaseUUIDEncodingStrategy.uppercaseString
+
+    static var Table: String {
+        "DailyDigest"
+    }
+
+    enum Columns: String, ColumnExpression {
+        case id
+        case date
+        case tir
+        case tbr
+        case tar
+        case avg
+        case stdev
+        case readings
+        case lowCount
+        case highCount
+        case totalCarbsGrams
+        case totalInsulinUnits
+        case totalExerciseMinutes
+        case mealCount
+        case insulinCount
+        case aiInsight
+        case generatedAt
+    }
+}

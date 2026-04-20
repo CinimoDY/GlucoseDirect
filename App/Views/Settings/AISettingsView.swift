@@ -97,18 +97,32 @@ struct AISettingsView: View {
             }
         }
 
-        if store.state.aiConsentFoodPhoto {
+        if store.state.aiConsentFoodPhoto || store.state.aiConsentDailyDigest {
             Section(
                 content: {
-                    HStack {
-                        Text("Food photo analysis")
-                        Spacer()
-                        Text("Allowed")
-                            .foregroundStyle(AmberTheme.cgaGreen)
+                    if store.state.aiConsentFoodPhoto {
+                        HStack {
+                            Text("Food photo analysis")
+                            Spacer()
+                            Text("Allowed")
+                                .foregroundStyle(AmberTheme.cgaGreen)
+                        }
+
+                        Button("Revoke Food AI Access", role: .destructive) {
+                            store.dispatch(.setAIConsentFoodPhoto(enabled: false))
+                        }
                     }
 
-                    Button("Revoke AI Access", role: .destructive) {
-                        store.dispatch(.setAIConsentFoodPhoto(enabled: false))
+                    Toggle(isOn: Binding(
+                        get: { store.state.aiConsentDailyDigest },
+                        set: { store.dispatch(.setAIConsentDailyDigest(enabled: $0)) }
+                    )) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("AI Daily Insights")
+                            Text("Sends glucose readings, meals, insulin, and exercise data to generate daily summaries")
+                                .font(DOSTypography.caption)
+                                .foregroundStyle(AmberTheme.amberDark)
+                        }
                     }
                 },
                 header: {

@@ -11,6 +11,7 @@ enum DirectConfig {
     static let appSchemaURL = URL(string: "dosbts://")
     static let bubbleID = "bubble"
     static let calibrationsViewTag = 3
+    static let digestViewTag = 5
     static let crowdinURL = "https://crwd.in/glucose-direct-app"
     static let donateURL = "https://www.paypal.me/creepymonstr"
     static let expiredNotificationInterval: Double = 1 * 60 * 60 // in seconds

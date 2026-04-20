@@ -388,3 +388,91 @@ struct SensorResetTests {
         #expect(state.connectionError == nil)
     }
 }
+
+// MARK: - Daily Digest Tests
+
+@Suite("Daily Digest State")
+struct DailyDigestStateTests {
+
+    @Test("setDailyDigest populates currentDailyDigest")
+    func setDigest() {
+        var state: DirectState = makeState()
+        let digest = DailyDigest(
+            date: Date(), tir: 78.0, tbr: 5.0, tar: 17.0,
+            avg: 142.0, stdev: 35.0, readings: 288,
+            lowCount: 2, highCount: 3,
+            totalCarbsGrams: 185.0, totalInsulinUnits: 24.0,
+            totalExerciseMinutes: 30.0, mealCount: 3, insulinCount: 5
+        )
+        reduce(&state, .setDailyDigest(digest: digest))
+        #expect(state.currentDailyDigest != nil)
+        #expect(state.currentDailyDigest?.tir == 78.0)
+        #expect(state.dailyDigestLoading == false)
+    }
+
+    @Test("setDailyDigest with nil clears digest")
+    func clearDigest() {
+        var state: DirectState = makeState()
+        let digest = DailyDigest(
+            date: Date(), tir: 78.0, tbr: 5.0, tar: 17.0,
+            avg: 142.0, stdev: 35.0, readings: 288,
+            lowCount: 0, highCount: 0,
+            totalCarbsGrams: 0, totalInsulinUnits: 0,
+            totalExerciseMinutes: 0, mealCount: 0, insulinCount: 0
+        )
+        reduce(&state, .setDailyDigest(digest: digest))
+        reduce(&state, .setDailyDigest(digest: nil))
+        #expect(state.currentDailyDigest == nil)
+    }
+
+    @Test("loadDailyDigest sets loading flag")
+    func loadSetsLoading() {
+        var state: DirectState = makeState()
+        reduce(&state, .loadDailyDigest(date: Date()))
+        #expect(state.dailyDigestLoading == true)
+    }
+
+    @Test("setDailyDigestError clears loading flag")
+    func errorClearsLoading() {
+        var state: DirectState = makeState()
+        reduce(&state, .loadDailyDigest(date: Date()))
+        #expect(state.dailyDigestLoading == true)
+        reduce(&state, .setDailyDigestError)
+        #expect(state.dailyDigestLoading == false)
+    }
+
+    @Test("generateDailyDigestInsight sets insight loading")
+    func generateSetsInsightLoading() {
+        var state: DirectState = makeState()
+        reduce(&state, .generateDailyDigestInsight(date: Date()))
+        #expect(state.dailyDigestInsightLoading == true)
+    }
+
+    @Test("setDailyDigestInsight updates insight on existing digest")
+    func setInsight() {
+        var state: DirectState = makeState()
+        let digest = DailyDigest(
+            date: Date(), tir: 78.0, tbr: 5.0, tar: 17.0,
+            avg: 142.0, stdev: 35.0, readings: 288,
+            lowCount: 0, highCount: 0,
+            totalCarbsGrams: 0, totalInsulinUnits: 0,
+            totalExerciseMinutes: 0, mealCount: 0, insulinCount: 0
+        )
+        reduce(&state, .setDailyDigest(digest: digest))
+        reduce(&state, .setDailyDigestInsight(date: Date(), insight: "Great day!"))
+
+        #expect(state.currentDailyDigest?.aiInsight == "Great day!")
+        #expect(state.currentDailyDigest?.generatedAt != nil)
+        #expect(state.dailyDigestInsightLoading == false)
+    }
+
+    @Test("setAIConsentDailyDigest toggles consent")
+    func toggleConsent() {
+        var state: DirectState = makeState()
+        reduce(&state, .setAIConsentDailyDigest(enabled: true))
+        #expect(state.aiConsentDailyDigest == true)
+
+        reduce(&state, .setAIConsentDailyDigest(enabled: false))
+        #expect(state.aiConsentDailyDigest == false)
+    }
+}
