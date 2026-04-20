@@ -74,7 +74,7 @@ struct SensorUpdateProvider: TimelineProvider {
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> ()) {
         let entries = [SensorEntry()]
-        let reloadDate = Calendar.current.date(byAdding: .minute, value: 15, to: Date())!
+        let reloadDate = Calendar.current.date(byAdding: .minute, value: 15, to: Date()) ?? Date().addingTimeInterval(15 * 60)
         let timeline = Timeline(entries: entries, policy: .after(reloadDate))
         completion(timeline)
     }
@@ -93,8 +93,9 @@ struct SensorView: View {
 
     var body: some View {
         if let sensor {
-            let isWarmup = sensor.remainingWarmupTime != nil
-            let remaining = Double(isWarmup ? sensor.remainingWarmupTime! : sensor.remainingLifetime)
+            let remainingWarmupTime = sensor.remainingWarmupTime
+            let isWarmup = remainingWarmupTime != nil
+            let remaining = Double(isWarmup ? (remainingWarmupTime ?? 0) : sensor.remainingLifetime)
             let total = Double(isWarmup ? sensor.warmupTime : sensor.lifetime)
             let fraction = total > 0 ? remaining / total : 0
 

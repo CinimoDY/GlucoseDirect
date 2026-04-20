@@ -48,7 +48,7 @@ struct TransmitterUpdateProvider: TimelineProvider {
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> ()) {
         let entries = [TransmitterEntry()]
-        let reloadDate = Calendar.current.date(byAdding: .minute, value: 15, to: Date())!
+        let reloadDate = Calendar.current.date(byAdding: .minute, value: 15, to: Date()) ?? Date().addingTimeInterval(15 * 60)
         let timeline = Timeline(entries: entries, policy: .after(reloadDate))
         completion(timeline)
     }

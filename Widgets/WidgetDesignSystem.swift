@@ -121,8 +121,8 @@ struct SparklineBuilder {
             return (Path(), nil, nil)
         }
 
-        let minVal = CGFloat(max(values.min()! - 10, 40))
-        let maxVal = CGFloat(min(values.max()! + 10, 400))
+        let minVal = CGFloat(max((values.min() ?? 40) - 10, 40))
+        let maxVal = CGFloat(min((values.max() ?? 400) + 10, 400))
         let range = maxVal - minVal
         guard range > 0 else {
             return (Path(), nil, nil)

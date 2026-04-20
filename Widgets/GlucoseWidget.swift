@@ -75,8 +75,6 @@ struct GlucoseUpdateProvider: TimelineProvider {
 
     private func buildEntry() -> GlucoseEntry {
         let defaults = UserDefaults.shared
-        var entry = GlucoseEntry()
-        // Build expanded entry from shared UserDefaults
         return GlucoseEntry(
             date: Date(),
             glucose: defaults.latestSensorGlucose,

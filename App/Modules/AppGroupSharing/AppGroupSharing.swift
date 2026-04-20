@@ -177,7 +177,7 @@ private class AppGroupSharingService {
                 bolusModel: bolusPreset.model,
                 basalModel: basalModel
             )
-            UserDefaults.shared.sharedIOB = result.total > 0.05 ? result.total : nil
+            UserDefaults.shared.sharedIOB = result.total > 0 ? result.total : nil
         } else {
             UserDefaults.shared.sharedIOB = nil
         }
@@ -190,12 +190,12 @@ private class AppGroupSharingService {
         // Sparkline: sample glucose at ~30-min intervals over last 6h
         let sixHoursAgo = Date().addingTimeInterval(-6 * 60 * 60)
         let recentGlucose = glucoseValues.filter { $0.timestamp >= sixHoursAgo }
-            .sorted { $0.timestamp < $1.timestamp }
 
         if recentGlucose.count >= 2 {
             let interval: TimeInterval = 30 * 60 // 30 minutes
             var sampled: [Int] = []
-            var nextSampleTime = recentGlucose.first!.timestamp
+            guard let firstReading = recentGlucose.first else { return }
+            var nextSampleTime = firstReading.timestamp
 
             for glucose in recentGlucose {
                 if glucose.timestamp >= nextSampleTime {
@@ -203,8 +203,8 @@ private class AppGroupSharingService {
                     nextSampleTime = glucose.timestamp.addingTimeInterval(interval)
                 }
             }
-            // Always include the last point
-            if let last = recentGlucose.last, sampled.last != last.glucoseValue {
+            // Always include the most recent reading as the final point
+            if let last = recentGlucose.last {
                 sampled.append(last.glucoseValue)
             }
             UserDefaults.shared.sharedGlucoseSparkline = sampled
