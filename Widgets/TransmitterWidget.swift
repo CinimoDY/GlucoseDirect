@@ -1,6 +1,6 @@
 //
 //  TransmitterWidget.swift
-//  WidgetsExtension
+//  DOSBTSWidget
 //
 
 import SwiftUI
@@ -43,17 +43,12 @@ struct TransmitterUpdateProvider: TimelineProvider {
 
     func getSnapshot(in context: Context, completion: @escaping (TransmitterEntry) -> ()) {
         let entry = TransmitterEntry()
-
         completion(entry)
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> ()) {
-        let entries = [
-            TransmitterEntry()
-        ]
-
+        let entries = [TransmitterEntry()]
         let reloadDate = Calendar.current.date(byAdding: .minute, value: 15, to: Date())!
-
         let timeline = Timeline(entries: entries, policy: .after(reloadDate))
         completion(timeline)
     }
@@ -72,39 +67,51 @@ struct TransmitterView: View {
 
     var body: some View {
         if let transmitter {
-            Gauge(
-                value: Double(transmitter.battery),
-                in: 0 ... 100,
-                label: {
+            let fraction = Double(transmitter.battery) / 100.0
+            let batteryColor = transmitter.battery > 20 ? WidgetColors.amber : WidgetColors.cgaRed
+
+            ZStack {
+                // Background arc track
+                Circle()
+                    .stroke(WidgetColors.amberDark.opacity(0.3), style: StrokeStyle(lineWidth: 6))
+
+                // Filled arc
+                Circle()
+                    .trim(from: 0, to: CGFloat(fraction))
+                    .stroke(
+                        batteryColor,
+                        style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(-90))
+                    .shadow(color: batteryColor.opacity(0.4), radius: 3)
+
+                // Center label
+                VStack(spacing: 1) {
+                    Text("\(transmitter.battery)%")
+                        .font(WidgetFonts.mono(size: 13, weight: .bold))
+                        .foregroundColor(batteryColor)
+
                     Text(transmitter.name)
-                        .font(DOSTypography.tabBar)
+                        .font(WidgetFonts.tabBar)
+                        .foregroundColor(WidgetColors.amberDark)
+                        .lineLimit(1)
                 }
-            ).gaugeStyle(.accessoryCircularCapacity)
-            .widgetBackground(backgroundView: Color("WidgetBackground"))
+            }
+            .padding(4)
+            .widgetBackground(backgroundView: WidgetColors.dosBlack)
         } else {
             ZStack(alignment: .center) {
                 Circle()
-                    .stroke(style: StrokeStyle(lineWidth: 12, dash: [6, 3]))
-                    .opacity(0.3)
+                    .stroke(style: StrokeStyle(lineWidth: 6, dash: [6, 3]))
+                    .foregroundColor(WidgetColors.amberDark.opacity(0.3))
 
                 Image(systemName: "questionmark")
+                    .font(WidgetFonts.mono(size: 16, weight: .bold))
+                    .foregroundColor(WidgetColors.amberDark)
             }
-            .widgetBackground(backgroundView: Color("WidgetBackground"))
+            .padding(4)
+            .widgetBackground(backgroundView: WidgetColors.dosBlack)
         }
-    }
-
-    func batteryImage(battery: Int) -> String {
-        if battery == 0 {
-            return "battery.0"
-        } else if battery <= 25 {
-            return "battery.25"
-        } else if battery <= 50 {
-            return "battery.50"
-        } else if battery <= 75 {
-            return "battery.75"
-        }
-
-        return "battery.100"
     }
 }
 
@@ -118,8 +125,8 @@ struct TransmitterWidget: Widget {
             TransmitterView(entry: entry)
         }
         .supportedFamilies([.accessoryCircular])
-        .configurationDisplayName("Transmitter battery widget")
-        .description("Transmitter battery widget description")
+        .configurationDisplayName("Transmitter")
+        .description("Transmitter battery level")
     }
 }
 
