@@ -73,6 +73,14 @@ private enum Keys: String {
     case bolusInsulinPreset = "libre-direct.settings.bolus-insulin-preset"
     case basalDIAMinutes = "libre-direct.settings.basal-dia-minutes"
     case showSplitIOB = "libre-direct.settings.show-split-iob"
+
+    // Widget shared data (App Group)
+    case sharedTIR = "glucosedirect--tir"
+    case sharedIOB = "glucosedirect--iob"
+    case sharedLastMealDescription = "glucosedirect--last-meal-description"
+    case sharedLastMealCarbs = "glucosedirect--last-meal-carbs"
+    case sharedLastMealTimestamp = "glucosedirect--last-meal-timestamp"
+    case sharedGlucoseSparkline = "glucosedirect--glucose-sparkline"
 }
 
 extension UserDefaults {
@@ -548,6 +556,85 @@ extension UserDefaults {
                 set(newValue, forKey: Keys.sharedTransmitterFirmware.rawValue)
             } else {
                 removeObject(forKey: Keys.sharedTransmitterFirmware.rawValue)
+            }
+        }
+    }
+
+    var sharedTIR: Double? {
+        get {
+            return object(forKey: Keys.sharedTIR.rawValue) as? Double
+        }
+        set {
+            if let newValue = newValue {
+                set(newValue, forKey: Keys.sharedTIR.rawValue)
+            } else {
+                removeObject(forKey: Keys.sharedTIR.rawValue)
+            }
+        }
+    }
+
+    var sharedIOB: Double? {
+        get {
+            return object(forKey: Keys.sharedIOB.rawValue) as? Double
+        }
+        set {
+            if let newValue = newValue {
+                set(newValue, forKey: Keys.sharedIOB.rawValue)
+            } else {
+                removeObject(forKey: Keys.sharedIOB.rawValue)
+            }
+        }
+    }
+
+    var sharedLastMealDescription: String? {
+        get {
+            return string(forKey: Keys.sharedLastMealDescription.rawValue)
+        }
+        set {
+            if let newValue = newValue {
+                set(newValue, forKey: Keys.sharedLastMealDescription.rawValue)
+            } else {
+                removeObject(forKey: Keys.sharedLastMealDescription.rawValue)
+            }
+        }
+    }
+
+    var sharedLastMealCarbs: Double? {
+        get {
+            return object(forKey: Keys.sharedLastMealCarbs.rawValue) as? Double
+        }
+        set {
+            if let newValue = newValue {
+                set(newValue, forKey: Keys.sharedLastMealCarbs.rawValue)
+            } else {
+                removeObject(forKey: Keys.sharedLastMealCarbs.rawValue)
+            }
+        }
+    }
+
+    var sharedLastMealTimestamp: Date? {
+        get {
+            return object(forKey: Keys.sharedLastMealTimestamp.rawValue) as? Date
+        }
+        set {
+            if let newValue = newValue {
+                set(newValue, forKey: Keys.sharedLastMealTimestamp.rawValue)
+            } else {
+                removeObject(forKey: Keys.sharedLastMealTimestamp.rawValue)
+            }
+        }
+    }
+
+    /// Sparkline data: sampled glucose values (mg/dL) at ~30-min intervals, last 6h
+    var sharedGlucoseSparkline: [Int]? {
+        get {
+            return array(forKey: Keys.sharedGlucoseSparkline.rawValue) as? [Int]
+        }
+        set {
+            if let newValue = newValue {
+                set(newValue, forKey: Keys.sharedGlucoseSparkline.rawValue)
+            } else {
+                removeObject(forKey: Keys.sharedGlucoseSparkline.rawValue)
             }
         }
     }

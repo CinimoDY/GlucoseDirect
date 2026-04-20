@@ -72,12 +72,22 @@ private func appGroupSharingMiddleware(service: LazyService<AppGroupSharingServi
             guard let glucose = glucoseValues.last else {
                 break
             }
-            
+
             guard glucose.type != .high else {
                 break
             }
 
             service.value.addSensorGlucose(glucoseValues: [glucose])
+
+            // Widget expanded data: TIR, IOB, last meal, sparkline
+            service.value.setWidgetData(
+                tir: state.glucoseStatistics?.tir,
+                iobDeliveries: state.iobDeliveries,
+                bolusPreset: state.bolusInsulinPreset,
+                basalDIAMinutes: state.basalDIAMinutes,
+                lastMeal: state.mealEntryValues.last,
+                glucoseValues: state.sensorGlucoseValues
+            )
 
         default:
             break
@@ -100,6 +110,12 @@ private class AppGroupSharingService {
 
     func clearGlucoseValues() {
         UserDefaults.shared.sharedGlucose = nil
+        UserDefaults.shared.sharedTIR = nil
+        UserDefaults.shared.sharedIOB = nil
+        UserDefaults.shared.sharedLastMealDescription = nil
+        UserDefaults.shared.sharedLastMealCarbs = nil
+        UserDefaults.shared.sharedLastMealTimestamp = nil
+        UserDefaults.shared.sharedGlucoseSparkline = nil
     }
 
     func clearOthers() {
@@ -137,6 +153,64 @@ private class AppGroupSharingService {
         UserDefaults.shared.sharedTransmitterBattery = transmitterBattery
         UserDefaults.shared.sharedTransmitterHardware = transmitterHardware
         UserDefaults.shared.sharedTransmitterFirmware = transmitterFirmware
+    }
+
+    func setWidgetData(
+        tir: Double?,
+        iobDeliveries: [InsulinDelivery],
+        bolusPreset: InsulinPreset,
+        basalDIAMinutes: Int,
+        lastMeal: MealEntry?,
+        glucoseValues: [SensorGlucose]
+    ) {
+        // TIR
+        UserDefaults.shared.sharedTIR = tir
+
+        // IOB
+        if !iobDeliveries.isEmpty {
+            let basalModel = ExponentialInsulinModel(
+                actionDuration: Double(basalDIAMinutes) * 60,
+                peakActivityTime: bolusPreset.model.peakActivityTime
+            )
+            let result = computeIOB(
+                deliveries: iobDeliveries,
+                bolusModel: bolusPreset.model,
+                basalModel: basalModel
+            )
+            UserDefaults.shared.sharedIOB = result.total > 0.05 ? result.total : nil
+        } else {
+            UserDefaults.shared.sharedIOB = nil
+        }
+
+        // Last meal
+        UserDefaults.shared.sharedLastMealDescription = lastMeal?.mealDescription
+        UserDefaults.shared.sharedLastMealCarbs = lastMeal?.carbsGrams
+        UserDefaults.shared.sharedLastMealTimestamp = lastMeal?.timestamp
+
+        // Sparkline: sample glucose at ~30-min intervals over last 6h
+        let sixHoursAgo = Date().addingTimeInterval(-6 * 60 * 60)
+        let recentGlucose = glucoseValues.filter { $0.timestamp >= sixHoursAgo }
+            .sorted { $0.timestamp < $1.timestamp }
+
+        if recentGlucose.count >= 2 {
+            let interval: TimeInterval = 30 * 60 // 30 minutes
+            var sampled: [Int] = []
+            var nextSampleTime = recentGlucose.first!.timestamp
+
+            for glucose in recentGlucose {
+                if glucose.timestamp >= nextSampleTime {
+                    sampled.append(glucose.glucoseValue)
+                    nextSampleTime = glucose.timestamp.addingTimeInterval(interval)
+                }
+            }
+            // Always include the last point
+            if let last = recentGlucose.last, sampled.last != last.glucoseValue {
+                sampled.append(last.glucoseValue)
+            }
+            UserDefaults.shared.sharedGlucoseSparkline = sampled
+        } else {
+            UserDefaults.shared.sharedGlucoseSparkline = nil
+        }
     }
 
     func addBloodGlucose(glucoseValues: [BloodGlucose]) {
