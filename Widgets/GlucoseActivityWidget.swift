@@ -1,6 +1,6 @@
 //
 //  GlucoseActivityWidget.swift
-//  DOSBTS
+//  DOSBTSWidget
 //
 
 import ActivityKit
@@ -24,30 +24,26 @@ struct GlucoseActivityWidget: Widget {
                    let glucoseUnit = context.state.glucoseUnit,
                    let connectionState = context.state.connectionState
                 {
-                    VStack(alignment: .trailing) {
-                        Text(latestGlucose.glucoseValue.asGlucose(glucoseUnit: glucoseUnit))
-                            .font(.body)
-                            .fontWeight(.bold)
-                            .strikethrough(connectionState != .connected, color: AmberTheme.cgaRed)
-
-                        Text(glucoseUnit.shortLocalizedDescription)
-                            .font(.system(size: 12))
-                    }.padding(.leading, 7.5)
+                    Text(latestGlucose.glucoseValue.asGlucose(glucoseUnit: glucoseUnit))
+                        .font(WidgetFonts.mono(size: 16, weight: .bold))
+                        .foregroundColor(WidgetColors.amber)
+                        .strikethrough(connectionState != .connected, color: WidgetColors.cgaRed)
+                        .padding(.leading, 7.5)
                 }
             } compactTrailing: {
-                if let latestGlucose = context.state.glucose,
-                   let glucoseUnit = context.state.glucoseUnit
-                {
-                    VStack(alignment: .trailing) {
+                if let latestGlucose = context.state.glucose {
+                    HStack(spacing: 4) {
                         Text(latestGlucose.trend.description)
-                            .font(.body)
-                            .fontWeight(.bold)
+                            .font(WidgetFonts.mono(size: 14, weight: .bold))
+                            .foregroundColor(WidgetColors.amber)
 
-                        if let minuteChange = latestGlucose.minuteChange?.asShortMinuteChange(glucoseUnit: glucoseUnit), latestGlucose.trend != .unknown {
-                            Text(minuteChange)
-                                .font(.system(size: 12))
+                        if let iob = context.state.iob {
+                            Text(String(format: "%.1f", iob))
+                                .font(WidgetFonts.mono(size: 11, weight: .regular))
+                                .foregroundColor(WidgetColors.cgaCyan)
                         }
-                    }.padding(.trailing, 7.5)
+                    }
+                    .padding(.trailing, 7.5)
                 }
             } minimal: {
                 if let latestGlucose = context.state.glucose,
@@ -56,7 +52,9 @@ struct GlucoseActivityWidget: Widget {
                 {
                     Text(latestGlucose.glucoseValue.asGlucose(glucoseUnit: glucoseUnit))
                         .font(.body)
-                        .strikethrough(connectionState != .connected, color: AmberTheme.cgaRed)
+                        .bold()
+                        .foregroundColor(WidgetColors.amber)
+                        .strikethrough(connectionState != .connected, color: WidgetColors.cgaRed)
                 }
             }
         }
@@ -85,19 +83,11 @@ extension GlucoseStatusContext {
     }
 
     func isAlarm(glucose: any Glucose) -> Bool {
-        if glucose.glucoseValue < context.alarmLow || glucose.glucoseValue > context.alarmHigh {
-            return true
-        }
-
-        return false
+        glucose.glucoseValue < context.alarmLow || glucose.glucoseValue > context.alarmHigh
     }
 
     func getGlucoseColor(glucose: any Glucose) -> Color {
-        if isAlarm(glucose: glucose) {
-            return AmberTheme.cgaRed
-        }
-
-        return AmberTheme.amber
+        isAlarm(glucose: glucose) ? WidgetColors.cgaRed : WidgetColors.amber
     }
 }
 
@@ -108,56 +98,64 @@ struct DynamicIslandCenterView: View, GlucoseStatusContext {
     @State var context: SensorGlucoseActivityAttributes.GlucoseStatus
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 4) {
             if let latestGlucose = context.glucose, let glucoseUnit = context.glucoseUnit {
-                HStack(alignment: .lastTextBaseline, spacing: 20) {
+                HStack(alignment: .lastTextBaseline, spacing: 16) {
                     if latestGlucose.type != .high {
                         Text(verbatim: latestGlucose.glucoseValue.asGlucose(glucoseUnit: glucoseUnit))
-                            .font(DOSTypography.mono(size: 64, weight: .bold))
+                            .font(WidgetFonts.mono(size: 52, weight: .bold))
                             .foregroundColor(getGlucoseColor(glucose: latestGlucose))
+                            .phosphorGlow(color: getGlucoseColor(glucose: latestGlucose))
 
-                        VStack(alignment: .leading) {
+                        VStack(alignment: .leading, spacing: 2) {
                             Text(verbatim: latestGlucose.trend.description)
-                                .font(DOSTypography.mono(size: 34, weight: .regular))
+                                .font(WidgetFonts.mono(size: 28, weight: .regular))
+                                .foregroundColor(getGlucoseColor(glucose: latestGlucose))
 
                             if let minuteChange = latestGlucose.minuteChange?.asMinuteChange(glucoseUnit: glucoseUnit) {
                                 Text(verbatim: minuteChange)
-                            } else {
-                                Text(verbatim: "?")
+                                    .font(WidgetFonts.caption)
+                                    .foregroundColor(WidgetColors.amberDark)
                             }
                         }
                     } else {
                         Text("HIGH")
-                            .font(DOSTypography.mono(size: 64, weight: .bold))
-                            .foregroundColor(getGlucoseColor(glucose: latestGlucose))
+                            .font(WidgetFonts.mono(size: 52, weight: .bold))
+                            .foregroundColor(WidgetColors.cgaRed)
+                            .phosphorGlow(color: WidgetColors.cgaRed)
                     }
                 }
 
                 if let warning = warning {
                     Text(verbatim: warning)
-                        .font(DOSTypography.caption)
+                        .font(WidgetFonts.caption)
                         .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(AmberTheme.cgaRed)
-                        .foregroundColor(AmberTheme.amberLight)
+                        .padding(.vertical, 4)
+                        .background(WidgetColors.cgaRed)
+                        .foregroundColor(WidgetColors.amberLight)
                 } else {
-                    HStack(spacing: 40) {
+                    HStack(spacing: 16) {
+                        if let iob = context.iob {
+                            Text(String(format: "IOB %.1fU", iob))
+                                .foregroundColor(WidgetColors.cgaCyan)
+                        }
                         Text(latestGlucose.timestamp, style: .time)
-                        Text(verbatim: glucoseUnit.localizedDescription)
-                    }.opacity(0.5)
+                            .foregroundColor(WidgetColors.amberDark)
+                    }
+                    .font(WidgetFonts.caption)
                 }
-
             } else {
                 Text("No Data")
-                    .font(DOSTypography.mono(size: 34, weight: .bold))
-                    .foregroundColor(AmberTheme.cgaRed)
+                    .font(WidgetFonts.mono(size: 28, weight: .bold))
+                    .foregroundColor(WidgetColors.cgaRed)
 
                 Text(Date(), style: .time)
-                    .font(DOSTypography.caption)
-                    .opacity(0.5)
+                    .font(WidgetFonts.caption)
+                    .foregroundColor(WidgetColors.amberDark)
             }
-        }.padding(.bottom)
-        .widgetBackground(backgroundView: Color("WidgetBackground"))
+        }
+        .padding(.bottom)
+        .widgetBackground(backgroundView: WidgetColors.dosBlack)
     }
 }
 
@@ -168,12 +166,11 @@ struct GlucoseActivityView: View, GlucoseStatusContext {
     @State var context: SensorGlucoseActivityAttributes.GlucoseStatus
 
     var body: some View {
-        HStack(alignment: .lastTextBaseline) {
-            Spacer()
-
+        HStack(spacing: 12) {
             if let latestGlucose = context.glucose, let glucoseUnit = context.glucoseUnit {
-                VStack {
-                    HStack(alignment: .top) {
+                // Left: Glucose + trend
+                VStack(spacing: 2) {
+                    HStack(alignment: .top, spacing: 6) {
                         Group {
                             if latestGlucose.type != .high {
                                 Text(verbatim: latestGlucose.glucoseValue.asGlucose(glucoseUnit: glucoseUnit))
@@ -183,84 +180,85 @@ struct GlucoseActivityView: View, GlucoseStatusContext {
                         }
                         .bold()
                         .foregroundColor(getGlucoseColor(glucose: latestGlucose))
-                        .font(DOSTypography.mono(size: 40, weight: .bold))
+                        .font(WidgetFonts.mono(size: 36, weight: .bold))
+                        .phosphorGlow(color: getGlucoseColor(glucose: latestGlucose))
 
                         Text(verbatim: latestGlucose.trend.description)
                             .foregroundColor(getGlucoseColor(glucose: latestGlucose))
-                            .font(DOSTypography.mono(size: 32, weight: .regular))
+                            .font(WidgetFonts.mono(size: 26, weight: .regular))
                     }
-                    
+
                     if let warning = warning {
-                        HStack {
+                        HStack(spacing: 4) {
                             Image(systemName: "exclamationmark.triangle")
-                                .foregroundColor(AmberTheme.cgaRed)
-                            
+                                .foregroundColor(WidgetColors.cgaRed)
                             Text(verbatim: warning)
                                 .bold()
                         }
-                        .font(DOSTypography.caption)
-                    } else {
-                        HStack {
-                            Text(verbatim: glucoseUnit.localizedDescription)
-
-                            Group {
-                                if let minuteChange = latestGlucose.minuteChange?.asMinuteChange(glucoseUnit: glucoseUnit) {
-                                    Text(verbatim: minuteChange)
-                                } else {
-                                    Text(verbatim: "?")
-                                }
-                            }
-                        }
-                        .opacity(0.5)
-                        .font(DOSTypography.caption)
+                        .font(WidgetFonts.caption)
+                    } else if let minuteChange = latestGlucose.minuteChange?.asMinuteChange(glucoseUnit: glucoseUnit) {
+                        Text(verbatim: minuteChange)
+                            .font(WidgetFonts.caption)
+                            .foregroundColor(WidgetColors.amberDark)
                     }
                 }
-                
-                Spacer()
 
-                VStack(alignment: .leading, spacing: 5) {
-                    HStack(spacing: 10) {
-                        Text("Updated")
-                            .opacity(0.5)
-                            .textCase(.uppercase)
-                        
-                        Text(latestGlucose.timestamp, style: .time)
-                            .bold()
-                            .monospacedDigit()
+                // Center: Mini sparkline (3h)
+                if let sparkline = context.sparkline, sparkline.count >= 2 {
+                    // Take last ~6 points for 3h view
+                    let recentPoints = sparkline.count > 6 ? Array(sparkline.suffix(6)) : sparkline
+                    GeometryReader { geo in
+                        let result = SparklineBuilder.build(
+                            values: recentPoints,
+                            in: CGRect(x: 0, y: 0, width: geo.size.width, height: geo.size.height)
+                        )
+                        result.path
+                            .stroke(WidgetColors.amber, style: StrokeStyle(lineWidth: 1.5, lineJoin: .round))
+                            .shadow(color: WidgetColors.amber.opacity(0.3), radius: 2)
                     }
-                    
+                    .frame(width: 60, height: 36)
+                }
+
+                Spacer(minLength: 0)
+
+                // Right: IOB + timestamp
+                VStack(alignment: .trailing, spacing: 4) {
+                    if let iob = context.iob {
+                        Text(String(format: "%.1fU", iob))
+                            .font(WidgetFonts.label)
+                            .foregroundColor(WidgetColors.cgaCyan)
+                    }
+
+                    Text(latestGlucose.timestamp, style: .time)
+                        .font(WidgetFonts.caption)
+                        .monospacedDigit()
+                        .foregroundColor(WidgetColors.amberDark)
+
                     if let stopDate = context.stopDate {
-                        Text("Reopen app in")
-                            .opacity(0.5)
-                            .textCase(.uppercase)
-
                         Text(stopDate, style: .relative)
-                            .bold()
-                            .multilineTextAlignment(.leading)
+                            .font(WidgetFonts.tabBar)
                             .monospacedDigit()
+                            .foregroundColor(WidgetColors.amberDark)
+                            .lineLimit(1)
                     }
                 }
-                .font(DOSTypography.caption)
-                .frame(maxWidth: 175)
-
             } else {
-                VStack(spacing: 10) {
+                VStack(spacing: 8) {
                     Text("No Data")
                         .bold()
-                        .font(DOSTypography.mono(size: 35, weight: .bold))
-                        .foregroundColor(AmberTheme.cgaRed)
+                        .font(WidgetFonts.mono(size: 32, weight: .bold))
+                        .foregroundColor(WidgetColors.cgaRed)
 
                     Text(Date(), style: .time)
-                        .opacity(0.5)
-                        .font(DOSTypography.caption)
+                        .font(WidgetFonts.caption)
+                        .foregroundColor(WidgetColors.amberDark)
                 }
-
-                Spacer()
+                .frame(maxWidth: .infinity)
             }
         }
-        .padding(.top, 5)
-        .padding(.bottom, 10)
-        .widgetBackground(backgroundView: Color("WidgetBackground"))
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .widgetBackground(backgroundView: WidgetColors.dosBlack)
     }
 }
 
@@ -290,6 +288,8 @@ struct GlucoseActivityWidget_Previews: PreviewProvider {
                 connectionState: .connected,
                 glucose: SensorGlucose(glucoseValue: 120, minuteChange: 2),
                 glucoseUnit: .mgdL,
+                iob: 2.3,
+                sparkline: [95, 100, 110, 125, 118, 120],
                 startDate: Date(),
                 restartDate: Date(),
                 stopDate: Date()

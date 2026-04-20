@@ -21,6 +21,8 @@ struct SensorGlucoseActivityAttributes: ActivityAttributes {
 
         var glucose: SensorGlucose?
         var glucoseUnit: GlucoseUnit?
+        var iob: Double?
+        var sparkline: [Int]?
 
         var startDate: Date?
         var restartDate: Date?

@@ -225,6 +225,6 @@ private class ActivityGlucoseService {
     }
 
     private func getStatus(alarmLow: Int, alarmHigh: Int, sensorState: SensorState?, connectionState: SensorConnectionState, glucose: SensorGlucose?, glucoseUnit: GlucoseUnit) -> SensorGlucoseActivityAttributes.GlucoseStatus {
-        return SensorGlucoseActivityAttributes.GlucoseStatus(alarmLow: alarmLow, alarmHigh: alarmHigh, sensorState: sensorState, connectionState: connectionState, glucose: glucose, glucoseUnit: glucoseUnit, startDate: activityStart, restartDate: activityRestart, stopDate: activityStop)
+        return SensorGlucoseActivityAttributes.GlucoseStatus(alarmLow: alarmLow, alarmHigh: alarmHigh, sensorState: sensorState, connectionState: connectionState, glucose: glucose, glucoseUnit: glucoseUnit, iob: UserDefaults.shared.sharedIOB, sparkline: UserDefaults.shared.sharedGlucoseSparkline, startDate: activityStart, restartDate: activityRestart, stopDate: activityStop)
     }
 }

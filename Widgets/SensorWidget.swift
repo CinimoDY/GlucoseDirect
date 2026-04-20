@@ -1,6 +1,6 @@
 //
 //  SensorWidget.swift
-//  App
+//  DOSBTSWidget
 //
 
 import SwiftUI
@@ -69,17 +69,12 @@ struct SensorUpdateProvider: TimelineProvider {
 
     func getSnapshot(in context: Context, completion: @escaping (SensorEntry) -> ()) {
         let entry = SensorEntry()
-
         completion(entry)
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> ()) {
-        let entries = [
-            SensorEntry()
-        ]
-
-        let reloadDate = Calendar.current.date(byAdding: .minute, value: 15, to: Date())!
-
+        let entries = [SensorEntry()]
+        let reloadDate = Calendar.current.date(byAdding: .minute, value: 15, to: Date()) ?? Date().addingTimeInterval(15 * 60)
         let timeline = Timeline(entries: entries, policy: .after(reloadDate))
         completion(timeline)
     }
@@ -98,25 +93,60 @@ struct SensorView: View {
 
     var body: some View {
         if let sensor {
-            Gauge(
-                value: Double(sensor.remainingWarmupTime == nil ? sensor.remainingLifetime : sensor.remainingWarmupTime!),
-                in: 0 ... Double(sensor.remainingWarmupTime == nil ? sensor.lifetime : sensor.warmupTime),
-                label: {
-                    Text(sensor.remainingWarmupTime == nil ? sensor.family.localizedDescription : "Warmup")
-                        .font(DOSTypography.tabBar)
+            let remainingWarmupTime = sensor.remainingWarmupTime
+            let isWarmup = remainingWarmupTime != nil
+            let remaining = Double(isWarmup ? (remainingWarmupTime ?? 0) : sensor.remainingLifetime)
+            let total = Double(isWarmup ? sensor.warmupTime : sensor.lifetime)
+            let fraction = total > 0 ? remaining / total : 0
+
+            ZStack {
+                // Background arc track
+                Circle()
+                    .stroke(WidgetColors.amberDark.opacity(0.3), style: StrokeStyle(lineWidth: 6))
+
+                // Filled arc
+                Circle()
+                    .trim(from: 0, to: CGFloat(fraction))
+                    .stroke(
+                        isWarmup ? WidgetColors.cgaCyan : WidgetColors.amber,
+                        style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(-90))
+                    .shadow(color: (isWarmup ? WidgetColors.cgaCyan : WidgetColors.amber).opacity(0.4), radius: 3)
+
+                // Center label
+                VStack(spacing: 1) {
+                    if isWarmup {
+                        Text("WARM")
+                            .font(WidgetFonts.tabBar)
+                            .foregroundColor(WidgetColors.cgaCyan)
+                    } else {
+                        let days = sensor.remainingLifetime / (24 * 60)
+                        let hours = (sensor.remainingLifetime % (24 * 60)) / 60
+                        Text("\(days)d\(hours)h")
+                            .font(WidgetFonts.mono(size: 13, weight: .bold))
+                            .foregroundColor(WidgetColors.amber)
+                    }
+                    Text(sensor.family.localizedDescription)
+                        .font(WidgetFonts.tabBar)
+                        .foregroundColor(WidgetColors.amberDark)
+                        .lineLimit(1)
                 }
-            )
-            .gaugeStyle(.accessoryCircularCapacity)
-            .widgetBackground(backgroundView: Color("WidgetBackground"))
+            }
+            .padding(4)
+            .widgetBackground(backgroundView: WidgetColors.dosBlack)
         } else {
             ZStack(alignment: .center) {
                 Circle()
-                    .stroke(style: StrokeStyle(lineWidth: 12, dash: [6, 3]))
-                    .opacity(0.3)
+                    .stroke(style: StrokeStyle(lineWidth: 6, dash: [6, 3]))
+                    .foregroundColor(WidgetColors.amberDark.opacity(0.3))
 
                 Image(systemName: "questionmark")
+                    .font(WidgetFonts.mono(size: 16, weight: .bold))
+                    .foregroundColor(WidgetColors.amberDark)
             }
-            .widgetBackground(backgroundView: Color("WidgetBackground"))
+            .padding(4)
+            .widgetBackground(backgroundView: WidgetColors.dosBlack)
         }
     }
 }
@@ -131,8 +161,8 @@ struct SensorWidget: Widget {
             SensorView(entry: entry)
         }
         .supportedFamilies([.accessoryCircular])
-        .configurationDisplayName("Sensor lifetime widget")
-        .description("Sensor lifetime widget description")
+        .configurationDisplayName("Sensor")
+        .description("Sensor remaining lifetime")
     }
 }
 

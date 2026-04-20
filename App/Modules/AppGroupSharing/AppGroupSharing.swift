@@ -72,12 +72,30 @@ private func appGroupSharingMiddleware(service: LazyService<AppGroupSharingServi
             guard let glucose = glucoseValues.last else {
                 break
             }
-            
+
             guard glucose.type != .high else {
                 break
             }
 
             service.value.addSensorGlucose(glucoseValues: [glucose])
+
+            // Widget expanded data: TIR, IOB, last meal, sparkline
+            // Capture values from state on main thread, write on background
+            let tir = state.glucoseStatistics?.tir
+            let iob = UserDefaults.shared.sharedIOB
+            let todayMeal = state.mealEntryValues
+                .filter { Calendar.current.isDateInToday($0.timestamp) }
+                .max(by: { $0.timestamp < $1.timestamp })
+            let glucoseValues = state.sensorGlucoseValues
+
+            DispatchQueue.global(qos: .utility).async {
+                service.value.setWidgetData(
+                    tir: tir,
+                    iob: iob,
+                    lastMeal: todayMeal,
+                    glucoseValues: glucoseValues
+                )
+            }
 
         default:
             break
@@ -100,6 +118,12 @@ private class AppGroupSharingService {
 
     func clearGlucoseValues() {
         UserDefaults.shared.sharedGlucose = nil
+        UserDefaults.shared.sharedTIR = nil
+        UserDefaults.shared.sharedIOB = nil
+        UserDefaults.shared.sharedLastMealDescription = nil
+        UserDefaults.shared.sharedLastMealCarbs = nil
+        UserDefaults.shared.sharedLastMealTimestamp = nil
+        UserDefaults.shared.sharedGlucoseSparkline = nil
     }
 
     func clearOthers() {
@@ -137,6 +161,46 @@ private class AppGroupSharingService {
         UserDefaults.shared.sharedTransmitterBattery = transmitterBattery
         UserDefaults.shared.sharedTransmitterHardware = transmitterHardware
         UserDefaults.shared.sharedTransmitterFirmware = transmitterFirmware
+    }
+
+    func setWidgetData(
+        tir: Double?,
+        iob: Double?,
+        lastMeal: MealEntry?,
+        glucoseValues: [SensorGlucose]
+    ) {
+        UserDefaults.shared.sharedTIR = tir
+        UserDefaults.shared.sharedIOB = iob
+
+        // Last meal
+        UserDefaults.shared.sharedLastMealDescription = lastMeal?.mealDescription
+        UserDefaults.shared.sharedLastMealCarbs = lastMeal?.carbsGrams
+        UserDefaults.shared.sharedLastMealTimestamp = lastMeal?.timestamp
+
+        // Sparkline: sample glucose at ~30-min intervals over last 6h
+        let sixHoursAgo = Date().addingTimeInterval(-6 * 60 * 60)
+        let recentGlucose = glucoseValues.filter { $0.timestamp >= sixHoursAgo }
+
+        if recentGlucose.count >= 2 {
+            let interval: TimeInterval = 30 * 60 // 30 minutes
+            var sampled: [Int] = []
+            guard let firstReading = recentGlucose.first else { return }
+            var nextSampleTime = firstReading.timestamp
+
+            for glucose in recentGlucose {
+                if glucose.timestamp >= nextSampleTime {
+                    sampled.append(glucose.glucoseValue)
+                    nextSampleTime = glucose.timestamp.addingTimeInterval(interval)
+                }
+            }
+            // Always include the most recent reading as the final point
+            if let last = recentGlucose.last {
+                sampled.append(last.glucoseValue)
+            }
+            UserDefaults.shared.sharedGlucoseSparkline = sampled
+        } else {
+            UserDefaults.shared.sharedGlucoseSparkline = nil
+        }
     }
 
     func addBloodGlucose(glucoseValues: [BloodGlucose]) {
