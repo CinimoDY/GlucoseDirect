@@ -55,7 +55,10 @@ View dispatches Action -> Store.dispatch() -> Reducer mutates State
 - **Insulin-on-Board (IOB)** — `IOBCalculator.swift` implements OpenAPS oref0 Maksimovic exponential decay model. `InsulinPreset` enum (rapidActing peak 75m/DIA 6h, ultraRapid peak 55m/DIA 6h) with separate basal DIA (2-24h). IOB computed on-read from `iobDeliveries` (DIA-window filtered, loaded by `IOBMiddleware`). Hero display (GlucoseView) with 60s refresh timer, split display toggle (M=meal/snack, B=basal+corr). Chart AreaMark overlay (iOS 16+ only, cgaCyan/amberDark). Stacking warning in AddInsulinView (amber, correction bolus only, reactive to picker). IOB on TreatmentBannerView (countdown/rechecking states, second line). `InsulinSettingsView` with preset picker, basal DIA stepper, split toggle. Future deliveries excluded from IOB (not yet delivered). Zero threshold: 0.05U.
 - **Meal impact overlay** — Tap single meal markers to see 2-hour post-meal glucose delta (color-coded green/amber/red), confounder detection (correction bolus, exercise, stacked meal), and PersonalFood rolling glycemic average. `MealImpactStore` middleware computes impacts on dual triggers (retroactive on app activation + real-time on new glucose readings). `analysisSessionId` links AI-analyzed meals to PersonalFood glycemic scores.
 - **Event marker lane** — Dedicated 32px lane above the glucose chart replacing in-chart meal/insulin annotations. SF Symbol icons per type (`fork.knife` meals, `syringe.fill` insulin, `figure.run` exercise). Zoom-dependent consolidation groups nearby markers at wider zoom levels. `EventMarkerLaneView` is a self-contained view receiving pre-computed `ConsolidatedMarkerGroup` data and tap callbacks. Tap meal → meal impact overlay; tap insulin → confirmation dialog; tap group → expanded panel.
-- **Snapshot testing** — XCTest target `DOSBTSTests` with 61 tests covering IOB calculation engine, IOB reducer state, treatment cycle lifecycle, predictive alarm flags, alarm snooze auto-clear, treatment prompt state, MealImpact model, MealImpact reducer, delta thresholds, rolling average math, analysisSessionId linkage, and PersonalFood glycemic fields. Swift Testing framework (`@Test`, `#expect`). Run with Cmd+U on simulator.
+- **Daily Digest tab** — Fourth tab (Overview > Lists > Settings > Digest) showing daily glucose summary. `DailyDigestMiddleware` computes stats from raw GRDB data (glucose, meals, insulin, exercise) and generates AI insight via Claude Haiku with full context + 7-day cross-day history. `DailyDigest` model persisted to GRDB for history browsing. Date navigation for past days. Today always recomputes (no stale cache). Separate `aiConsentDailyDigest` consent toggle. Events loaded into `dailyDigestEvents` state for timeline display. `DigestView` has date nav bar, 2x3 stats grid (color-coded), AI insight card (cyan border), and chronological event timeline.
+- **GRDB deadlock: never write inside asyncRead** — `DatabaseQueue` serializes all access. Calling `dbQueue.write` from inside a `dbQueue.asyncRead` callback deadlocks (read holds queue, write waits for queue). Always return data via the Future promise and do writes separately. See `docs/solutions/logic-errors/grdb-write-inside-asyncread-deadlock-20260420.md`.
+- **Combine Future-to-async bridge: guard double-resume** — When bridging a `Future` to async/await via `withCheckedThrowingContinuation`, the `receiveValue` and `receiveCompletion` callbacks both fire (Future emits one value then completes). Must use a `resumed` flag to call `continuation.resume` exactly once. See `docs/solutions/logic-errors/combine-future-async-bridge-double-resume-20260420.md`.
+- **Snapshot testing** — XCTest target `DOSBTSTests` with 138 tests covering IOB calculation engine, IOB reducer state, treatment cycle lifecycle, predictive alarm flags, alarm snooze auto-clear, treatment prompt state, MealImpact model, MealImpact reducer, delta thresholds, rolling average math, analysisSessionId linkage, PersonalFood glycemic fields, DailyDigest model/reducer, GlucoseStatistics computed properties, SensorGlucose clamping/minuteChange, SensorTrend slope classification, CustomCalibration regression, Sensor lifecycle, alarm thresholds, connection state, and glucose unit switching. Swift Testing framework (`@Test`, `#expect`). Run with Cmd+U on simulator.
 
 ## Project Structure
 
@@ -87,10 +90,12 @@ App/
     Claude/                    # AI food photo analysis (Claude Haiku)
     IOB/                       # Insulin-on-Board decay model middleware
     MealImpact/                # Meal impact overlay computation middleware
+    DailyDigest/               # Daily digest stats + AI insight middleware
     Log/
     Debug/
   Views/
     OverviewView.swift         # Main glucose display
+    DigestView.swift           # Daily digest tab (stats grid, AI card, timeline)
     SettingsView.swift
     CalibrationsView.swift
     ListsView.swift
@@ -146,6 +151,8 @@ Key colors:
 - **Error/High:** `#ff5555` (CGA red) → `AmberTheme.cgaRed`
 - **Warning:** `#ffff55` (CGA yellow) — no dedicated property yet
 - **Info:** `#55ffff` (CGA cyan) → `AmberTheme.cgaCyan`
+
+Typography API (`DOSTypography`): `displayMedium` (28pt bold), `bodyLarge` (20pt), `body` (17pt), `bodySmall` (15pt), `caption` (12pt), `button` (17pt semibold), `tabBar` (10pt), `glucoseHero` (60pt bold), `mono(size:weight:)`. No `headline` or `title` members.
 
 Rules:
 - All text uses monospace fonts (`DOSTypography`)
