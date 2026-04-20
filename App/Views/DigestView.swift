@@ -11,6 +11,7 @@ struct DigestView: View {
     @EnvironmentObject var store: DirectStore
 
     @State private var selectedDate: Date = Date()
+    @State private var hasAppeared: Bool = false
 
     var body: some View {
         ScrollView {
@@ -32,7 +33,10 @@ struct DigestView: View {
         }
         .background(Color.black)
         .onAppear {
-            store.dispatch(.loadDailyDigest(date: selectedDate))
+            if !hasAppeared {
+                hasAppeared = true
+                store.dispatch(.loadDailyDigest(date: selectedDate))
+            }
         }
     }
 
@@ -74,7 +78,7 @@ struct DigestView: View {
         ], spacing: DOSSpacing.sm) {
             statTile(label: "TIR", value: "\(Int(digest.tir))%", color: tirColor(digest.tir))
             statTile(label: "LOWS", value: "\(digest.lowCount)", color: digest.lowCount > 0 ? AmberTheme.cgaRed : AmberTheme.cgaGreen)
-            statTile(label: "HIGHS", value: "\(digest.highCount)", color: digest.highCount > 0 ? Color(red: 1, green: 1, blue: 1/3) : AmberTheme.cgaGreen)
+            statTile(label: "HIGHS", value: "\(digest.highCount)", color: digest.highCount > 0 ? Color(red: 1.0, green: 1.0, blue: 1.0/3.0) : AmberTheme.cgaGreen)
             statTile(label: "AVG", value: "\(Int(digest.avg))", color: AmberTheme.amber)
             statTile(label: "CARBS", value: "\(Int(digest.totalCarbsGrams))g", color: AmberTheme.amber)
             statTile(label: "INSULIN", value: String(format: "%.1fU", digest.totalInsulinUnits), color: AmberTheme.amber)

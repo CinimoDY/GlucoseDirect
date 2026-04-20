@@ -452,6 +452,9 @@ func directReducer(state: inout DirectState, action: DirectAction) {
         state.currentDailyDigest?.generatedAt = Date()
         state.dailyDigestInsightLoading = false
 
+    case .setDailyDigestInsightError:
+        state.dailyDigestInsightLoading = false
+
     case .setDailyDigestEvents(events: let events):
         state.dailyDigestEvents = events
 

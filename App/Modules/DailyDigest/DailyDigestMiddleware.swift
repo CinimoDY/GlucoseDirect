@@ -19,6 +19,15 @@ private func dailyDigestMiddleware(service: LazyService<ClaudeService>) -> Middl
             DataStore.shared.createDailyDigestTable()
             return Empty().eraseToAnyPublisher()
 
+        case .setAppState(appState: let appState):
+            // Re-trigger digest load if app becomes active and no digest is loaded
+            guard appState == .active, state.currentDailyDigest == nil else {
+                return Empty().eraseToAnyPublisher()
+            }
+            return Just(DirectAction.loadDailyDigest(date: Date()))
+                .setFailureType(to: DirectError.self)
+                .eraseToAnyPublisher()
+
         case .loadDailyDigest(date: let date):
             guard state.appState == .active else {
                 return Just(DirectAction.setDailyDigestError)
@@ -107,16 +116,27 @@ private func dailyDigestMiddleware(service: LazyService<ClaudeService>) -> Middl
             return Future<DirectAction, DirectError> { promise in
                 Task {
                     do {
-                        let digest = state.currentDailyDigest ?? DailyDigest(
-                            date: date, tir: 0, tbr: 0, tar: 0, avg: 0, stdev: 0,
-                            readings: 0, lowCount: 0, highCount: 0,
-                            totalCarbsGrams: 0, totalInsulinUnits: 0,
-                            totalExerciseMinutes: 0, mealCount: 0, insulinCount: 0
-                        )
+                        // Fetch digest from GRDB, not stale state snapshot (user may have navigated)
+                        let digest: DailyDigest
+                        if let cached = try? await DataStore.shared.getDailyDigest(date: date).asyncValue() {
+                            digest = cached
+                        } else {
+                            digest = DailyDigest(
+                                date: date, tir: 0, tbr: 0, tar: 0, avg: 0, stdev: 0,
+                                readings: 0, lowCount: 0, highCount: 0,
+                                totalCarbsGrams: 0, totalInsulinUnits: 0,
+                                totalExerciseMinutes: 0, mealCount: 0, insulinCount: 0
+                            )
+                        }
 
-                        let events = try await DataStore.shared.getDailyEvents(date: date).asyncValue()
-                        let glucoseSamples = try await DataStore.shared.getGlucoseSamples(date: date).asyncValue()
-                        let recentDigests = try await DataStore.shared.getLast7Digests().asyncValue()
+                        // Run GRDB reads concurrently
+                        async let eventsTask = DataStore.shared.getDailyEvents(date: date).asyncValue()
+                        async let samplesTask = DataStore.shared.getGlucoseSamples(date: date).asyncValue()
+                        async let digestsTask = DataStore.shared.getLast7Digests().asyncValue()
+
+                        let events = try await eventsTask
+                        let glucoseSamples = try await samplesTask
+                        let recentDigests = (try await digestsTask).filter { !Calendar.current.isDate($0.date, inSameDayAs: date) }
 
                         let insight = try await service.value.generateDigestInsight(
                             digest: digest,
@@ -131,8 +151,7 @@ private func dailyDigestMiddleware(service: LazyService<ClaudeService>) -> Middl
                         promise(.success(.setDailyDigestInsight(date: date, insight: insight)))
                     } catch {
                         DirectLog.error("DailyDigest AI insight failed: \(error)")
-                        // Clear loading state without setting insight
-                        promise(.success(.setDailyDigestInsight(date: date, insight: "")))
+                        promise(.success(.setDailyDigestInsightError))
                     }
                 }
             }

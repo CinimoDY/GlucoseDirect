@@ -169,6 +169,7 @@ enum DirectAction {
     case setDailyDigestError
     case generateDailyDigestInsight(date: Date, force: Bool = false)
     case setDailyDigestInsight(date: Date, insight: String)
+    case setDailyDigestInsightError
     case setDailyDigestEvents(events: DailyDigestEvents)
     case setAIConsentDailyDigest(enabled: Bool)
 

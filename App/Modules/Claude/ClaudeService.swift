@@ -340,8 +340,7 @@ struct ClaudeService {
             else {
                 throw ClaudeError.invalidResponse
             }
-            // Basic length guard against malformed responses
-            return String(text.prefix(2000))
+            return text
 
         case 401:
             throw ClaudeError.invalidAPIKey
