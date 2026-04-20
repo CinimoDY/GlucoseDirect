@@ -64,6 +64,7 @@
 		DA01000228000002000B0001 /* HealthImportSourcesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA01000228000001000B0001 /* HealthImportSourcesView.swift */; };
 		DA0200012800000C000C0002 /* CalibrationSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA0200012800000C000C0001 /* CalibrationSettingsView.swift */; };
 		DA0200012800000D000D0002 /* DOSScanlineOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA0200012800000D000D0001 /* DOSScanlineOverlay.swift */; };
+		EB02000100000001000W0001 /* WidgetDesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB02000100000001000W0002 /* WidgetDesignSystem.swift */; };
 		E2016FD9285BA80300079195 /* SensorWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2016FD5285BA7C600079195 /* SensorWidget.swift */; };
 		E2016FDA285BA81700079195 /* GlucoseWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2016FD7285BA7EE00079195 /* GlucoseWidget.swift */; };
 		E2016FDC285BA82600079195 /* TransmitterWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2016FDB285BA82600079195 /* TransmitterWidget.swift */; };
@@ -355,6 +356,7 @@
 		DA01000228000001000B0001 /* HealthImportSourcesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthImportSourcesView.swift; sourceTree = "<group>"; };
 		DA0200012800000C000C0001 /* CalibrationSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalibrationSettingsView.swift; sourceTree = "<group>"; };
 		DA0200012800000D000D0001 /* DOSScanlineOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DOSScanlineOverlay.swift; sourceTree = "<group>"; };
+		EB02000100000001000W0002 /* WidgetDesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetDesignSystem.swift; sourceTree = "<group>"; };
 		E2016FD5285BA7C600079195 /* SensorWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorWidget.swift; sourceTree = "<group>"; };
 		E2016FD7285BA7EE00079195 /* GlucoseWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlucoseWidget.swift; sourceTree = "<group>"; };
 		E2016FDB285BA82600079195 /* TransmitterWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransmitterWidget.swift; sourceTree = "<group>"; };
@@ -783,6 +785,7 @@
 			isa = PBXGroup;
 			children = (
 				E24474442859CA9600F8891C /* Widgets.swift */,
+				EB02000100000001000W0002 /* WidgetDesignSystem.swift */,
 				E2016FD5285BA7C600079195 /* SensorWidget.swift */,
 				E2016FD7285BA7EE00079195 /* GlucoseWidget.swift */,
 				E257B0642892C89F0081B2BD /* GlucoseActivityWidget.swift */,
@@ -1573,6 +1576,7 @@
 				DA0100012800000D000A000D /* DOSTypography.swift in Sources */,
 				DA0100012800000E000A000E /* DOSSpacing.swift in Sources */,
 				E2016FD9285BA80300079195 /* SensorWidget.swift in Sources */,
+				EB02000100000001000W0001 /* WidgetDesignSystem.swift in Sources */,
 				E262DCBE287A3E8900ECAB76 /* SensorError.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
