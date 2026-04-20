@@ -289,6 +289,149 @@ struct ClaudeService {
         return prompt
     }
 
+    // MARK: - Daily Digest Insight
+
+    func generateDigestInsight(digest: DailyDigest, events: DailyDigestEvents, glucoseSamples: [(Date, Int)], recentDigests: [DailyDigest]) async throws -> String {
+        let apiKey = try getAPIKey()
+
+        var request = URLRequest(url: baseURL)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 60
+        request.setValue("application/json", forHTTPHeaderField: "content-type")
+        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+
+        let systemPrompt = """
+        You are a diabetes management assistant analyzing one day of CGM data for a person with Type 1 diabetes. Provide an actionable daily insight.
+
+        Rules:
+        - Adapt length to content: one sentence if the day was unremarkable, 2-4 sentences if there are patterns worth discussing
+        - Reference specific times and values (e.g., "the 65g dinner at 21:12")
+        - If past digests show a recurring pattern, call it out (e.g., "third evening high this week")
+        - Focus on what's actionable: timing, dosing, meal composition
+        - Never give medical advice — frame as observations and suggestions to discuss with their care team
+        - Be direct, not chatty. No greetings or filler.
+        """
+
+        let userMessage = buildDigestPrompt(digest: digest, events: events, glucoseSamples: glucoseSamples, recentDigests: recentDigests)
+
+        let body: [String: Any] = [
+            "model": ClaudeService.model,
+            "max_tokens": 300,
+            "system": systemPrompt,
+            "messages": [
+                ["role": "user", "content": userMessage],
+            ],
+        ]
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw ClaudeError.invalidResponse
+        }
+
+        switch httpResponse.statusCode {
+        case 200:
+            let claudeResponse = try JSONDecoder().decode(ClaudeResponse.self, from: data)
+            guard let textBlock = claudeResponse.content.first(where: { $0.type == "text" }),
+                  let text = textBlock.text, !text.isEmpty
+            else {
+                throw ClaudeError.invalidResponse
+            }
+            // Basic length guard against malformed responses
+            return String(text.prefix(2000))
+
+        case 401:
+            throw ClaudeError.invalidAPIKey
+        case 429:
+            throw ClaudeError.rateLimited(retryAfter: 60)
+        case 529:
+            throw ClaudeError.overloaded
+        default:
+            throw ClaudeError.apiError(statusCode: httpResponse.statusCode)
+        }
+    }
+
+    private func buildDigestPrompt(digest: DailyDigest, events: DailyDigestEvents, glucoseSamples: [(Date, Int)], recentDigests: [DailyDigest]) -> String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let timeFormatter = DateFormatter()
+        timeFormatter.dateFormat = "HH:mm"
+
+        var prompt = "<stats>\n"
+        prompt += "Date: \(dateFormatter.string(from: digest.date))\n"
+        prompt += "TIR: \(String(format: "%.1f", digest.tir))%\n"
+        prompt += "TBR: \(String(format: "%.1f", digest.tbr))%\n"
+        prompt += "TAR: \(String(format: "%.1f", digest.tar))%\n"
+        prompt += "Avg: \(String(format: "%.0f", digest.avg)) mg/dL\n"
+        prompt += "StDev: \(String(format: "%.1f", digest.stdev))\n"
+        prompt += "Readings: \(digest.readings)\n"
+        prompt += "Lows: \(digest.lowCount), Highs: \(digest.highCount)\n"
+        prompt += "Carbs: \(String(format: "%.0f", digest.totalCarbsGrams))g (\(digest.mealCount) meals)\n"
+        prompt += "Insulin: \(String(format: "%.1f", digest.totalInsulinUnits))U (\(digest.insulinCount) deliveries)\n"
+        prompt += "Exercise: \(String(format: "%.0f", digest.totalExerciseMinutes)) min\n"
+        prompt += "</stats>\n\n"
+
+        // Glucose curve (sampled)
+        if !glucoseSamples.isEmpty {
+            prompt += "<glucose_curve>\n"
+            for (time, value) in glucoseSamples.prefix(48) {
+                prompt += "\(timeFormatter.string(from: time))=\(value)\n"
+            }
+            prompt += "</glucose_curve>\n\n"
+        }
+
+        // Events timeline
+        if !events.meals.isEmpty || !events.insulin.isEmpty || !events.exercise.isEmpty {
+            prompt += "<events>\n"
+
+            for meal in events.meals.prefix(15) {
+                let desc = sanitizeUserText(meal.mealDescription, maxLength: 80)
+                let carbs = meal.carbsGrams.map { String(format: "%.0fg", $0) } ?? "?"
+                prompt += "\(timeFormatter.string(from: meal.timestamp)) MEAL: \(desc) (\(carbs) carbs)\n"
+            }
+
+            for ins in events.insulin.prefix(10) {
+                prompt += "\(timeFormatter.string(from: ins.starts)) INSULIN: \(String(format: "%.1f", ins.units))U \(ins.type.description)\n"
+            }
+
+            for ex in events.exercise.prefix(5) {
+                let activity = sanitizeUserText(ex.activityType, maxLength: 50)
+                prompt += "\(timeFormatter.string(from: ex.startTime)) EXERCISE: \(activity) \(String(format: "%.0f", ex.durationMinutes))min\n"
+            }
+
+            prompt += "</events>\n\n"
+        }
+
+        // Recent digests for cross-day context
+        if !recentDigests.isEmpty {
+            prompt += "<recent_days>\n"
+            for past in recentDigests.prefix(7) {
+                prompt += "\(dateFormatter.string(from: past.date)): TIR=\(String(format: "%.0f", past.tir))% Avg=\(String(format: "%.0f", past.avg)) Lows=\(past.lowCount) Highs=\(past.highCount)"
+                if let insight = past.aiInsight {
+                    prompt += " [Prior insight: \(sanitizeUserText(insight, maxLength: 200))]"
+                }
+                prompt += "\n"
+            }
+            prompt += "</recent_days>\n"
+        }
+
+        return prompt
+    }
+
+    private func sanitizeUserText(_ text: String, maxLength: Int = 100) -> String {
+        String(text
+            .replacingOccurrences(of: "\n", with: " ")
+            .replacingOccurrences(of: "\r", with: " ")
+            .replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .prefix(maxLength))
+    }
+
     private func sanitizeFoodName(_ name: String) -> String {
         String(name
             .replacingOccurrences(of: "\n", with: " ")

@@ -433,6 +433,31 @@ func directReducer(state: inout DirectState, action: DirectAction) {
     case .setScoredMealEntryIds(scoredMealEntryIds: let ids):
         state.scoredMealEntryIds = ids
 
+    // MARK: Daily Digest
+    case .loadDailyDigest:
+        state.dailyDigestLoading = true
+
+    case .setDailyDigest(digest: let digest):
+        state.currentDailyDigest = digest
+        state.dailyDigestLoading = false
+
+    case .setDailyDigestError:
+        state.dailyDigestLoading = false
+
+    case .generateDailyDigestInsight:
+        state.dailyDigestInsightLoading = true
+
+    case .setDailyDigestInsight(date: _, insight: let insight):
+        state.currentDailyDigest?.aiInsight = insight
+        state.currentDailyDigest?.generatedAt = Date()
+        state.dailyDigestInsightLoading = false
+
+    case .setDailyDigestEvents(events: let events):
+        state.dailyDigestEvents = events
+
+    case .setAIConsentDailyDigest(enabled: let enabled):
+        state.aiConsentDailyDigest = enabled
+
     default:
         break
     }

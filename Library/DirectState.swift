@@ -109,6 +109,13 @@ protocol DirectState {
 
     // MARK: Meal Impact
     var scoredMealEntryIds: Set<UUID> { get set }
+
+    // MARK: Daily Digest
+    var currentDailyDigest: DailyDigest? { get set }
+    var dailyDigestLoading: Bool { get set }
+    var dailyDigestInsightLoading: Bool { get set }
+    var dailyDigestEvents: DailyDigestEvents? { get set }
+    var aiConsentDailyDigest: Bool { get set }
 }
 
 extension DirectState {
