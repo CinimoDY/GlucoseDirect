@@ -29,11 +29,13 @@ struct AboutView: View {
                     }
                 }
 
-                if let appSupportMail = DirectConfig.appSupportMail, !appSupportMail.isEmpty {
+                if let appSupportMail = DirectConfig.appSupportMail,
+                   !appSupportMail.isEmpty,
+                   let mailURL = URL(string: "mailto:\(appSupportMail)") {
                     HStack {
                         Text("App email")
                         Spacer()
-                        Link(appSupportMail, destination: URL(string: "mailto:\(appSupportMail)")!)
+                        Link(appSupportMail, destination: mailURL)
                             .lineLimit(1)
                             .truncationMode(.head)
                     }
@@ -42,7 +44,7 @@ struct AboutView: View {
                 HStack {
                     Text("App website")
                     Spacer()
-                    Link("GitHub", destination: URL(string: DirectConfig.githubURL)!)
+                    Link("GitHub", destination: DirectConfig.githubURL)
                         .lineLimit(1)
                         .truncationMode(.head)
                 }
@@ -50,7 +52,7 @@ struct AboutView: View {
                 HStack {
                     Text("App faq")
                     Spacer()
-                    Link("GitHub", destination: URL(string: DirectConfig.faqURL)!)
+                    Link("GitHub", destination: DirectConfig.faqURL)
                         .lineLimit(1)
                         .truncationMode(.head)
                 }
@@ -58,7 +60,7 @@ struct AboutView: View {
                 HStack {
                     Text(verbatim: "Support upstream GlucoseDirect")
                     Spacer()
-                    Link("PayPal", destination: URL(string: DirectConfig.upstreamDonateURL)!)
+                    Link("PayPal", destination: DirectConfig.upstreamDonateURL)
                         .lineLimit(1)
                         .truncationMode(.head)
                 }
@@ -66,7 +68,7 @@ struct AboutView: View {
                 HStack {
                     Text(verbatim: "Tip the DOSBTS fork")
                     Spacer()
-                    Link("Sponsors", destination: URL(string: DirectConfig.sponsorURL)!)
+                    Link("Sponsors", destination: DirectConfig.sponsorURL)
                         .lineLimit(1)
                         .truncationMode(.head)
                 }

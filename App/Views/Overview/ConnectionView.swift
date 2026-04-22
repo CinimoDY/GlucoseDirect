@@ -16,7 +16,7 @@ struct ConnectionView: View {
         if let connectionError = store.state.connectionError, let connectionErrorTimestamp = store.state.connectionErrorTimestamp?.toLocalTime() {
             Section(
                 content: {
-                    Link(connectionError, destination: URL(string: DirectConfig.faqURL)!)
+                    Link(connectionError, destination: DirectConfig.faqURL)
                         .foregroundColor(AmberTheme.cgaRed)
 
                     HStack {
@@ -28,7 +28,7 @@ struct ConnectionView: View {
                     HStack {
                         Text("Help")
                         Spacer()
-                        Link("App faq", destination: URL(string: DirectConfig.faqURL)!)
+                        Link("App faq", destination: DirectConfig.faqURL)
                             .lineLimit(1)
                             .truncationMode(.head)
                     }

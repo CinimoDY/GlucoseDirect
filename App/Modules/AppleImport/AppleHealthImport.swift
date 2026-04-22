@@ -166,26 +166,24 @@ private class AppleHealthImportService {
                 publisher.send(completion: .finished)
             }
 
-            if #available(iOS 15.4, *) {
-                // Nutrition sync
-                do {
-                    let meals = try await fetchNutritionSamples(dateRange: dateRange, existingMeals: existingMeals, ownBundleID: ownBundleID, excludedSources: excludedSources)
-                    if !meals.isEmpty {
-                        publisher.send(.addMealEntry(mealEntryValues: meals))
-                    }
-                } catch {
-                    DirectLog.error("HealthKit nutrition sync error: \(error.localizedDescription)")
+            // Nutrition sync
+            do {
+                let meals = try await fetchNutritionSamples(dateRange: dateRange, existingMeals: existingMeals, ownBundleID: ownBundleID, excludedSources: excludedSources)
+                if !meals.isEmpty {
+                    publisher.send(.addMealEntry(mealEntryValues: meals))
                 }
+            } catch {
+                DirectLog.error("HealthKit nutrition sync error: \(error.localizedDescription)")
+            }
 
-                // Exercise sync
-                do {
-                    let exercises = try await fetchExerciseSamples(dateRange: dateRange, existingExercises: existingExercises, ownBundleID: ownBundleID, excludedSources: excludedSources)
-                    if !exercises.isEmpty {
-                        publisher.send(.addExerciseEntry(exerciseEntryValues: exercises))
-                    }
-                } catch {
-                    DirectLog.error("HealthKit exercise sync error: \(error.localizedDescription)")
+            // Exercise sync
+            do {
+                let exercises = try await fetchExerciseSamples(dateRange: dateRange, existingExercises: existingExercises, ownBundleID: ownBundleID, excludedSources: excludedSources)
+                if !exercises.isEmpty {
+                    publisher.send(.addExerciseEntry(exerciseEntryValues: exercises))
                 }
+            } catch {
+                DirectLog.error("HealthKit exercise sync error: \(error.localizedDescription)")
             }
 
             // Heart rate (uses HKStatisticsCollectionQuery, available since iOS 8)
@@ -217,7 +215,6 @@ private class AppleHealthImportService {
 
     // MARK: - Private: Nutrition Fetch
 
-    @available(iOS 15.4, *)
     private func fetchNutritionSamples(dateRange: DateInterval, existingMeals: [MealEntry], ownBundleID: String, excludedSources: Set<String> = []) async throws -> [MealEntry] {
         let carbType = HKQuantityType(.dietaryCarbohydrates)
         let predicate = HKQuery.predicateForSamples(withStart: dateRange.start, end: dateRange.end)
@@ -270,7 +267,6 @@ private class AppleHealthImportService {
 
     // MARK: - Private: Exercise Fetch
 
-    @available(iOS 15.4, *)
     private func fetchExerciseSamples(dateRange: DateInterval, existingExercises: [ExerciseEntry], ownBundleID: String, excludedSources: Set<String> = []) async throws -> [ExerciseEntry] {
         let predicate = HKQuery.predicateForSamples(withStart: dateRange.start, end: dateRange.end)
 
@@ -293,11 +289,8 @@ private class AppleHealthImportService {
             if existingStarts.contains(roundedStart) { continue }
 
             let duration = workout.duration / 60.0
-            var calories: Double? = nil
-            if #available(iOS 16.0, *) {
-                calories = workout.statistics(for: HKQuantityType(.activeEnergyBurned))?
-                    .sumQuantity()?.doubleValue(for: .kilocalorie())
-            }
+            let calories = workout.statistics(for: HKQuantityType(.activeEnergyBurned))?
+                .sumQuantity()?.doubleValue(for: .kilocalorie())
             let sourceName = workout.sourceRevision.source.name
 
             exercises.append(ExerciseEntry(

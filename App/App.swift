@@ -224,9 +224,7 @@ private func createSimulatorAppStore() -> DirectStore {
         claudeMiddleware()
     ]
 
-    if #available(iOS 16.1, *) {
-        middlewares.append(widgetCenterMiddleware())
-    }
+    middlewares.append(widgetCenterMiddleware())
 
     middlewares.append(sensorConnectorMiddelware([
         SensorConnectionInfo(id: DirectConfig.virtualID, name: "Virtual") { VirtualLibreConnection(subject: $0) }
@@ -275,9 +273,7 @@ private func createAppStore() -> DirectStore {
         claudeMiddleware()
     ]
 
-    if #available(iOS 16.1, *) {
-        middlewares.append(widgetCenterMiddleware())
-    }
+    middlewares.append(widgetCenterMiddleware())
 
     var connectionInfos: [SensorConnectionInfo] = []
 
