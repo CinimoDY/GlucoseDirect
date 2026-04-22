@@ -41,7 +41,7 @@ View dispatches Action -> Store.dispatch() -> Reducer mutates State
 - **`fileSystemSynchronized` Xcode project** — new Swift files under `App/`, `Library/`, or `Widgets/` are auto-picked up; no manual pbxproj edits needed. Per-target exclusions live in `PBXFileSystemSynchronizedBuildFileExceptionSet` (currently excludes widget resources + `Extensions/Float.swift` from the widget target, and `Info.plist` from both app/widget auto-inclusion). Adding a new test file requires an explicit entry in `DOSBTSTests` group + `PBXSourcesBuildPhase` — the tests are NOT auto-synced.
 - **Two middleware arrays** in `App.swift` (device + simulator) — both must be updated when adding middleware
 - **Deployment target is iOS 26.0** — bumped from 15.0 in DMNC-769 to match DOOMBTS and adopt iOS 17+ APIs (new `onChange(of:_:)` two-arg form, etc.). Legacy `if #available(iOS 15.x/16.x/17.x, *)` guards were swept in DMNC-776/777/778 (PR #23) — none remain.
-- **Deploy to TestFlight:** `./deploy.sh` (uses ASC API key). `ExportOptions.plist` uses automatic signing. Bump `CURRENT_PROJECT_VERSION` in pbxproj before each deploy. If a connected iPhone is passcode-locked, archive will fail — unlock or disconnect it. Provisioning profiles are per-macOS-account; if deploying from a new account, archive once from Xcode first to generate them.
+- **Deploy to TestFlight:** `./deploy.sh` (uses ASC API key). `ExportOptions.plist` uses automatic signing. Bump `CURRENT_PROJECT_VERSION` in pbxproj before each deploy **and promote `[Unreleased]` → `[Build N]` in `CHANGELOG.md`** (see CHANGELOG section below). If a connected iPhone is passcode-locked, archive will fail — unlock or disconnect it. Provisioning profiles are per-macOS-account; if deploying from a new account, archive once from Xcode first to generate them.
 - **SwiftUI nested sheets are unreliable** — never present a `.sheet` from within a view that is itself presented as a `.sheet`. Use `NavigationLink` (push) instead. This applies to all iOS versions, not just iOS 15. See `docs/solutions/ui-bugs/swiftui-nested-sheets-present-wrong-view-20260316.md`.
 - **Cross-middleware listening** — multiple middlewares can handle the same action (e.g., `.addMealEntry` triggers both `mealEntryStoreMiddleware` and `favoriteFoodStoreMiddleware`). Comment these cross-dependencies for maintainability.
 - **Data load guards** — all DataStore middlewares guard `state.appState == .active` before loading. The `.active` state is set in `ContentView.onAppear`. If adding new data store middlewares, follow this pattern: handle `.setAppState(.active)` to trigger initial load, and guard `.active` in the load action handler. See `docs/solutions/logic-errors/appstate-inactive-blocks-data-loading-20260317.md`.
@@ -220,6 +220,15 @@ Key constraints from `docs/development-rules.md`:
 - **Offline-first** — core functionality works without network
 - **No secrets in Redux actions** — never put API keys or tokens in action associated values; use Keychain as a side channel
 - Conventional commits: `type(scope): subject` (feat, fix, docs, style, refactor, test, chore)
+
+## CHANGELOG
+
+- Every user-visible change goes under `## [Unreleased]` in `CHANGELOG.md` as part of the same PR that ships the change. "User-visible" = ships in the app binary and a user can observe it (new feature, bug fix, copy change, visible layout change). Internal-only changes (refactors, tooling, CI, compound learnings, developer docs) don't need an entry.
+- When bumping `CURRENT_PROJECT_VERSION` for TestFlight, promote the `[Unreleased]` block to `## [Build N] — YYYY-MM-DD` and add a new empty `[Unreleased]` above it.
+- Date is the TestFlight upload date, not the commit date. Use `git log` or App Store Connect to verify if in doubt.
+- Group entries under `Added` / `Changed` / `Fixed` / `Removed` per [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Append ` — DMNC-NNN, PR #NN` when the entry has a tracking issue and/or PR; otherwise just the description.
+- **Split-cycle rule:** if a feature merges before the `CURRENT_PROJECT_VERSION` bump but ships only after the next bump, move its entry to the correct `[Build N]` at promotion time.
+- **Yanked builds:** if a TestFlight build is withdrawn, leave its `[Build N]` block in place and add a `**Yanked.**` header line with the reason. Promote the next `CURRENT_PROJECT_VERSION` bump as normal.
 
 ## Docs
 

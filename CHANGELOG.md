@@ -7,20 +7,24 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 61] — 2026-04-22
+
 ### Added
-- Changelog, README rewrite, and LICENSE fork attribution
-- GitHub Sponsors link for DOSBTS-specific support, alongside the upstream donate link
+- Changelog, README rewrite, and LICENSE fork attribution — PR #22
+- GitHub Sponsors link for DOSBTS-specific support, alongside the upstream donate link — PR #22
 
 ### Changed
 - Xcode project migrated to `fileSystemSynchronized` groups — new Swift files under `App/`, `Library/`, `Widgets/` are auto-picked up (`pbxproj` went from 2,055 → 750 lines) — DMNC-768, PR #21
 - iOS deployment target bumped from 15.0/16.0 → 26.0 across all targets — DMNC-769, PR #19
 - SettingsView: inter-group breathing room between setting groups — DMNC-770, PR #20
 
+### Removed
+- Facebook group and Crowdin rows from Settings → About — PR #22
+
 ## [Build 60] — 2026-04-20
 
 ### Added
 - Widget phosphor display rework (expanded data: sparkline, IOB, TIR, last meal) — PR #18
-- Compound learning doc on Redux middleware async Task pitfalls
 
 ## [Build 59] — 2026-04-20
 

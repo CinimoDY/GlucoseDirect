@@ -8,6 +8,16 @@
 ![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-FFB000?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-FFB000?style=flat-square)
 
+## Screenshots
+
+| Overview | Daily digest |
+|:---:|:---:|
+| <img src="Screenshots/dosbts-overview.png" alt="Overview with glucose chart, event marker lane, and IOB overlay" width="280"> | <img src="Screenshots/dosbts-digest.png" alt="Daily digest stats grid and AI insight narrative" width="280"> |
+| **Meal entry** | **Settings** |
+| <img src="Screenshots/dosbts-meal-entry.png" alt="Unified meal entry with a QUICK favourites section plus Manual, Scan, Photo, and Ask AI paths" width="280"> | <img src="Screenshots/dosbts-settings.png" alt="Glucose settings panel" width="280"> |
+
+<sub>Build 61 on TestFlight. Overview, digest, and meal entry are on-device with real data; settings is a simulator capture.</sub>
+
 ## What it is
 
 DOSBTS is a personal fork of Reimar Metzen's excellent [GlucoseDirect](https://github.com/creepymonster/GlucoseDirectApp) — a SwiftUI CGM app for Libre sensors — re-skinned as a 1985-style amber phosphor DOS terminal and then extended with food logging, insulin-on-board, AI-assisted meal analysis, and a guided hypo treatment workflow.
@@ -66,7 +76,7 @@ xcodebuild -project DOSBTS.xcodeproj -scheme DOSBTSApp -sdk iphonesimulator -con
 # Build widget
 xcodebuild -project DOSBTS.xcodeproj -scheme DOSBTSWidget -sdk iphonesimulator -configuration Debug build
 
-# Tests (138 passing as of build 60)
+# Tests (138 passing as of build 61)
 xcodebuild -project DOSBTS.xcodeproj -scheme DOSBTSApp -sdk iphonesimulator \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
 ```
@@ -92,7 +102,7 @@ Most of the sensor / connection / LibreLinkUp content in upstream's [FAQ](https:
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) for the release history since forking (2026-02-28 → present, TestFlight builds 2–60).
+See [CHANGELOG.md](CHANGELOG.md) for the release history since forking (2026-02-28 → present, TestFlight builds 2–61).
 
 ## Sound credits
 
