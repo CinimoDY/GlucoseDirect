@@ -1103,7 +1103,9 @@ struct ChartView: View {
     }
 
     private var screenWidth: CGFloat {
-        UIScreen.screenWidth - 40
+        // Clamp to 0: pre-scene cold launch returns 0 for UIScreen.screenWidth,
+        // and 0 - 40 = -40 would cache into seriesWidth @State and stick there.
+        max(0, UIScreen.screenWidth - 40)
     }
 
     private var yAxisSteps: Double {
