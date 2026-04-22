@@ -8,6 +8,16 @@
 ![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-FFB000?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-FFB000?style=flat-square)
 
+## Screenshots
+
+| Overview | Daily digest |
+|:---:|:---:|
+| <img src="Screenshots/dosbts-overview.png" alt="Overview with glucose chart and predictive projection" width="280"> | <img src="Screenshots/dosbts-digest.png" alt="Daily digest stats grid and AI insight" width="280"> |
+| **Meal entry** | **Settings** |
+| <img src="Screenshots/dosbts-meal-entry.png" alt="Meal entry with quick hypo treatments, manual, scan, and recents" width="280"> | <img src="Screenshots/dosbts-settings.png" alt="Glucose settings panel" width="280"> |
+
+<sub>Simulator screenshots, build 61, iOS 26.4 on iPhone 17. Real device shots with rich history coming in a later README refresh.</sub>
+
 ## What it is
 
 DOSBTS is a personal fork of Reimar Metzen's excellent [GlucoseDirect](https://github.com/creepymonster/GlucoseDirectApp) — a SwiftUI CGM app for Libre sensors — re-skinned as a 1985-style amber phosphor DOS terminal and then extended with food logging, insulin-on-board, AI-assisted meal analysis, and a guided hypo treatment workflow.
