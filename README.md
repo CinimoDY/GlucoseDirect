@@ -1,183 +1,117 @@
-## Glucose Direct
+# DOSBTS
 
-***!!! Warning !!!***, This project is highly experimental! Please use this app with caution and extreme care. Do not make careless decisions based on software. Do not use this software if you are unsure.***
+> **D**OS **O**n **S**ugar — **B**uilt **T**o **S**ee. A DOS amber CGA aesthetic fork of [GlucoseDirect](https://github.com/creepymonster/GlucoseDirectApp) for reading Libre CGM sensors on iOS.
 
-App programmed in Swift/SwiftUI for using Libre Sensor blood glucose sensors. I try to keep the code as readable and understandable as possible so that as many people as possible can understand how this part of diabetes management works.
+> ⚠️ **This app is highly experimental. Do not make dosing decisions based on software alone.** It does not replace a medical device or the advice of a healthcare professional.
 
-## Current features!
-- Libre 3 Support* (over LibreLinkUp)
-- Libre 2 EU support (without transmitter) - **Currently not supported are Libre 2 US/CA/AUS, Libre Pro, Libre H sensors :'( - I am very happy about support for their connection**
-- Libre 1, support with transmitter (supported transmitter bubble)
-- Libre 1, manual scans without transmitter
-- Add manual bgm values
-- Manage bgm/cgm values
-- Units mg/dL or mmol/L
-- Upload glucose values to Nightscout
-- Upload sensor start to Nightscout
-- FreeAPS X support (with Shared App Groups)
-- Calendar export (to support Apple Watch)
-- Glucose statistics
-- Glucose read aloud
-- Glucose badge
-- Glucose chart
-- Glucose trend arrow
-- Glucose change per minute
-- Factory calibration
-- Custom calibration
-- Lifetime details
-- Transmitter details
-- Sensor details
-- Glucose alert for lows and highs
-- Connection lost alert
-- Missed readings alert
-- Sensor expiring alert
-- Snooze for glucose alerts
-- Simple evaluation of glucose values
-- Loop (Workspace, dev branch) support, [Loop CGM Manager](https://github.com/creepymonster/GlucoseDirectClient)
-- Insulin input and display
-- Food logging with carb tracking
-- Apple Health import (nutrition, exercise, heart rate)
-- Apple Health carb export for manual meals
-- Exercise and heart rate chart overlays
-- Source app filtering for Health imports
+![iOS 26](https://img.shields.io/badge/iOS-26+-FFB000?style=flat-square)
+![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-FFB000?style=flat-square)
+![License](https://img.shields.io/badge/License-MIT-FFB000?style=flat-square)
 
-## Available languages
-- Bulgarian
-- Chinese (simplified)
-- Chinese (traditional)
-- Dutch
-- English
-- Finnish
-- French
-- Georgian
-- German
-- Italian
-- Polish
-- Portuguese
-- Russian
-- Spanish
-- Swedish
-- Turkish
-- Ukrainian ❤️🇺🇦
+## What it is
+
+DOSBTS is a personal fork of Reimar Metzen's excellent [GlucoseDirect](https://github.com/creepymonster/GlucoseDirectApp) — a SwiftUI CGM app for Libre sensors — re-skinned as a 1985-style amber phosphor DOS terminal and then extended with food logging, insulin-on-board, AI-assisted meal analysis, and a guided hypo treatment workflow.
+
+The idea: make diabetes UX feel like a dedicated instrument you own, not a service you rent. CRT glow, monospace type, sharp corners, and exactly the right amount of DOS nostalgia.
+
+## Heritage and credit
+
+Everything good about this app that isn't amber is thanks to [Reimar Metzen / @creepymonster](https://github.com/creepymonster). The sensor-connection stack (Libre 1/2/3, Bubble, LibreLinkUp), calibration math, Nightscout integration, Apple Watch calendar export, HealthKit export, and the entire Redux-like architecture were all his work. DOSBTS inherits all of that under MIT.
+
+If you use DOSBTS, please consider **supporting the upstream project first** via [creepymonster's PayPal](https://www.paypal.me/creepymonstr) — the foundation this is built on is enormous. A sister fork, [DOOMBTS](https://github.com/CinimoDY/DOOMBTS), explores the same codebase in a Doom-inspired aesthetic.
+
+## What's new in DOSBTS (vs. GlucoseDirect upstream)
+
+### Visual identity
+- **Amber CGA phosphor aesthetic** — `#FFB000` primary, pure black backgrounds, SF Mono throughout, optional CRT scanline overlay
+- **Phosphor-style home screen widget** — rewritten widget (sparkline, IOB, TIR, last meal) with the amber glow treatment
+- **Event marker lane** — meals, insulin, exercise icons on their own lane above the glucose chart
+
+### Food logging
+- **Unified meal entry** — favorites, recents, and type-ahead search in one view
+- **AI food analysis** — photo, natural-language text, and barcode (Open Food Facts) input paths, powered by Claude Haiku. Requires explicit user consent.
+- **Conversational follow-up** for low-confidence AI parses
+- **Editable AI results** — the app learns from your corrections via a `PersonalFood` glycemic database
+- **Meal impact overlay** — tap a meal marker to see its 2-hour post-meal glucose delta, confounder detection, and rolling glycemic score
+
+### Insulin & dosing
+- **Insulin-on-Board (IOB)** — OpenAPS oref0 exponential decay model, hero display with 60s refresh, chart overlay (iOS 16+), stacking warning in the bolus flow
+- **Insulin settings** — rapid-acting vs. ultra-rapid presets, configurable basal DIA (2–24h), optional split meal/basal display
+
+### Alarms & treatment
+- **Guided hypo treatment workflow** ("Rule of 15") — alarm → log treatment → 15-min countdown → recheck glucose → stabilised or treat again. Background-safe via UNNotification actions.
+- **Predictive low alarm** — 20-min forward extrapolation of glucose trajectory using smoothed minute-change, with a dashed projection line on the chart
+- **Stale data indicator** — warns when the latest reading is >5 min old
+- **Insulin, carbs, exercise overlays** on the chart
+
+### Daily digest
+- **Daily digest tab** — per-day stats, AI-generated insight (Haiku), and an event timeline for the day
 
 ## Requirements
-- Apple iPhone with iOS 15
 
-## Quick test?
-You can quickly get an idea of Libre Direct: [TestFlight](https://testflight.apple.com/join/dWDt5Wme)
+- iPhone on **iOS 26** or later
+- A compatible Libre sensor (Libre 1 with Bubble transmitter, Libre 2 EU, Libre 3 via LibreLinkUp)
+- Xcode 16+ to build
 
-## Frequently Asked Questions
-Read the [FAQ](FAQ.md) ☺️
+## Quick test
 
-## Feedback?
-I am very happy to receive feedback - suggestions for improvement or reports of bugs encountered.
+A TestFlight link will be posted here when it's stable enough for external testers. Until then, build locally with `./deploy.sh` (requires an Apple developer account).
 
-## Support?
-- I appreciate all the translations I get. Just drop by Crowdin, every translation helps :) https://crwd.in/glucose-direct-app
+## Development
 
-## Thank you all hardworking translators for your great work ❤️
-birdfly, Diabetlum, Fcourela, Anna Furman (annafman), Nicola Lorenzetti (goldshotter), Matthias (HellsCrimson), Sahar Monitor (keyzersemen), Timmy_otoole, evr, Jon B Mårtensson (JBM_), Mrzurgon, Alberto Del Rio Malo (albertodeviaje2), georgin303@yandex.ru (georgin303), eyesoganci, mrfrostt, Mykola (Yroslavadudko), Fábio Romariz (fabioromariz), Francisco Losada (flosada), Moschetti Tiziana (ellie_fiume), Daisy Zhang (ryes), Alberto Nadim Assaf (alberto330), ferdytao, Irena Tkach (iratkach_1), Jean-Jacques Erbstein (jjerbstein), Bmwmax73, Zhang Lin (Kobe24), Ato83, Rico Opheij (CrazySugarNL), Imma Texeira Ceró (immatexeira), kadet11415, Anton Vershinin (anton-tony_v), Bubblan, Asli Uygun Cheesmar (asliseckin), yinojiang, 
+```bash
+# Build app
+xcodebuild -project DOSBTS.xcodeproj -scheme DOSBTSApp -sdk iphonesimulator -configuration Debug build
 
-## Todo
-- Cache Nightscout uploads without an Internet connection and run them later
-- Transmitter battery notifications
-- Upload sensor end to nightscout
+# Build widget
+xcodebuild -project DOSBTS.xcodeproj -scheme DOSBTSWidget -sdk iphonesimulator -configuration Debug build
 
-## Screenshots
-![Screenshot](/Screenshots/overview.png?raw=true)
-![Screenshot](/Screenshots/list.png?raw=true)
-![Screenshot](/Screenshots/calibrations.png?raw=true)
-![Screenshot](/Screenshots/settings.png?raw=true)
+# Tests (137 passing as of build 60)
+xcodebuild -project DOSBTS.xcodeproj -scheme DOSBTSApp -sdk iphonesimulator \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
+```
 
-## I use sounds from the following sources (incl. licenses):
-_Source:_ https://freesound.org/people/SpliceSound/sounds/369848
-_Author:_ SpliceSound
-_License:_ CC0 1.0 Universal, http://creativecommons.org/publicdomain/zero/1.0/
+The Xcode project uses `fileSystemSynchronized` groups — new `.swift` files under `App/`, `Library/`, or `Widgets/` are auto-picked up. See `CLAUDE.md` for the full architecture notes.
 
-_Source:_ https://freesound.org/people/JavierZumer/sounds/257227
-_Author:_ JavierZumer
-_License:_ Attribution 3.0 Unported, http://creativecommons.org/licenses/by/3.0/
+## Support
 
-_Source:_ https://freesound.org/people/JavierZumer/sounds/257235
-_Author:_ JavierZumer
-_License:_ Attribution 3.0 Unported, http://creativecommons.org/licenses/by/3.0/
+If DOSBTS is useful to you:
 
-_Source:_ https://freesound.org/people/LorenzoTheGreat/sounds/417791
-_Author:_ LorenzoTheGreat
-_License:_ Attribution 3.0 Unported, http://creativecommons.org/licenses/by/3.0/
+1. **First**, support [creepymonster / GlucoseDirect](https://www.paypal.me/creepymonstr) — the project this is built on
+2. If you also want to say thanks for the DOSBTS fork specifically (AI tokens, subscription costs, time): [GitHub Sponsors → CinimoDY](https://github.com/sponsors/CinimoDY)
 
-_Source:_ https://freesound.org/people/LittleRobotSoundFactory/sounds/270329/
-_Author:_ LittleRobotSoundFactory
-_License:_ Attribution 3.0 Unported, http://creativecommons.org/licenses/by/3.0/
+No obligation either way. Pull requests and issue reports are the most valuable form of support.
 
-_Source:_ https://freesound.org/people/LittleRobotSoundFactory/sounds/270327/
-_Author:_ LittleRobotSoundFactory
-_License:_ Attribution 3.0 Unported, http://creativecommons.org/licenses/by/3.0/
+## FAQ
 
-_Source:_ https://freesound.org/people/LittleRobotSoundFactory/sounds/270323/
-_Author:_ LittleRobotSoundFactory
-_License:_ Attribution 3.0 Unported, http://creativecommons.org/licenses/by/3.0/
+Most of the sensor / connection / LibreLinkUp content in upstream's [FAQ](https://github.com/creepymonster/GlucoseDirect/blob/main/FAQ.md) still applies.
 
-_Source:_ https://freesound.org/people/LittleRobotSoundFactory/sounds/270319/
-_Author:_ LittleRobotSoundFactory
-_License:_ Attribution 3.0 Unported, http://creativecommons.org/licenses/by/3.0/
+## License
 
-_Source:_ https://freesound.org/people/LittleRobotSoundFactory/sounds/270330/
-_Author:_ LittleRobotSoundFactory
-_License:_ Attribution 3.0 Unported, http://creativecommons.org/licenses/by/3.0/
+[MIT](LICENSE.md). Original copyright © 2023 Reimar Metzen. DOSBTS fork additions © 2026 Dominic Kennedy.
 
-_Source:_ https://freesound.org/people/LittleRobotSoundFactory/sounds/270305/
-_Author:_ LittleRobotSoundFactory
-_License:_ Attribution 3.0 Unported, http://creativecommons.org/licenses/by/3.0/
+## Changelog
 
-_Source:_ https://freesound.org/people/LittleRobotSoundFactory/sounds/270304/
-_Author:_ LittleRobotSoundFactory
-_License:_ Attribution 3.0 Unported, http://creativecommons.org/licenses/by/3.0/
+See [CHANGELOG.md](CHANGELOG.md) for the release history since forking (2026-02-28 → present, TestFlight builds 2–60).
 
-_Source:_ https://freesound.org/people/ProjectsU012/sounds/341629/
-_Author:_ ProjectsU012
-_License:_ Attribution 3.0 Unported, http://creativecommons.org/licenses/by/3.0/
+## Sound credits
 
-_Source:_ https://freesound.org/people/ProjectsU012/sounds/334261/
-_Author:_ ProjectsU012
-_License:_ Attribution 3.0 Unported, http://creativecommons.org/licenses/by/3.0/
+Inherited from upstream GlucoseDirect. All sounds used under CC0 1.0 Universal or CC Attribution 3.0 Unported:
 
-_Source:_ https://freesound.org/people/ProjectsU012/sounds/360964/
-_Author:_ ProjectsU012
-_License:_ Attribution 3.0 Unported, http://creativecommons.org/licenses/by/3.0/
+- SpliceSound — [369848](https://freesound.org/people/SpliceSound/sounds/369848) (CC0)
+- JavierZumer — [257227](https://freesound.org/people/JavierZumer/sounds/257227), [257235](https://freesound.org/people/JavierZumer/sounds/257235) (CC-BY 3.0)
+- LorenzoTheGreat — [417791](https://freesound.org/people/LorenzoTheGreat/sounds/417791) (CC-BY 3.0)
+- LittleRobotSoundFactory — [270329](https://freesound.org/people/LittleRobotSoundFactory/sounds/270329/), [270327](https://freesound.org/people/LittleRobotSoundFactory/sounds/270327/), [270323](https://freesound.org/people/LittleRobotSoundFactory/sounds/270323/), [270319](https://freesound.org/people/LittleRobotSoundFactory/sounds/270319/), [270330](https://freesound.org/people/LittleRobotSoundFactory/sounds/270330/), [270305](https://freesound.org/people/LittleRobotSoundFactory/sounds/270305/), [270304](https://freesound.org/people/LittleRobotSoundFactory/sounds/270304/) (CC-BY 3.0)
+- ProjectsU012 — [341629](https://freesound.org/people/ProjectsU012/sounds/341629/), [334261](https://freesound.org/people/ProjectsU012/sounds/334261/), [360964](https://freesound.org/people/ProjectsU012/sounds/360964/), [333785](https://freesound.org/people/ProjectsU012/sounds/333785/) (CC-BY 3.0)
+- TannerSound — [478262](https://freesound.org/people/TannerSound/sounds/478262/) (CC-BY 3.0)
+- andersmmg — [511491](https://freesound.org/people/andersmmg/sounds/511491/) (CC-BY 3.0)
+- shinephoenixstormcrow — [337050](https://freesound.org/people/shinephoenixstormcrow/sounds/337050/) (CC-BY 3.0)
+- soneproject — [346425](https://freesound.org/people/soneproject/sounds/346425/) (CC-BY 3.0)
+- ying16 — [353069](https://freesound.org/people/ying16/sounds/353069/) (CC-BY 3.0)
+- queenoyster — [582986](https://freesound.org/people/queenoyster/sounds/582986/) (CC0)
+- walkingdistance — [185197](https://freesound.org/people/walkingdistance/sounds/185197/) (CC-BY 3.0)
+- melokacool — [613653](https://freesound.org/people/melokacool/sounds/613653) (CC0)
 
-_Source:_ https://freesound.org/people/ProjectsU012/sounds/333785/
-_Author:_ ProjectsU012
-_License:_ Attribution 3.0 Unported, http://creativecommons.org/licenses/by/3.0/
+## Translation credits
 
-_Source:_ https://freesound.org/people/TannerSound/sounds/478262/
-_Author:_ TannerSound
-_License:_ Attribution 3.0 Unported, http://creativecommons.org/licenses/by/3.0/
-
-_Source:_ https://freesound.org/people/andersmmg/sounds/511491/
-_Author:_ andersmmg
-_License:_ Attribution 3.0 Unported, http://creativecommons.org/licenses/by/3.0/
-
-_Source:_ https://freesound.org/people/shinephoenixstormcrow/sounds/337050/
-_Author:_ shinephoenixstormcrow
-_License:_ Attribution 3.0 Unported, http://creativecommons.org/licenses/by/3.0/
-
-_Source:_ https://freesound.org/people/soneproject/sounds/346425/
-_Author:_ soneproject
-_License:_ Attribution 3.0 Unported, http://creativecommons.org/licenses/by/3.0/
-
-_Source:_ https://freesound.org/people/ying16/sounds/353069/
-_Author:_ ying16
-_License:_ Attribution 3.0 Unported, http://creativecommons.org/licenses/by/3.0/
-
-_Source:_ https://freesound.org/people/queenoyster/sounds/582986/
-_Author:_ queenoyster
-_License:_ CC0 1.0 Universal, http://creativecommons.org/publicdomain/zero/1.0/
-
-_Source:_ https://freesound.org/people/walkingdistance/sounds/185197/
-_Author:_ walkingdistance
-_License:_ Attribution 3.0 Unported, http://creativecommons.org/licenses/by/3.0/
-
-_Source:_ https://freesound.org/people/melokacool/sounds/613653
-_Author:_ melokacool
-_License:_ CC0 1.0 Universal, http://creativecommons.org/publicdomain/zero/1.0/
+Upstream GlucoseDirect was translated into 18 languages by a large community of volunteers — their work still powers DOSBTS's localization. See the [upstream README's translator list](https://github.com/creepymonster/GlucoseDirectApp/blob/main/README.md) for the full credit roll. Thank you.
