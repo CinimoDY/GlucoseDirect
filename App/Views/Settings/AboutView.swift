@@ -56,25 +56,17 @@ struct AboutView: View {
                 }
 
                 HStack {
-                    Text("App facebook group")
+                    Text(verbatim: "Support upstream GlucoseDirect")
                     Spacer()
-                    Link("Facebook", destination: URL(string: DirectConfig.facebookURL)!)
+                    Link("PayPal", destination: URL(string: DirectConfig.upstreamDonateURL)!)
                         .lineLimit(1)
                         .truncationMode(.head)
                 }
 
                 HStack {
-                    Text("App donate")
+                    Text(verbatim: "Tip the DOSBTS fork")
                     Spacer()
-                    Link("PayPal", destination: URL(string: DirectConfig.donateURL)!)
-                        .lineLimit(1)
-                        .truncationMode(.head)
-                }
-
-                HStack {
-                    Text("App translation")
-                    Spacer()
-                    Link("Crowdin", destination: URL(string: DirectConfig.crowdinURL)!)
+                    Link("Sponsors", destination: URL(string: DirectConfig.sponsorURL)!)
                         .lineLimit(1)
                         .truncationMode(.head)
                 }
