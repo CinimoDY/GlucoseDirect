@@ -52,9 +52,9 @@ struct ContentView: View {
                     WidgetCenter.shared.reloadAllTimelines()
                 }
             }
-            .onChange(of: store.state.latestSensorGlucose, perform: { _ in
+            .onChange(of: store.state.latestSensorGlucose) { _, _ in
                 WidgetCenter.shared.reloadAllTimelines()
-            })
+            }
             .onAppear {
                 DirectLog.info("onAppear()")
 
