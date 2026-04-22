@@ -12,11 +12,11 @@
 
 | Overview | Daily digest |
 |:---:|:---:|
-| <img src="Screenshots/dosbts-overview.png" alt="Overview with glucose chart and predictive projection" width="280"> | <img src="Screenshots/dosbts-digest.png" alt="Daily digest stats grid and AI insight" width="280"> |
+| <img src="Screenshots/dosbts-overview.png" alt="Overview with glucose chart, event marker lane, and IOB overlay" width="280"> | <img src="Screenshots/dosbts-digest.png" alt="Daily digest stats grid and AI insight narrative" width="280"> |
 | **Meal entry** | **Settings** |
-| <img src="Screenshots/dosbts-meal-entry.png" alt="Meal entry with quick hypo treatments, manual, scan, and recents" width="280"> | <img src="Screenshots/dosbts-settings.png" alt="Glucose settings panel" width="280"> |
+| <img src="Screenshots/dosbts-meal-entry.png" alt="Unified meal entry with quick, manual, scan, photo, and Ask AI" width="280"> | <img src="Screenshots/dosbts-settings.png" alt="Glucose settings panel" width="280"> |
 
-<sub>Simulator screenshots, build 61, iOS 26.4 on iPhone 17. Real device shots with rich history coming in a later README refresh.</sub>
+<sub>Build 61 on TestFlight. Overview, digest, and meal entry are on-device with real data; settings is a simulator capture.</sub>
 
 ## What it is
 
