@@ -66,7 +66,7 @@ xcodebuild -project DOSBTS.xcodeproj -scheme DOSBTSApp -sdk iphonesimulator -con
 # Build widget
 xcodebuild -project DOSBTS.xcodeproj -scheme DOSBTSWidget -sdk iphonesimulator -configuration Debug build
 
-# Tests (138 passing as of build 60)
+# Tests (138 passing as of build 61)
 xcodebuild -project DOSBTS.xcodeproj -scheme DOSBTSApp -sdk iphonesimulator \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
 ```
@@ -92,7 +92,7 @@ Most of the sensor / connection / LibreLinkUp content in upstream's [FAQ](https:
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) for the release history since forking (2026-02-28 → present, TestFlight builds 2–60).
+See [CHANGELOG.md](CHANGELOG.md) for the release history since forking (2026-02-28 → present, TestFlight builds 2–61).
 
 ## Sound credits
 

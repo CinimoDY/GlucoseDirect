@@ -221,6 +221,14 @@ Key constraints from `docs/development-rules.md`:
 - **No secrets in Redux actions** — never put API keys or tokens in action associated values; use Keychain as a side channel
 - Conventional commits: `type(scope): subject` (feat, fix, docs, style, refactor, test, chore)
 
+## CHANGELOG
+
+- Every user-visible change goes under `## [Unreleased]` in `CHANGELOG.md` as part of the same PR that ships the change.
+- When bumping `CURRENT_PROJECT_VERSION` for TestFlight, promote the `[Unreleased]` block to `## [Build N] — YYYY-MM-DD` and add a new empty `[Unreleased]` above it.
+- Date is the TestFlight upload date, not the commit date. Use `git log` or App Store Connect to verify if in doubt.
+- Group entries under `Added` / `Changed` / `Fixed` / `Removed` per [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+- Internal-only changes (refactors, tooling, CI) don't need a CHANGELOG entry unless a user can feel the effect.
+
 ## Docs
 
 Additional documentation in `docs/`:
