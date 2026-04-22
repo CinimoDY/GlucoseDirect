@@ -14,7 +14,7 @@
 |:---:|:---:|
 | <img src="Screenshots/dosbts-overview.png" alt="Overview with glucose chart, event marker lane, and IOB overlay" width="280"> | <img src="Screenshots/dosbts-digest.png" alt="Daily digest stats grid and AI insight narrative" width="280"> |
 | **Meal entry** | **Settings** |
-| <img src="Screenshots/dosbts-meal-entry.png" alt="Unified meal entry with quick, manual, scan, photo, and Ask AI" width="280"> | <img src="Screenshots/dosbts-settings.png" alt="Glucose settings panel" width="280"> |
+| <img src="Screenshots/dosbts-meal-entry.png" alt="Unified meal entry with a QUICK favourites section plus Manual, Scan, Photo, and Ask AI paths" width="280"> | <img src="Screenshots/dosbts-settings.png" alt="Glucose settings panel" width="280"> |
 
 <sub>Build 61 on TestFlight. Overview, digest, and meal entry are on-device with real data; settings is a simulator capture.</sub>
 

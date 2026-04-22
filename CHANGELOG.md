@@ -25,7 +25,6 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ### Added
 - Widget phosphor display rework (expanded data: sparkline, IOB, TIR, last meal) — PR #18
-- Compound learning doc on Redux middleware async Task pitfalls
 
 ## [Build 59] — 2026-04-20
 
