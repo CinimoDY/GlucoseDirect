@@ -66,7 +66,7 @@ xcodebuild -project DOSBTS.xcodeproj -scheme DOSBTSApp -sdk iphonesimulator -con
 # Build widget
 xcodebuild -project DOSBTS.xcodeproj -scheme DOSBTSWidget -sdk iphonesimulator -configuration Debug build
 
-# Tests (137 passing as of build 60)
+# Tests (138 passing as of build 60)
 xcodebuild -project DOSBTS.xcodeproj -scheme DOSBTSApp -sdk iphonesimulator \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
 ```

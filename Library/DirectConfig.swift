@@ -12,7 +12,7 @@ enum DirectConfig {
     static let bubbleID = "bubble"
     static let calibrationsViewTag = 3
     static let digestViewTag = 5
-    static let donateURL = "https://www.paypal.me/creepymonstr"
+    static let upstreamDonateURL = "https://www.paypal.me/creepymonstr"
     static let sponsorURL = "https://github.com/sponsors/CinimoDY"
     static let expiredNotificationInterval: Double = 1 * 60 * 60 // in seconds
     static let faqURL = "https://github.com/creepymonster/GlucoseDirect/blob/main/FAQ.md#faq"

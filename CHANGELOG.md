@@ -16,13 +16,13 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 - iOS deployment target bumped from 15.0/16.0 → 26.0 across all targets — DMNC-769, PR #19
 - SettingsView: inter-group breathing room between setting groups — DMNC-770, PR #20
 
-## [Build 60] — 2026-04-22
+## [Build 60] — 2026-04-20
 
 ### Added
 - Widget phosphor display rework (expanded data: sparkline, IOB, TIR, last meal) — PR #18
 - Compound learning doc on Redux middleware async Task pitfalls
 
-## [Build 59] — 2026-04-22
+## [Build 59] — 2026-04-20
 
 ### Added
 - **Daily Digest tab** (4th tab) with per-day stats grid, AI-generated insight (Claude Haiku), and chronological event timeline. Requires separate `aiConsentDailyDigest` toggle. — DMNC-579, PR #17
@@ -41,22 +41,22 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 ### Fixed
 - Backport cleanup from DOOMBTS: Y-axis trailing, HR legend header, haptic feedback — DMNC-714
 
-## [Build 54] — 2026-04-20 ("IOB release")
+## [Build 54] — 2026-04-18 ("IOB release")
 
 ### Added
 - **Insulin-on-Board (IOB)** — OpenAPS oref0 Maksimovic exponential decay model with `InsulinPreset` enum (rapid-acting peak 75m / DIA 6h, ultra-rapid peak 55m / DIA 6h). Hero display with 60s refresh, split display toggle, chart AreaMark overlay (iOS 16+), stacking warning in AddInsulinView, InsulinSettingsView. — PR #13
 
-## [Build 53] — 2026-04-19
+## [Build 53] — 2026-04-17
 
 ### Added
 - **Stale data indicator** on hero glucose — "X MIN AGO" warning (amber 5–14 min, red 15+) to prevent dosing decisions on silently stale data
 
-## [Build 52] — 2026-04-18
+## [Build 52] — 2026-04-17
 
 ### Added
 - **XCTest target** with initial reducer snapshot tests (later expanded to 137 tests)
 
-## [Build 51] — 2026-04-18
+## [Build 51] — 2026-04-17
 
 ### Added
 - **Predictive low alarm** — 20-min forward extrapolation of glucose trajectory using smoothed minuteChange. Fires "Trending Low" notification with "EAT NOW" UNNotificationAction. Chart shows dashed projection line (iOS 16+) with red cross marker at predicted threshold crossing. Toggle: `showPredictiveLowAlarm`.

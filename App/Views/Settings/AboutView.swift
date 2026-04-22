@@ -56,15 +56,15 @@ struct AboutView: View {
                 }
 
                 HStack {
-                    Text("Support upstream GlucoseDirect")
+                    Text(verbatim: "Support upstream GlucoseDirect")
                     Spacer()
-                    Link("PayPal", destination: URL(string: DirectConfig.donateURL)!)
+                    Link("PayPal", destination: URL(string: DirectConfig.upstreamDonateURL)!)
                         .lineLimit(1)
                         .truncationMode(.head)
                 }
 
                 HStack {
-                    Text("Tip the DOSBTS fork")
+                    Text(verbatim: "Tip the DOSBTS fork")
                     Spacer()
                     Link("Sponsors", destination: URL(string: DirectConfig.sponsorURL)!)
                         .lineLimit(1)
