@@ -30,7 +30,7 @@ struct AIConsentView: View {
             .padding(.vertical, 8)
 
             Link("Anthropic Privacy Policy",
-                 destination: URL(string: "https://www.anthropic.com/privacy") ?? URL(string: "https://anthropic.com")!)
+                 destination: URL(staticString: "https://www.anthropic.com/privacy"))
                 .font(DOSTypography.caption)
                 .foregroundStyle(AmberTheme.cgaCyan)
 

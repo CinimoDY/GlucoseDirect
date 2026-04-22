@@ -76,7 +76,6 @@ struct FoodPhotoAnalysisView: View {
     @State private var selectedItem: Any?
     @State private var showCamera = false
     @State private var showConsentSheet = false
-    @State private var showImagePicker = false
     @State private var isItemScanActive = false // guards onDisappear from clearing during child push
 
     // Staging plate state
@@ -200,18 +199,7 @@ struct FoodPhotoAnalysisView: View {
     private var photoPickerSection: some View {
         Section(
             content: {
-                if #available(iOS 16.0, *) {
-                    photosPickerButton
-                } else {
-                    Button(action: { showImagePicker = true }) {
-                        Label("Choose from Library", systemImage: "photo")
-                    }
-                    .sheet(isPresented: $showImagePicker) {
-                        CameraView(sourceType: .photoLibrary) { image in
-                            analyzeImage(image)
-                        }
-                    }
-                }
+                photosPickerButton
 
                 Button(action: { showCamera = true }) {
                     Label("Take Photo", systemImage: "camera")
@@ -244,7 +232,6 @@ struct FoodPhotoAnalysisView: View {
         )
     }
 
-    @available(iOS 16.0, *)
     private var photosPickerButton: some View {
         PhotosPicker(selection: Binding(
             get: { selectedItem as? PhotosPickerItem },
@@ -762,7 +749,6 @@ struct FoodPhotoAnalysisView: View {
 
     // MARK: - Actions
 
-    @available(iOS 16.0, *)
     private func handlePhotoSelection(_ item: PhotosPickerItem) {
         Task {
             guard let data = try? await item.loadTransferable(type: Data.self),

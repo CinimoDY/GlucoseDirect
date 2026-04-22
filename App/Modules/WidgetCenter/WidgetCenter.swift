@@ -8,14 +8,12 @@ import Combine
 import Foundation
 import WidgetKit
 
-@available(iOS 16.1, *)
 func widgetCenterMiddleware() -> Middleware<DirectState, DirectAction> {
     widgetCenterMiddleware(service: LazyService<ActivityGlucoseService>(initialization: {
         ActivityGlucoseService()
     }))
 }
 
-@available(iOS 16.1, *)
 private func widgetCenterMiddleware(service: LazyService<ActivityGlucoseService>) -> Middleware<DirectState, DirectAction> {
     return { state, action, _ in
         switch action {
@@ -123,7 +121,6 @@ private func widgetCenterMiddleware(service: LazyService<ActivityGlucoseService>
 
 // MARK: - ActivityGlucoseService
 
-@available(iOS 16.1, *)
 private class ActivityGlucoseService {
     // MARK: Lifecycle
 

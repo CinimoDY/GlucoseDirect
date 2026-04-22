@@ -46,11 +46,7 @@ struct OverviewView: View {
                 }
 
                 if !store.state.sensorGlucoseValues.isEmpty || !store.state.bloodGlucoseValues.isEmpty {
-                    if #available(iOS 16.0, *) {
-                        ChartView()
-                    } else {
-                        ChartViewCompatibility()
-                    }
+                    ChartView()
                 }
 
                 ConnectionView()
