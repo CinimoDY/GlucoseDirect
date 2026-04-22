@@ -5,7 +5,7 @@
 
 import SwiftUI
 
-// MARK: - Active Sheet Enum (prevents iOS 15 sibling sheet collision)
+// MARK: - Active Sheet Enum (prevents SwiftUI sibling-sheet collisions)
 
 private enum ActiveSheet: Identifiable {
     case insulin

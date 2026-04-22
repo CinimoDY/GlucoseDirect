@@ -87,6 +87,9 @@ private class AppleCalendarExportService {
 
     lazy var eventStore: EKEventStore = .init()
 
+    // iOS 17+ API — replaces the deprecated requestAccess(to:completion:). If
+    // this file is ever hash-diff backported to DOOMBTS on a deployment
+    // target below iOS 17, restore the legacy branch.
     func requestAccess(completionHandler: @escaping CalendarExportHandler) {
         eventStore.requestFullAccessToEvents { granted, error in
             if granted, error == nil {

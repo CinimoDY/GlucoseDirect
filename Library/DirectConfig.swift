@@ -8,7 +8,7 @@ import Foundation
 // MARK: - AppConfig
 
 enum DirectConfig {
-    static let appSchemaURL = URL(string: "dosbts://")
+    static let appSchemaURL = URL(staticString: "dosbts://")
     static let bubbleID = "bubble"
     static let calibrationsViewTag = 3
     static let digestViewTag = 5
