@@ -10,17 +10,30 @@ struct SettingsView: View {
 
     var body: some View {
         List {
+            // Sensor
             SensorConnectorSettingsView()
             SensorConnectionConfigurationView()
+
+            // Glucose & Alarms
+            Section {}.listRowBackground(Color.clear)
             GlucoseSettingsView()
             AlarmSettingsView()
             InsulinSettingsView()
+
+            // Export
+            Section {}.listRowBackground(Color.clear)
             NightscoutSettingsView()
             AppleExportSettingsView()
+
+            // AI & Extras
+            Section {}.listRowBackground(Color.clear)
             AISettingsView()
             BellmanSettingsView()
             CalibrationSettingsView()
             AdditionalSettingsView()
+
+            // About
+            Section {}.listRowBackground(Color.clear)
             AboutView()
         }.listStyle(.grouped)
     }
