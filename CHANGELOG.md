@@ -7,6 +7,11 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 62] — 2026-04-22
+
+### Fixed
+- Chart rendered blank on scene-restoration cold launches. `UIScreen` extension now walks `UIApplication.connectedScenes` (iOS 26 replacement for deprecated `UIScreen.main`), and `ChartView.screenWidth` clamps to `max(0, …)` so a pre-scene 0 width can't cache a negative value into the chart's `@State` — DMNC-780, PR #25.
+
 ## [Build 61] — 2026-04-22
 
 ### Added
