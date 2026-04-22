@@ -16,7 +16,6 @@ private enum ReportType: String, CaseIterable {
     case statistics = "STATISTICS"
 }
 
-@available(iOS 16.0, *)
 struct ChartView: View {
     // MARK: Internal
 

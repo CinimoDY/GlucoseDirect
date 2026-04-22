@@ -5,7 +5,7 @@
 
 import SwiftUI
 
-// MARK: - Active Sheet Enum (prevents iOS 15 sibling sheet collision)
+// MARK: - Active Sheet Enum (prevents SwiftUI sibling-sheet collisions)
 
 private enum ActiveSheet: Identifiable {
     case insulin
@@ -46,11 +46,7 @@ struct OverviewView: View {
                 }
 
                 if !store.state.sensorGlucoseValues.isEmpty || !store.state.bloodGlucoseValues.isEmpty {
-                    if #available(iOS 16.0, *) {
-                        ChartView()
-                    } else {
-                        ChartViewCompatibility()
-                    }
+                    ChartView()
                 }
 
                 ConnectionView()

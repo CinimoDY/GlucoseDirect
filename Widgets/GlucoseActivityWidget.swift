@@ -9,7 +9,6 @@ import WidgetKit
 
 // MARK: - GlucoseActivityWidget
 
-@available(iOS 16.1, *)
 struct GlucoseActivityWidget: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: SensorGlucoseActivityAttributes.self) { context in
@@ -63,12 +62,10 @@ struct GlucoseActivityWidget: Widget {
 
 // MARK: - GlucoseStatusContext
 
-@available(iOS 16.1, *)
 protocol GlucoseStatusContext {
     var context: SensorGlucoseActivityAttributes.GlucoseStatus { get }
 }
 
-@available(iOS 16.1, *)
 extension GlucoseStatusContext {
     var warning: String? {
         if let sensorState = context.sensorState, sensorState != .ready {
@@ -93,7 +90,6 @@ extension GlucoseStatusContext {
 
 // MARK: - DynamicIslandCenterView
 
-@available(iOS 16.1, *)
 struct DynamicIslandCenterView: View, GlucoseStatusContext {
     @State var context: SensorGlucoseActivityAttributes.GlucoseStatus
 
@@ -161,7 +157,6 @@ struct DynamicIslandCenterView: View, GlucoseStatusContext {
 
 // MARK: - GlucoseActivityView
 
-@available(iOS 16.1, *)
 struct GlucoseActivityView: View, GlucoseStatusContext {
     @State var context: SensorGlucoseActivityAttributes.GlucoseStatus
 
@@ -264,7 +259,6 @@ struct GlucoseActivityView: View, GlucoseStatusContext {
 
 // MARK: - GlucoseActivityWidget_Previews
 
-@available(iOS 16.1, *)
 struct GlucoseActivityWidget_Previews: PreviewProvider {
     static var previews: some View {
         GlucoseActivityView(
