@@ -38,7 +38,7 @@ View dispatches Action -> Store.dispatch() -> Reducer mutates State
 
 **Architecture gotchas:**
 - **Reducer runs BEFORE middlewares** — `Store.dispatch()` calls `reducer(&state, action)` first, then passes the *new* state to middlewares. Don't guard on state that the reducer just changed for the same action flow.
-- **Traditional Xcode project** (NOT `fileSystemSynchronized`) — new files require manual `pbxproj` entries
+- **`fileSystemSynchronized` Xcode project** — new Swift files under `App/`, `Library/`, or `Widgets/` are auto-picked up; no manual pbxproj edits needed. Per-target exclusions live in `PBXFileSystemSynchronizedBuildFileExceptionSet` (currently excludes widget resources + `Extensions/Float.swift` from the widget target, and `Info.plist` from both app/widget auto-inclusion). Adding a new test file requires an explicit entry in `DOSBTSTests` group + `PBXSourcesBuildPhase` — the tests are NOT auto-synced.
 - **Two middleware arrays** in `App.swift` (device + simulator) — both must be updated when adding middleware
 - **Deployment target is iOS 26.0** — bumped from 15.0 in DMNC-769 to match DOOMBTS and adopt iOS 17+ APIs (new `onChange(of:_:)` two-arg form, etc.). Existing `if #available(iOS 15.x/16.x/17.x, *)` guards are now dead branches and can be cleaned up incrementally.
 - **Deploy to TestFlight:** `./deploy.sh` (uses ASC API key). `ExportOptions.plist` uses automatic signing. Bump `CURRENT_PROJECT_VERSION` in pbxproj before each deploy. If a connected iPhone is passcode-locked, archive will fail — unlock or disconnect it. Provisioning profiles are per-macOS-account; if deploying from a new account, archive once from Xcode first to generate them.
@@ -189,9 +189,12 @@ Don't forget `Library/DirectAction.swift` if a new action is needed.
 
 ## Adding New Files to Xcode Project
 
-No SPM/xcodeproj tooling — new `.swift` files must be added to `DOSBTS.xcodeproj/project.pbxproj` manually in 4 sections:
-- PBXBuildFile, PBXFileReference, PBXGroup (parent folder's children), PBXSourcesBuildPhase
-- Use unique hex IDs following existing patterns
+The project uses Xcode's `fileSystemSynchronized` build system (DMNC-768). New `.swift` files placed anywhere under `App/`, `Library/`, or `Widgets/` are picked up automatically — no pbxproj edits needed.
+
+Exceptions:
+- **Tests** are NOT auto-synced. New files under `DOSBTSTests/` must be added to the `DOSBTSTests` group and `PBXSourcesBuildPhase` in `project.pbxproj` manually.
+- **Widget-only exclusions.** The `DOSBTSWidget` target excludes `Library/Extensions/Float.swift` and all files in `Library/Resources/` (audio + `sensor.png`). If you add a new file under `Library/Resources/` that the widget should NOT include, add it to `E8217F012F97F9B800ACCE52 /* PBXFileSystemSynchronizedBuildFileExceptionSet */` in `project.pbxproj`.
+- **Info.plist** is excluded from auto-inclusion (uses explicit `INFOPLIST_FILE` build setting).
 
 ## Adding GRDB Table Columns
 
