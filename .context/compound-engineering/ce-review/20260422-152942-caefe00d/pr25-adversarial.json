@@ -1,0 +1,132 @@
+{
+  "reviewer": "adversarial",
+  "findings": [
+    {
+      "id": "adv-1",
+      "title": "Cascade: zero-scene cold start produces 0x0 chart frame that persists until next data mutation",
+      "severity": "high",
+      "confidence": 0.82,
+      "category": "assumption_violation",
+      "file": "App/Extensions/UIScreen.swift",
+      "line": 27,
+      "autofix_class": "advisory",
+      "owner": "human",
+      "evidence": [
+        "Trigger: cold launch path where SwiftUI constructs ChartView before the scene reaches .foregroundInactive. This is rare but reachable during scene restoration, background launches (widget-driven UI rehydration, CLLocationManager-driven background wakes), and certain iOS 26 deep-link / Spotlight hand-offs where the root view renders one pass before scene activation completes.",
+        "Step 1: UIScreen.current iterates UIApplication.shared.connectedScenes. On a cold process with no attached UIWindowScene yet, connectedScenes is empty. Both the .foregroundActive filter and the fallback .first? return nil, so current returns nil.",
+        "Step 2: screenWidth returns 0, screenHeight returns 0 (App/Extensions/UIScreen.swift:27-32).",
+        "Step 3: ChartView.screenWidth = UIScreen.screenWidth - 40 = -40 at line 1106. screenHeight = 0 at line 1102.",
+        "Step 4: ChartView.onAppear calls updateSeriesMetadata() (line 965). updateSeriesMetadata computes minuteWidth = screenWidth / (zoomLevel.visibleHours * 60) = -40 / 360 = -0.111 (line 1237). seriesWidth = minuteWidth * chartMinutes, negative for any positive chartMinutes. This negative seriesWidth is cached into @State (line 1242).",
+        "Step 5: Frame becomes .frame(width: max(0, -40, negative), height: min(0, 250)) = width 0, height 0 for both the marker lane (line 123) and the chart (line 126).",
+        "Step 6: screenWidth/screenHeight are plain computed properties (not @State, not @Published, not bound to any publisher). Nothing invalidates the view when the scene later transitions to .foregroundActive. The cached seriesWidth in @State stays negative until an onChange trigger (sensorGlucoseValues, mealEntryValues, chartZoomLevel, orientation, etc.) fires debounceSeriesMetadata. Until then, the chart is a 0x0 invisible ScrollView. In the degenerate case where the user launches into a stale-data state (no new glucose reading in the first minute, no orientation change, no settings change), the chart stays blank.",
+        "The previous UIScreen.main.bounds.size returned cached display metrics even when the app was not yet foregrounded, so this failure mode did not exist before the patch."
+      ],
+      "suggested_fix": "Bind UIScreen.current to a SwiftUI observable so views re-render when the scene attaches. Simpler: in ChartView, switch to GeometryReader for the chart container width and remove UIScreen access entirely. Minimal fallback: have screenWidth/Height return a sensible non-zero default (e.g. 390/844, a common iPhone logical size) when no scene is connected, so the zero cascade cannot happen."
+    },
+    {
+      "id": "adv-2",
+      "title": "Composition failure: multi-scene iPadOS 26 Stage Manager sizes chart against arbitrary scene (not the one the user is looking at)",
+      "severity": "medium",
+      "confidence": 0.72,
+      "category": "composition_failure",
+      "file": "App/Extensions/UIScreen.swift",
+      "line": 18,
+      "autofix_class": "advisory",
+      "owner": "human",
+      "evidence": [
+        "Trigger: user has the app running on iPadOS 26 Stage Manager with the DOSBTS window visible alongside another app's window, or has external-display mirroring enabled, or is running in split-view.",
+        "Step 1: UIApplication.shared.connectedScenes contains 2+ UIWindowScene instances (the main scene, plus any external/secondary scenes). Apple does not guarantee the collection is ordered by primary-focus or by creation order.",
+        "Step 2: .first { $0.activationState == .foregroundActive } picks the first scene whose activationState is .foregroundActive. On Stage Manager both scenes can be .foregroundActive simultaneously; the one returned depends on enumeration order of the underlying NSHashTable-backed Set, which is unstable.",
+        "Step 3: The chosen scene's UIScreen may correspond to a different physical display (external monitor mirroring, AirPlay display) with a different bounds.size than the device the user is touching. Chart frames are sized against the wrong screen. On a mirrored external display with 1920x1080 resolution, screenWidth becomes ~1920 but the iPhone window is ~390pt wide. The ScrollView now contains content much wider than its viewport, producing unexpected scroll behavior and potentially broken scrollToEnd anchoring.",
+        "Step 4: The reviewer said 'semantics unchanged on single-window iPhone app.' This is true today. But iOS 26 raised iPhone deployment target and Stage Manager support; the app is now buildable and distributable on iPad in multi-window mode. The assumption of single-window is a runtime assumption, not enforced at the project level. Any user running on iPad or with external display mirroring hits this.",
+        "Prior code using UIScreen.main.bounds returned the main/internal display regardless of scene count — deterministic even if occasionally wrong for external display cases."
+      ],
+      "suggested_fix": "Replace UIScreen access in ChartView with GeometryReader at the chart container, which gives the actual view size in the current scene. The UIScreen extension should probably be deleted entirely (only consumer is ChartView)."
+    },
+    {
+      "id": "adv-3",
+      "title": "Cascade: seriesWidth gets cached to a negative value that poisons all downstream layout math until next data change",
+      "severity": "medium",
+      "confidence": 0.80,
+      "category": "cascade",
+      "file": "App/Views/Overview/ChartView.swift",
+      "line": 1237,
+      "autofix_class": "advisory",
+      "owner": "human",
+      "evidence": [
+        "Trigger: any condition that makes UIScreen.screenWidth < 40 (zero-scene launch → 0; genuinely-narrow external scene; unattached scene during restoration).",
+        "Step 1: ChartView.screenWidth = UIScreen.screenWidth - 40. When UIScreen.screenWidth is 0, this is -40 (line 1106). No guard clamps it.",
+        "Step 2: updateSeriesMetadata computes minuteWidth = -40 / (visibleHours * 60), which is negative. seriesWidth = negative * chartMinutes, still negative for any positive data range (line 1237-1239). Cached into @State (line 1242).",
+        "Step 3: The max(0, screenWidth, seriesWidth) guard at lines 103, 123, 126 rescues the frame (clamps to 0), but seriesWidth itself is passed as totalWidth into EventMarkerLaneView (line 103). If EventMarkerLaneView internally uses totalWidth for any non-frame computation (tap-hit proportional x positioning, marker consolidation), it receives the negative value. The max is only applied to the frame width, not to the value passed as parameter.",
+        "Step 4: ScrollViewReader.scrollTo(Config.chartID, anchor:) is called by scrollToEnd (line 1219). If the content width is clamped to 0 but seriesWidth state is negative, subsequent re-layouts when UIScreen eventually returns a real value will use the stored-negative as a dirty-check baseline (line 1241: 'if self.seriesWidth != seriesWidth'), meaning the update correctly fires — but during the interval, any drag/zoom interaction is computing against a negative.",
+        "This is a pre-existing fragility amplified by the new ability of UIScreen.screenWidth to return 0 (never possible with UIScreen.main.bounds)."
+      ],
+      "suggested_fix": "Clamp ChartView.screenWidth to max(0, UIScreen.screenWidth - 40) at line 1106, or better, guard updateSeriesMetadata against screenWidth <= 0 and short-circuit (don't write the @State)."
+    },
+    {
+      "id": "adv-4",
+      "title": "Abuse case: orientation change between .foregroundInactive and .foregroundActive returns stale/wrong screen bounds",
+      "severity": "low",
+      "confidence": 0.62,
+      "category": "abuse_case",
+      "file": "App/Extensions/UIScreen.swift",
+      "line": 18,
+      "autofix_class": "advisory",
+      "owner": "human",
+      "evidence": [
+        "Trigger: user rotates the device while Control Center or the notification drawer is pulled down (scene is .foregroundInactive during the gesture).",
+        "Step 1: The UIDevice.orientationDidChangeNotification fires (subscribed at ChartView.swift:955). debounceSeriesMetadata schedules updateSeriesMetadata for 100ms later.",
+        "Step 2: At notification time, the window scene may be .foregroundInactive. The .first { .foregroundActive } filter fails. Fallback to .first? returns the same scene. screen.bounds.size returns pre-rotation dimensions because UIScreen's bounds are updated on a slightly different schedule than the orientation notification (this is a long-standing iOS behavior).",
+        "Step 3: seriesWidth is recomputed with stale (pre-rotation) width, layout cascades downstream. User rotates back and forth; each half-transition during .foregroundInactive picks up a stale size.",
+        "Pre-existing code had the same staleness issue with UIScreen.main (not a regression), but the explicit .foregroundInactive exclusion in the new code guarantees the fallback path is taken during the gesture, making the staleness more systematic."
+      ],
+      "suggested_fix": "Observe UIWindowScene.didActivateNotification / sceneDidBecomeActive to force-refresh metadata after activation completes, not just on orientation change."
+    },
+    {
+      "id": "adv-5",
+      "title": "Widget build dependency severed by file move — future widget code using screen metrics will not compile silently",
+      "severity": "low",
+      "confidence": 0.75,
+      "category": "composition_failure",
+      "file": "App/Extensions/UIScreen.swift",
+      "line": 5,
+      "autofix_class": "advisory",
+      "owner": "human",
+      "evidence": [
+        "Pre-patch location Library/Extensions/UIScreen.swift made the extension available to both DOSBTSApp and DOSBTSWidget targets (both fileSystemSynchronizedGroups include Library/).",
+        "DOSBTSWidget in project.pbxproj lines 249-252 synchronizes only Library/ and Widgets/, NOT App/. Moving to App/Extensions/UIScreen.swift silently removes these helpers from the widget's compilation unit.",
+        "Current grep of Widgets/ confirms no existing widget references UIScreen.screenWidth/Height/Size, so no immediate breakage.",
+        "Composition risk: a future contributor adding screen-metric layout to GlucoseWidget, SensorWidget, or the Live Activity surface will find the extension 'missing' with no obvious indication why — the surface area of UIScreen.current is unavailable to the widget extension even though UIKit's UIScreen is. This is a stealth coupling change disguised as a file move.",
+        "The PR description frames this as 'file moves' — it is also a target-membership change."
+      ],
+      "suggested_fix": "Either keep the file under Library/Extensions/ (accessible to both targets), or explicitly document in the PR that the helper is now app-only and the widget must not import it. If there's a reason to scope it to the app (e.g. UIApplication.shared is not available in widget extensions — which is true: widget extensions cannot use UIApplication.shared), call that out explicitly in the code comment so nobody attempts to reuse it."
+    },
+    {
+      "id": "adv-6",
+      "title": "Assumption violation: UIApplication.shared is unavailable in some extension contexts — helper becomes a build-trap if referenced from any extension-linked file",
+      "severity": "low",
+      "confidence": 0.70,
+      "category": "assumption_violation",
+      "file": "App/Extensions/UIScreen.swift",
+      "line": 16,
+      "autofix_class": "advisory",
+      "owner": "human",
+      "evidence": [
+        "Apple marks UIApplication.shared as unavailable in app extensions (NS_EXTENSION_UNAVAILABLE). The pre-patch implementation used UIScreen.main, which IS available in extensions. The new implementation references UIApplication.shared.connectedScenes, which is NOT available in extensions.",
+        "Today this is fine because only App/ references this file, and App/ is not an extension. But the rationale for keeping UIScreen.main (widget compatibility) is now structurally impossible to restore without forking the implementation. Any future refactor that moves a shared layout helper from App/ back to Library/ will fail to compile with an extension-unavailable error that's confusing if the root cause (UIApplication.shared) is not obvious.",
+        "This is the flip side of finding adv-5: the file move is not just a target-membership change, it's a semantic change that makes the helper fundamentally incompatible with extension targets."
+      ],
+      "suggested_fix": "Add a code comment at the top of UIScreen.swift: 'NOTE: This extension uses UIApplication.shared and therefore cannot be compiled into any app extension target (widget, Live Activity, etc.). Do not move back to Library/.'"
+    }
+  ],
+  "residual_risks": [
+    "Swift 6 strict concurrency: UIApplication.shared.connectedScenes is main-actor-isolated in recent SDKs. The static computed property UIScreen.current has no actor annotation, so under Swift 6 strict concurrency any nonisolated caller site will produce a warning/error. ChartView's screenWidth/screenHeight are read from a SwiftUI body (main-actor-isolated), so current usage is fine. Any refactor that moves this read into a Task, background queue, or nonisolated context will hit the wall.",
+    "If the user has external display mirroring enabled intermittently (AirPlay to Apple TV, CarPlay with display mirroring), the chart width oscillates as scenes attach/detach. No hysteresis or debouncing of the UIScreen read means layout jitter.",
+    "The entire UIScreen.screenWidth/Height/Size helper exists only to support ChartView's desire to know the device width for seriesWidth computation. A full removal and GeometryReader-based refactor would eliminate every finding in this review in one move."
+  ],
+  "testing_gaps": [
+    "No test exercises ChartView layout on a scene that is .unattached, .background, or where connectedScenes is empty. The IOB/data-model tests do not touch view layout.",
+    "No snapshot test or preview covers ChartView at zero-width / negative-width input — the current max(0, …) guard is asserted only in production code paths where screenWidth is always positive.",
+    "No CI check confirms widget-target builds after touching any file that moves between App/ and Library/. A simple xcodebuild of the DOSBTSWidget scheme in CI would catch adv-5 regressions automatically."
+  ]
+}

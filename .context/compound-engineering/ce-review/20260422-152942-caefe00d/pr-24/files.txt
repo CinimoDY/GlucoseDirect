@@ -1,0 +1,7 @@
+CHANGELOG.md
+CLAUDE.md
+README.md
+Screenshots/dosbts-digest.png
+Screenshots/dosbts-meal-entry.png
+Screenshots/dosbts-overview.png
+Screenshots/dosbts-settings.png

@@ -1,0 +1,46 @@
+{
+  "reviewer": "performance",
+  "findings": [
+    {
+      "id": "PERF-01",
+      "title": "Redundant sort of already-sorted sensorGlucoseValues in setWidgetData()",
+      "severity": "low",
+      "confidence": 0.85,
+      "file": "App/Modules/AppGroupSharing/AppGroupSharing.swift",
+      "lines": "192-193",
+      "description": "setWidgetData() filters sensorGlucoseValues for the last 6h and then sorts the result by timestamp. However, getSensorGlucoseValues() in SensorGlucoseStore.swift always fetches rows with ORDER BY timestamp, so sensorGlucoseValues is already in ascending timestamp order when it arrives in state. The .sorted { $0.timestamp < $1.timestamp } call on line 193 is a no-op sort on an already-sorted array. For the 6h window this is ~72 SensorGlucose elements (one per 5 min), so the wasted work is O(n log n) on a small n — negligible in wall-clock time but unnecessary. The fix is to remove the sort and rely on the established contract that sensorGlucoseValues arrives sorted."
+    },
+    {
+      "id": "PERF-02",
+      "title": "setWidgetData() runs synchronously on the main thread on every .addSensorGlucose action",
+      "severity": "medium",
+      "confidence": 0.82,
+      "file": "App/Modules/AppGroupSharing/AppGroupSharing.swift",
+      "lines": "83-90",
+      "description": "Store.dispatch() calls all middleware functions synchronously before scheduling their publishers. The appGroupSharingMiddleware function body executes inline on the main thread — it calls setWidgetData() directly, not via a publisher. setWidgetData() performs: (1) a filter+sort over sensorGlucoseValues (up to 288 elements at 24h window, but only ~72 for the 6h filter), (2) an ExponentialInsulinModel construction with floating-point math (exp, pow), (3) a computeIOB loop over iobDeliveries (bounded by DIA window, typically <50 entries), (4) a linear sparkline sampling pass, and (5) up to 8 UserDefaults.shared writes. The IOB math and UserDefaults serialization each have non-trivial cost. UserDefaults writes for App Group keys go through IPC to the daemon and can block 1-5ms each. With 8 writes this is potentially 8-40ms of synchronous main-thread work per glucose reading. At 5-minute intervals this is not a throughput problem, but it does introduce a synchronous stall on the main thread at the moment a glucose reading arrives, which can cause a visible frame drop if the UI is animating at that point (e.g., chart update). The fix is to move setWidgetData() into an async publisher dispatch on a background queue, matching the pattern used by other middleware."
+    },
+    {
+      "id": "PERF-03",
+      "title": "ExponentialInsulinModel allocated fresh on every .addSensorGlucose action",
+      "severity": "low",
+      "confidence": 0.72,
+      "file": "App/Modules/AppGroupSharing/AppGroupSharing.swift",
+      "lines": "171-174",
+      "description": "setWidgetData() constructs a new ExponentialInsulinModel (basalModel) on every call. The model's init computes tau, a, S from actionDuration and peakActivityTime — both of which are user settings that change rarely. The bolusPreset.model property also constructs a new ExponentialInsulinModel on every access. These are pure value-type computations with exp() calls. Each construction is fast (<1µs), but since the inputs (basalDIAMinutes, bolusPreset) are stable between glucose readings, the models could be memoized. At 5-minute intervals the frequency is low enough that this is not a measurable problem in production — flagged for completeness because the same models are already being constructed redundantly in multiple views (GlucoseView, TreatmentBannerView, OverviewView, ChartView). A shared computed property on state would eliminate all copies."
+    }
+  ],
+  "residual_risks": [
+    {
+      "description": "SparklineBuilder.build() is called inside a GeometryReader closure in largeView(). GeometryReader re-evaluates on every layout pass, which can happen multiple times per render cycle. Each call allocates a new Path struct with up to 13 line segments (12 samples + forced last point). Path allocation is cheap in SwiftUI, but if the large widget layout becomes more complex this could become a per-frame allocation. At current sample count (<=13 points) this is not measurable.",
+      "severity": "low"
+    },
+    {
+      "description": "mealEntryValues.last is used to get the 'last meal' for the widget. mealEntryValues is ordered by timestamp ascending (confirmed in getMealEntryValues), so .last correctly returns the most recent meal within the 24h window. No performance issue, but the semantic correctness depends on the established GRDB ordering contract.",
+      "severity": "info"
+    }
+  ],
+  "testing_gaps": [
+    "No test covers setWidgetData() being called on the main thread — a test asserting it dispatches to a background queue would catch the synchronous-stall pattern.",
+    "No test verifies that sensorGlucoseValues is always timestamp-sorted before it enters the middleware, which is the precondition that makes the redundant sort in PERF-01 safe to remove."
+  ]
+}

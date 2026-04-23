@@ -1,0 +1,124 @@
+{
+  "reviewer": "adversarial",
+  "findings": [
+    {
+      "id": "adv-001-staticstring-lazy-crash",
+      "title": "Cascade: typo in a DirectConfig static URL literal crashes first render, not launch",
+      "severity": "medium",
+      "confidence": 0.78,
+      "category": "cascade",
+      "file": "Library/Extensions/URL.swift",
+      "lines": "1-15",
+      "evidence": [
+        "Trigger: future contributor adds/edits a DirectConfig URL literal with an invalid character. Concrete scenario: `static let faqURL = URL(staticString: \"https://github.com/creepymonster/Glucose Direct/blob/main/FAQ.md#faq\")` (a stray space introduced by an editor's smart-paste or a copy from a rendered document).",
+        "Step 1: `URL.init(staticString:)` body at line 9-14 runs `URL(string: \"\\(staticString)\")`. StaticString does NOT bypass URL parsing — it delegates to the optional `URL(string:)`. A literal with a space produces nil.",
+        "Step 2: `preconditionFailure(\"Invalid static URL: ...\")` fires. This is a hard crash even in release builds.",
+        "Step 3: `DirectConfig.faqURL` is `static let` — initialization is lazy and thread-safe (dispatch_once). It runs on FIRST access, not at process load.",
+        "Step 4: faqURL's first access is in ConnectionView when `store.state.connectionError != nil` (failed sensor scan / BLE error) OR in AboutView when the user opens Settings. This means the crash surfaces as a first-failed-sensor-connection crash or a settings-open crash, not a clean launch-time crash. For a CGM app this is particularly bad — the user sees a crash specifically at the moment something is already going wrong (connection error path).",
+        "Step 5: Because `static let` on enum DirectConfig caches the crash context, every subsequent access re-runs the initializer (Swift actually caches via dispatch_once; the process is wedged but the crash window is the first access in each process). On every relaunch the crash recurs at the same user action.",
+        "Failure outcome: This creates a CRASH-ON-ERROR-PATH trap — clean launches work, normal use works, but specific user interactions (viewing FAQ, opening settings, or worse, encountering a real connection error) crash the app. QA may miss this because 'it works on my machine' and sensor-error flows are rare to reproduce.",
+        "Mitigating factor (why not higher confidence): Swift's StaticString literal-only constraint prevents variable/interpolation abuse at the callsite, and the current 5 literals in the PR are all valid. The risk is purely about future edits. A compile-time-validated URL macro (Swift 5.9 `#URL`) would close this door; a unit test asserting each DirectConfig URL is non-nil would catch the typo pre-merge."
+      ],
+      "suggested_action": "Add a test in DOSBTSTests that reads each DirectConfig URL constant and asserts it resolves (e.g. `@Test func directConfigURLsAreValid() { _ = DirectConfig.faqURL; _ = DirectConfig.githubURL; ... }` — the mere access will crash the test if any literal is malformed). Or prefer the Swift 5.9+ `#URL(\"...\")` macro which validates at compile time. Long-term: consider changing preconditionFailure to fatalError with a clearer message, or have the init return `URL?` and force-unwrap at the single site with better diagnostics.",
+      "autofix_class": "advisory",
+      "owner": "human"
+    },
+    {
+      "id": "adv-002-mailto-silent-vanish",
+      "title": "Assumption violation: malformed Info.plist AppSupportMail silently hides email row with no diagnostic",
+      "severity": "low",
+      "confidence": 0.82,
+      "category": "assumption-violation",
+      "file": "App/Views/Settings/AboutView.swift",
+      "lines": "32-42",
+      "evidence": [
+        "Pre-PR: `Link(appSupportMail, destination: URL(string: \"mailto:\\(appSupportMail)\")!)` — hard crash on malformed mail.",
+        "Post-PR: `guard let mailURL = URL(string: \"mailto:\\(appSupportMail)\")` — the row is silently omitted if URL parsing fails.",
+        "Trigger: A fork/translator/CI pipeline inserts an Info.plist `AppSupportMail` value with characters that fail URL parsing — e.g. a localized support address containing a space (\"support @example.com\"), a trailing newline from copy-paste, or Unicode (display name before @ that wasn't punycode-encoded).",
+        "Step 1: `DirectConfig.appSupportMail` returns the raw string.",
+        "Step 2: `URL(string: \"mailto:support @example.com\")` returns nil (space without percent-encoding).",
+        "Step 3: The guard-let fails. The entire HStack containing the email link is skipped. Settings > About shows all rows EXCEPT the email row.",
+        "Step 4: No log, no error, no visible hint. The user sees a settings page with an unexpected gap and no way to contact support.",
+        "Step 5: The maintainer (who wrote the Info.plist and is running a different build configuration) may not notice the missing row until a user complaint arrives weeks later — possibly attributed to a 'different translation'.",
+        "Failure mode: This is a *soft* regression from the previous crash. A crash is loud and gets filed; a silently missing support-mail link is quiet and may persist in production. Because this is a CGM app where users need support channels, a missing support row is a safety-relevant regression (users can't reach the author to report a glucose display bug)."
+      ],
+      "suggested_action": "Either (a) log at DirectLog.error level when URL parsing fails for appSupportMail — maintainer sees it in logs. Or (b) add percent-encoding: `URL(string: \"mailto:\\(appSupportMail.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? appSupportMail)\")`. Option (b) handles the common spaces/unicode case at runtime. Also consider adding a one-line unit test that AppSupportMail from Info.plist is a parseable mailto URL.",
+      "autofix_class": "advisory",
+      "owner": "human"
+    },
+    {
+      "id": "adv-003-staticstring-interpolation-false-security",
+      "title": "Assumption violation: URL(staticString:) does NOT provide compile-time URL validation despite the name",
+      "severity": "low",
+      "confidence": 0.90,
+      "category": "assumption-violation",
+      "file": "Library/Extensions/URL.swift",
+      "lines": "8-15",
+      "evidence": [
+        "The helper name `URL(staticString:)` and the fact that `StaticString` is a compile-time-literal-only type create an implied contract: 'this URL was validated at compile time'.",
+        "Actual behavior: `URL(string: \"\\(staticString)\")` runs the full RFC 3986 parser at RUNTIME, on first access. The `StaticString` constraint only blocks non-literal arguments at the callsite — it does not validate URL syntax.",
+        "Trigger scenario: A reviewer sees `URL(staticString: \"https://foo\")` and assumes compile-time safety. They skip adding a unit test because 'it can't be wrong — it's StaticString'. Later, a typo like `URL(staticString: \"http s://foo\")` ships because the compiler accepted it (StaticString doesn't care about URL syntax, only that it's a literal).",
+        "Chain: reviewer trust → skipped test → typo ships → adv-001 scenario fires.",
+        "This is a SOCIOTECHNICAL failure: the API name implies a stronger guarantee than it delivers. The real compile-time-validated alternative is Swift 5.9's `#URL(\"...\")` macro (if iOS/Swift toolchain supports it) or a static check in a unit test."
+      ],
+      "suggested_action": "Rename to `URL(preconditionedStaticString:)` OR add a doc comment explicitly stating 'Parsed at first access; traps at runtime if malformed. Compile-time literal constraint does NOT validate URL syntax.' Better: adopt `#URL` macro from swift-url-macro or pair the helper with a compile-time test that enumerates every static URL constant.",
+      "autofix_class": "manual",
+      "owner": "human"
+    },
+    {
+      "id": "adv-004-ios26-one-way-door",
+      "title": "One-way door: legacy EKEventStore.requestAccess(to:completion:) removal locks out iOS <17 without Linear-visible trace",
+      "severity": "low",
+      "confidence": 0.85,
+      "category": "composition-failure",
+      "file": "App/Modules/AppleExport/AppleCalendarExport.swift",
+      "lines": "69-81",
+      "evidence": [
+        "Pre-PR: if/else with iOS 17 branch (`requestFullAccessToEvents`) and iOS <17 fallback (`requestAccess(to:completion:)`).",
+        "Post-PR: only `requestFullAccessToEvents` remains. The iOS <17 path is gone.",
+        "Composition failure scenario: A future maintainer (or a DOOMBTS cross-pollination PR per MEMORY reference_doombts_sibling.md) decides to lower the deployment target from iOS 26 back to iOS 16 (for broader device support, or because a specific sensor driver breaks on iOS 26). The build succeeds (no compile error — `requestFullAccessToEvents` is still @available(iOS 17+) callable on iOS 16 deployment targets as long as the call site is inside an `if #available` — except the guard is gone).",
+        "Actually: lowering deployment target below iOS 17 with `requestFullAccessToEvents` ungated will produce a COMPILE error (`'requestFullAccessToEvents(_:)' is only available in iOS 17.0 or newer`). So this is caught at build time — the concern is lower. BUT: contributor response to compile error is to re-add the fallback. Without comment/TODO linking to this removal, the contributor may not realize the legacy branch existed and may reimplement it differently.",
+        "Chain impact: the DOOMBTS sibling repo (per MEMORY) may still be on older deployment target. If this change is hash-diff-backported there, the build breaks with no comment explaining 'we deliberately removed the legacy branch because DOSBTS is on iOS 26'.",
+        "This is a coordination/one-way-door risk across a 2-repo setup, not a runtime bug."
+      ],
+      "suggested_action": "Add a brief one-line comment at the `requestFullAccessToEvents` call: `// iOS 17+; deployment target is iOS 26 (DMNC-769). Legacy requestAccess(to:completion:) removed in DMNC-777.` This breadcrumb helps backports and future deployment-target regressions.",
+      "autofix_class": "advisory",
+      "owner": "human"
+    },
+    {
+      "id": "adv-005-setgluocse-live-activity-no-state-guard",
+      "title": "Composition edge: enabling Live Activity toggle while system-level Live Activities disabled creates inconsistent state",
+      "severity": "low",
+      "confidence": 0.62,
+      "category": "abuse-case",
+      "file": "App/Modules/WidgetCenter/WidgetCenter.swift",
+      "lines": "46-55",
+      "evidence": [
+        "Abuse scenario: user toggles `glucoseLiveActivity` on in Settings while iOS-system Live Activities are OFF (Settings > Face ID & Passcode > Allow Access When Locked, or the per-app Live Activities toggle in Settings > [App]).",
+        "Step 1: `.setGlucoseLiveActivity(enabled: true)` dispatches. Reducer sets `state.glucoseLiveActivity = true` and persists to UserDefaults.",
+        "Step 2: Middleware hits `case .setGlucoseLiveActivity(enabled: true)`. It does `guard service.value.isActivated else { break }`. `isActivated` returns `ActivityAuthorizationInfo().areActivitiesEnabled == false`.",
+        "Step 3: The guard fails, middleware breaks. No activity is started. No error surfaced to the user.",
+        "Step 4: State is now INCONSISTENT: `glucoseLiveActivity = true` in UserDefaults, but no actual Activity is running. The toggle in Settings shows ON. The user expects to see Live Activity on lock screen — sees nothing.",
+        "Step 5: Now compound with the PR change: before this PR, on iOS <16.1 the middleware wasn't registered at all, so there was no inconsistency possible. Post-PR, the middleware is always present on iOS 26, BUT the inconsistency has always existed on iOS 16.1-25 (pre-PR) — this PR doesn't create it, just extends the surface.",
+        "This is actually NOT a regression introduced by this PR, but worth noting as a pre-existing abuse case now more universally exposed. Lower confidence because the root cause predates this PR."
+      ],
+      "suggested_action": "Pre-existing issue; out of scope for a housekeeping PR. File separately: on `.setGlucoseLiveActivity(enabled: true)` with `!service.value.isActivated`, dispatch `.setGlucoseLiveActivity(enabled: false)` or show an alert directing the user to system Settings.",
+      "autofix_class": "advisory",
+      "owner": "human"
+    }
+  ],
+  "residual_risks": [
+    "Localization sweep is consistent across all 19 locales (0 residual 'App donate' / 'App facebook group' / 'App translation' keys anywhere). No partial-sweep data integrity issue found.",
+    "Widget target deployment target is iOS 26 (matches app target). The `@available(iOS 16.1, *)` removals on SensorGlucoseActivityAttributes, GlucoseActivityWidget, and all related protocol/view extensions are safe — all APIs used (ActivityKit, ActivityConfiguration, DynamicIsland) require iOS 16.1+ but the target is iOS 26.",
+    "AppleHealthImport Task body: removing the outer `if #available(iOS 15.4, *)` does not change `defer` semantics. `defer` fires at end of Task closure in both cases. No error-propagation change.",
+    "`DirectConfig.appSchemaURL` is kept as `URL(string: \"dosbts://\")` returning `URL?`. The equality check `event.url == DirectConfig.appSchemaURL` in AppleCalendarExport.swift:114,185 remains correct (both sides are URL?). Not a regression.",
+    "Build verified: `xcodebuild -scheme DOSBTSApp -sdk iphonesimulator Debug build` succeeds cleanly post-PR.",
+    "`URL(staticString:)` cannot be accidentally called with runtime String (StaticString is literal-only at callsite — Swift rejects `URL(staticString: someVariable)` at compile time). The helper is safe from interpolation abuse at call sites; the only attack surface is a malformed literal (covered in adv-001).",
+    "Deleted `ChartViewCompatibility.swift` (718 lines) had no remaining references outside `OverviewView.swift` (which was updated). No dangling symbol usage found via grep."
+  ],
+  "testing_gaps": [
+    "No unit test enumerates DirectConfig URL constants to detect a lazy-init crash at test time. A trivial @Test func that accesses every static URL literal would convert adv-001 from a production crash-on-error-path into a pre-merge test failure.",
+    "No test asserts the locale sweep is balanced — a future translator adding back 'App donate' to one file only would not be caught by CI. A synthetic test that intersects keys across all Localizable.strings files would detect asymmetry.",
+    "No integration test for the AboutView mailto row's silent-vanish behavior (adv-002). A snapshot test with a malformed AppSupportMail value would document the new behavior."
+  ]
+}

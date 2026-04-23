@@ -1,0 +1,77 @@
+{
+  "reviewer": "project-standards",
+  "findings": [
+    {
+      "id": "PSR-001",
+      "title": "Force unwrap on values.min()! and values.max()! in SparklineBuilder",
+      "severity": "high",
+      "confidence": 0.95,
+      "file": "Widgets/WidgetDesignSystem.swift",
+      "lines": [124, 125],
+      "rule_source": "CLAUDE.md, Development Rules: 'No force unwrapping (!) — use guard/let, optional chaining, nil coalescing'",
+      "rule_quote": "No force unwrapping (!) — use guard/let, optional chaining, nil coalescing",
+      "violation": "Line 124: `let minVal = CGFloat(max(values.min()! - 10, 40))` and line 125: `let maxVal = CGFloat(min(values.max()! + 10, 400))` force-unwrap `min()` and `max()` which return `Optional` on a collection. Although a `count >= 2` guard precedes this block in the caller, the `SparklineBuilder.build` function itself has its own `guard values.count >= 2` on line 120 that returns early, so unwrapping is technically safe at that code point — but the code pattern still violates the explicit no-force-unwrap rule. The correct form is `values.min() ?? 40` / `values.max() ?? 400`.",
+      "introduced_by": "commit 97dc3c17 (feat(widget): add design system, shared data keys, and sparkline builder)",
+      "is_new": true
+    },
+    {
+      "id": "PSR-002",
+      "title": "Force unwrap on sensor.remainingWarmupTime! in SensorWidget",
+      "severity": "high",
+      "confidence": 0.95,
+      "file": "Widgets/SensorWidget.swift",
+      "lines": [97],
+      "rule_source": "CLAUDE.md, Development Rules: 'No force unwrapping (!) — use guard/let, optional chaining, nil coalescing'",
+      "rule_quote": "No force unwrapping (!) — use guard/let, optional chaining, nil coalescing",
+      "violation": "Line 97: `let remaining = Double(isWarmup ? sensor.remainingWarmupTime! : sensor.remainingLifetime)`. The `isWarmup` flag is set on the prior line via `sensor.remainingWarmupTime != nil`, so the nil check and the force-unwrap are on different lines with no binding — `isWarmup` is a Bool, not an Optional binding. The pattern should use `if let remainingWarmup = sensor.remainingWarmupTime` to safely bind.",
+      "introduced_by": "commit 797df1c7 (feat(widget): apply phosphor styling to sensor and transmitter widgets)",
+      "is_new": true
+    },
+    {
+      "id": "PSR-003",
+      "title": "Force unwrap on Calendar.current.date(byAdding:) in getTimeline across three widget providers",
+      "severity": "medium",
+      "confidence": 0.85,
+      "file": "Widgets/GlucoseWidget.swift, Widgets/SensorWidget.swift, Widgets/TransmitterWidget.swift",
+      "lines": [71, 77, 51],
+      "rule_source": "CLAUDE.md, Development Rules: 'No force unwrapping (!) — use guard/let, optional chaining, nil coalescing'",
+      "rule_quote": "No force unwrapping (!) — use guard/let, optional chaining, nil coalescing",
+      "violation": "GlucoseWidget.swift line 71, SensorWidget.swift line 77, TransmitterWidget.swift line 51 all use `Calendar.current.date(byAdding: .minute, value: 15, to: Date())!`. `Calendar.date(byAdding:)` returns `Optional<Date>` and must not be force-unwrapped. While in practice this call rarely fails, the rule is unconditional. Use `?? Date().addingTimeInterval(15 * 60)` as a nil-coalescing fallback.",
+      "introduced_by": "GlucoseWidget: pre-existing pattern in repo; SensorWidget & TransmitterWidget: commits 797dc3c17 and e76ae6b8 preserve or add this pattern",
+      "is_new": false,
+      "note": "The reloadDate force-unwrap was pre-existing in GlucoseWidget.swift before this PR; it appears in SensorWidget and TransmitterWidget as new additions in this PR's commits."
+    },
+    {
+      "id": "PSR-004",
+      "title": "WidgetDesignSystem.swift missing from pbxproj initially; added in separate chore commit — pattern is compliant but review note",
+      "severity": "info",
+      "confidence": 0.90,
+      "file": "DOSBTS.xcodeproj/project.pbxproj",
+      "lines": [67, 359, 788, 1579],
+      "rule_source": "CLAUDE.md, Adding New Files to Xcode Project: 'new .swift files must be added to DOSBTS.xcodeproj/project.pbxproj manually in 4 sections: PBXBuildFile, PBXFileReference, PBXGroup (parent folder's children), PBXSourcesBuildPhase'",
+      "rule_quote": "new .swift files must be added to DOSBTS.xcodeproj/project.pbxproj manually in 4 sections: PBXBuildFile, PBXFileReference, PBXGroup (parent folder's children), PBXSourcesBuildPhase",
+      "violation": "No violation in the final state — all 4 required pbxproj sections are present for WidgetDesignSystem.swift (PBXBuildFile at line 67, PBXFileReference at line 359, PBXGroup at line 788, PBXSourcesBuildPhase at line 1579). The file was initially added in commit 97dc3c17 without a pbxproj entry and required a follow-up chore commit (30ce433b) to add it. The final PR state is compliant.",
+      "is_new": false,
+      "status": "compliant"
+    }
+  ],
+  "residual_risks": [
+    {
+      "id": "RR-001",
+      "description": "PSR-002 (sensor.remainingWarmupTime! in SensorWidget.swift line 97) is a genuine runtime crash risk: if the Swift compiler's control-flow analysis ever inlines `isWarmup` differently, or the code is refactored, the Bool flag and the force-unwrap become separated. A future Swift version or refactor could expose this. Recommend replacing with `if let` binding.",
+      "severity": "medium"
+    },
+    {
+      "id": "RR-002",
+      "description": "PSR-001 (min()!/max()! in SparklineBuilder line 124-125): the caller's count >= 2 guard does not protect internal call sites that might call `SparklineBuilder.build` directly with a single-element array in the future. The internal guard on line 120 protects against count < 2 but not count == 0 (though min()/max() on empty returns nil). Current protection is adequate but brittle.",
+      "severity": "low"
+    }
+  ],
+  "testing_gaps": [
+    {
+      "id": "TG-001",
+      "description": "SparklineBuilder has no tests in DOSBTSTests. The sparkline sampling logic in AppGroupSharing.setWidgetData (30-min interval sampling, always-include-last logic) and the path geometry in SparklineBuilder.build are both untested. CLAUDE.md notes the test target covers 138 tests across many model/middleware paths but does not mention widget or sparkline coverage.",
+      "severity": "medium"
+    }
+  ]
+}

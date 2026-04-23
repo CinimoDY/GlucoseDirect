@@ -1,0 +1,58 @@
+{
+  "reviewer": "maintainability",
+  "findings": [
+    {
+      "id": "maint-1",
+      "title": "appSchemaURL inconsistency vs sibling URLs in DirectConfig",
+      "file": "Library/DirectConfig.swift",
+      "lines": "11-19",
+      "confidence": 0.72,
+      "severity": "low",
+      "category": "naming-or-consistency",
+      "summary": "Four of the five DirectConfig URL constants (upstreamDonateURL, sponsorURL, faqURL, githubURL) migrated to the new URL(staticString:) initializer and are now non-optional URL. appSchemaURL remains URL? via URL(string: \"dosbts://\"). A future reader will wonder why this one constant opts out of the sweep. There is no documented reason — URL(staticString: \"dosbts://\") would construct fine at compile time since any valid scheme URL parses. The Optional leaks into AppleCalendarExport.swift (lines 114, 155, 185) where it is compared to EKEvent.url (Optional URL); the comparison works today, but the asymmetry is accidental complexity.",
+      "recommendation": "Either migrate appSchemaURL to URL(staticString: \"dosbts://\") for consistency with the sweep, or add a one-line comment explaining why it must stay optional (e.g. \"left optional in case schema changes at runtime\" — though nothing in the codebase suggests that). Full consistency is cheaper than a comment."
+    },
+    {
+      "id": "maint-2",
+      "title": "Orphan /* (No Comment) */ markers left behind in all 19 locale files",
+      "file": "Library/*.lproj/Localizable.strings",
+      "lines": "varies (3 per file, ~57 total)",
+      "confidence": 0.85,
+      "severity": "low",
+      "category": "dead-code",
+      "summary": "The three orphan key removals (App donate, App facebook group, App translation) deleted only the key=value line in each locale file, leaving the associated /* (No Comment) */ comment markers in place. Each of the 19 Localizable.strings now has 3 stranded comment blocks followed by blank lines — perfectly consistent across locales (good), but cosmetically dead text that serves no purpose. Total: ~57 orphan markers.",
+      "recommendation": "Delete the now-orphaned /* (No Comment) */ markers as a one-line sed sweep per locale. Low urgency since the files are generated/edited rarely, but the next person who grep-audits Localizable.strings will have to filter this noise."
+    },
+    {
+      "id": "maint-3",
+      "title": "Stale 'iOS 15 sibling sheet collision' code comment in OverviewView",
+      "file": "App/Views/OverviewView.swift",
+      "lines": "8",
+      "confidence": 0.68,
+      "severity": "low",
+      "category": "comment-drift",
+      "summary": "The MARK comment reads `// MARK: - Active Sheet Enum (prevents iOS 15 sibling sheet collision)`. The ActiveSheet pattern is still correct (SwiftUI nested sheets are unreliable on all iOS versions — CLAUDE.md explicitly states this), but the iOS-15-specific justification is now historical since the deployment target is iOS 26.0. A reader encountering this comment today will either (a) be confused about why iOS 15 is referenced, or (b) conclude the pattern is no longer needed. Neither is correct.",
+      "recommendation": "Reword to something like `// MARK: - Active Sheet Enum (prevents SwiftUI sibling-sheet collisions — see CLAUDE.md)`. Preserves architectural intent without anchoring to a dropped OS version."
+    },
+    {
+      "id": "maint-4",
+      "title": "CLAUDE.md still contains 'iOS 15' archaeological references after the sweep this PR documents",
+      "file": "CLAUDE.md",
+      "lines": "43, 45, 48",
+      "confidence": 0.62,
+      "severity": "low",
+      "category": "comment-drift",
+      "summary": "Line 43 says `Existing #available guards are now dead branches and can be cleaned up incrementally.` This PR *is* that cleanup — post-merge, no iOS 15/16/17 #available guards remain in App/, Library/, or Widgets/ (verified via grep). The sentence is now untrue: nothing further to incrementally clean. Line 48 justifies the ActiveSheet enum with an iOS-15-specific reason that no longer applies (same as maint-3). Line 45 is fine (explicitly says 'This applies to all iOS versions, not just iOS 15').",
+      "recommendation": "Update line 43 to state the cleanup is complete (e.g. `Legacy #available guards were swept in DMNC-777; none remain`) and line 48 to match whatever wording is chosen for the OverviewView MARK comment. Low urgency — CLAUDE.md is a living doc — but worth touching now since this PR is the closing chapter on iOS-version guards."
+    }
+  ],
+  "residual_risks": [
+    "URL(staticString:) uses string interpolation (\"\\(staticString)\") which defeats some of the compile-time StaticString benefit — but per PR intent this was the blessed DMNC-776 design choice. Not flagged per review scope.",
+    "preconditionFailure in URL(staticString:) means a typo in a URL literal crashes the app at first use rather than at compile time. For the 5 hardcoded URLs in this PR the risk is effectively zero (all obviously-valid HTTPS URLs), but the pattern has no test coverage. Low concern in practice.",
+    "The new Library/Extensions/URL.swift auto-compiles into both DOSBTSApp and DOSBTSWidget targets (fileSystemSynchronized). This is correct and matches sibling extensions — no duplication risk."
+  ],
+  "testing_gaps": [
+    "No unit test exercises URL(staticString:) — the preconditionFailure path is unreachable in a well-formed call site but still untested. A single #expect over a known-good URL would prevent accidental future regressions in the extension file (e.g. someone changing the initializer signature).",
+    "No snapshot or build-verification test asserts that localized strings referenced in code all exist in the .strings files. Today's sweep is safe because 'App donate'/'App facebook group'/'App translation' were confirmed orphaned via grep, but the codebase has no mechanism to prevent a future string-code drift from going unnoticed."
+  ]
+}

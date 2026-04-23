@@ -1,0 +1,103 @@
+{
+  "reviewer": "correctness",
+  "findings": [
+    {
+      "id": "C1",
+      "title": "getIOBDeliveries filters only on starts, missing in-progress basal deliveries that started before the DIA window",
+      "file": "/Users/doke/extracode/DOSBTS/App/Modules/DataStore/InsulinDeliveryStore.swift",
+      "lines": "212-214",
+      "confidence": 0.92,
+      "severity": "high",
+      "description": "The SQL filter is: starts >= datetime('now', '-diaMinutes minutes'). A basal entry that started 7 hours ago but ends 1 hour ago (still within the 6h DIA window by its end time) is excluded because its starts is older than diaMinutes. The correct filter should include any delivery whose ends > (now - diaMinutes), i.e., OR ends >= datetime('now', '-diaMinutes minutes'). For boluses starts==ends so they are unaffected, but basal entries with multi-hour durations are silently dropped from IOB computation, causing IOB to be understated.",
+      "reproduction": "Enter a 4-hour basal delivery at 08:00-12:00. At 13:30 (1.5h after it ended, 5.5h since it started), with rapidActing DIA=360min, the query excludes it because starts=08:00 is 330 minutes ago which is < 360min — wait, that is within range. Clearer case: basal delivery starts=08:00, ends=18:00 (10h duration), DIA=360min. At 14:30 (6h after starts=exactly at boundary), the basal still has IOB remaining on segments delivered near 14:00, but the starts is exactly at the cutoff and may be excluded. More critically: if diaMinutes=360 and a basal starts at -370min but ends at -10min, its final segments (delivered at around -10min) are still within DIA but the entire delivery is excluded."
+    },
+    {
+      "id": "C2",
+      "title": "Split IOB display can show components summing to more than total due to independent threshold zeroing",
+      "file": "/Users/doke/extracode/DOSBTS/Library/Content/IOBCalculator.swift",
+      "lines": "124-133",
+      "confidence": 0.90,
+      "severity": "medium",
+      "description": "When total >= threshold (0.05), individual components are conditionally zeroed if they are each below threshold, but the total is the pre-zeroed sum. This means total could display as e.g. 0.08U while mealSnackIOB shows 0.0 and correctionBasalIOB shows 0.07. The sum of displayed components (0.07) does not equal total (0.08). Additionally, a user with mealSnackIOB=0.04 and correctionBasalIOB=0.04 sees total=0.08U in split mode but both component lines show 0.0, making the total unexplained. The invariant 'mealSnackIOB + correctionBasalIOB == total' is broken in the returned IOBResult whenever total >= threshold but an individual component < threshold."
+    },
+    {
+      "id": "C3",
+      "title": "Future bolus delivery returns full units as IOB, not clamped to units at the current time",
+      "file": "/Users/doke/extracode/DOSBTS/Library/Content/IOBCalculator.swift",
+      "lines": "108-111",
+      "confidence": 0.85,
+      "severity": "medium",
+      "description": "For a bolus, elapsed = date.timeIntervalSince(delivery.starts). When elapsed < 0 (future delivery), percentEffectRemaining returns 1.0 (from guard time > 0 at line 72). This means IOB = delivery.units * 1.0 = full units. This only matters if future deliveries can reach the getIOBDeliveries query, which queries by starts >= now - diaMinutes. A user who pre-logs a bolus for the future (starts in the future) would have it appear in the DB and get fetched, then counted as full IOB immediately. The stacking warning in AddInsulinView would erroneously fire based on this phantom IOB. The test 'futureDelivery returns full dose as IOB' explicitly encodes this behavior as correct, but it is medically misleading — a future delivery has zero IOB at the current moment."
+    },
+    {
+      "id": "C4",
+      "title": "GlucoseView timer not scheduled on RunLoop.main, may fire on background thread causing SwiftUI state mutation off main thread",
+      "file": "/Users/doke/extracode/DOSBTS/App/Views/Overview/GlucoseView.swift",
+      "lines": "152-155",
+      "confidence": 0.78,
+      "severity": "medium",
+      "description": "Timer.scheduledTimer is called inside onAppear, which is called on the main thread. However, scheduledTimer schedules on the current RunLoop. If onAppear is ever called from a context where the current RunLoop is not RunLoop.main (possible in some SwiftUI lifecycle edge cases, or if the view is used in a non-standard context), the timer fires on that RunLoop's thread. The timer callback calls refreshIOB() which writes to @State var iobResult. @State mutations must occur on the main thread. The safer pattern is Timer.scheduledTimer(..., runLoop: .main, forModes: [.common]). The current code has worked in practice due to onAppear being main-thread, but the lack of explicit RunLoop pinning is a latent correctness risk."
+    },
+    {
+      "id": "C5",
+      "title": "TreatmentBannerView.currentIOB recomputes full IOB decay on every SwiftUI render pass",
+      "file": "/Users/doke/extracode/DOSBTS/App/Views/Overview/TreatmentBannerView.swift",
+      "lines": "16-28",
+      "confidence": 0.82,
+      "severity": "low",
+      "description": "currentIOB is a computed property (not @State or cached). It calls computeIOB() which iterates over all deliveries and runs the exponential decay formula. SwiftUI calls body (and all computed properties accessed within body) on every render triggered by any state change in the EnvironmentObject store. With many deliveries or high render frequency (timer-driven banner updating every second), this runs the full O(n * segments) computation synchronously on the main thread for each frame. While not a crash, for a treatment banner that re-renders each second this is a functional correctness issue: stale glucose notification on the banner could fire between renders. The GlucoseView addresses this by caching iobResult in @State and only recomputing every 60s; TreatmentBannerView does not."
+    },
+    {
+      "id": "C6",
+      "title": "IOB stacking warning shown only for correctionBolus type, silent for mealBolus with high IOB",
+      "file": "/Users/doke/extracode/DOSBTS/App/Views/AddViews/AddInsulinView.swift",
+      "lines": "71",
+      "confidence": 0.88,
+      "severity": "medium",
+      "description": "The stacking warning fires only when insulinType == .correctionBolus. A user entering a mealBolus with significant active IOB (e.g., 3U still active from a prior correction) receives no warning. Medically, stacking risk applies to any bolus type when significant IOB is present from a correction, not only correction-on-correction. The PR intent says 'stacking warning in AddInsulinView' but the implementation only covers correction boluses. A mealBolus stacked on top of an active correction bolus is equally dangerous."
+    },
+    {
+      "id": "C7",
+      "title": "Basal IOB segmentation: future segments add full segmentDose instead of applying percentEffectRemaining(at: negative elapsed)",
+      "file": "/Users/doke/extracode/DOSBTS/Library/Content/IOBCalculator.swift",
+      "lines": "161-164",
+      "confidence": 0.75,
+      "severity": "low",
+      "description": "In computeBasalIOB, when a segment midpoint is in the future (elapsed <= 0), the code adds segmentDose unconditionally (the full segment dose). This is correct for the semantic 'insulin not yet delivered still counts as future IOB', but it is inconsistent with how boluses handle future delivery — both treat future doses as full IOB. The real concern is: if a user logs a basal entry with an ends time in the future (in-progress basal), the not-yet-delivered portion is included in IOB as if already delivered. This inflates current IOB for ongoing basals, potentially triggering a false stacking warning."
+    }
+  ],
+  "residual_risks": [
+    {
+      "id": "R1",
+      "description": "The ExponentialInsulinModel formula (Maksimovic) uses tau = tp*(1 - tp/td) / (1 - 2*tp/td). If tp = td/2 exactly, the denominator (1 - 2*tp/td) = 0 producing a NaN/Inf tau, which then propagates through a, S, and percentEffectRemaining. Neither InsulinPreset uses tp=td/2 (rapidActing uses 75min/360min, ultraRapid uses 55min/360min), so this is not triggered by current presets. However, a future custom preset or a basalDIAMinutes setting that happens to equal 2*75=150min with the hardcoded 75*60 peak time in GlucoseView/ChartView/TreatmentBannerView would trigger a division by zero.",
+      "confidence": 0.65
+    },
+    {
+      "id": "R2",
+      "description": "The IOB middleware triggers .loadIOBDeliveries on .addInsulinDelivery but not on .loadInsulinDeliveryValues. The DataStore insulin middleware separately handles .addInsulinDelivery by dispatching .loadInsulinDeliveryValues. Since the reducer runs before middlewares, and both middlewares independently handle .addInsulinDelivery, both dispatches happen. This is correct in steady state, but if DataStore is slow and getIOBDeliveries resolves before insertInsulinDelivery completes (race between two async DB operations on the same dbQueue), the IOB computation may run against data that does not yet include the newly added delivery. The delivery would appear on next .addSensorGlucose trigger. Risk is low because GRDB's dbQueue serializes reads and writes, so the asyncRead in getIOBDeliveries would wait for any pending write — but the insert is triggered by a different action dispatch chain.",
+      "confidence": 0.60
+    }
+  ],
+  "testing_gaps": [
+    {
+      "id": "T1",
+      "description": "No test for getIOBDeliveries with a basal delivery whose starts is outside the DIA window but ends is within it. This is the scenario that exposes finding C1."
+    },
+    {
+      "id": "T2",
+      "description": "No test for IOBResult component invariant: that mealSnackIOB + correctionBasalIOB == total in all threshold combinations. The existing splitIOB test only covers the case where both components are well above threshold."
+    },
+    {
+      "id": "T3",
+      "description": "No test for ExponentialInsulinModel with pathological inputs: actionDuration = 0, peakActivityTime = actionDuration/2 (division by zero in tau), or peakActivityTime > actionDuration."
+    },
+    {
+      "id": "T4",
+      "description": "No test for IOB computation with a mix of past and future deliveries, specifically verifying that a future bolus correctly contributes full units while past-DIA boluses contribute zero."
+    },
+    {
+      "id": "T5",
+      "description": "No test for computeBasalIOB with an in-progress basal (ends in the future), verifying that future segments are included and the total does not exceed delivery.units."
+    }
+  ]
+}

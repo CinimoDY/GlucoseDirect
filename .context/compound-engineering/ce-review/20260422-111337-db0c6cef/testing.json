@@ -1,0 +1,38 @@
+{
+  "reviewer": "testing",
+  "findings": [],
+  "residual_risks": [
+    {
+      "id": "RR-01",
+      "description": "sponsorURL points to github.com/sponsors/CinimoDY. If GitHub Sponsors is not enabled on that account, the link silently 404s for users. No runtime validation or fallback exists. This is a product/ops decision (enable Sponsors before shipping, or add a URL-validation guard), not a test-coverage gap.",
+      "severity": "low",
+      "file": "Library/DirectConfig.swift"
+    },
+    {
+      "id": "RR-02",
+      "description": "The test count '137' is now hardcoded in three documentation files touched by this PR: README.md, CHANGELOG.md, and CLAUDE.md. None of these are executable assertions, so they cannot fail a CI run. If future PRs add or remove tests, all three files will silently drift out of sync. There is no mechanism (xctest count assertion, CI check, or README generation script) that keeps the number accurate.",
+      "severity": "low",
+      "file": "README.md"
+    }
+  ],
+  "testing_gaps": [
+    {
+      "id": "TG-01",
+      "gap_type": "behavioral_change_no_tests",
+      "confidence": 0.35,
+      "description": "AboutView.swift removes the Facebook and Crowdin rows and replaces the Crowdin row with a GitHub Sponsors row. These are pure UI-composition changes (static URL strings rendered in HStacks) with no branching logic. No test coverage is needed: there is no branch, state mutation, or computed value to assert. Flagged only to document the deliberate decision to skip.",
+      "suppressed": true,
+      "suppression_reason": "UI is purely declarative — removes two static rows, renames one label/URL. No logic path, conditional, or data transformation exists that could silently regress. A snapshot or UI test could lock in row count but would be brittle to any visual refactor and provides no behavioral signal.",
+      "files_changed": [
+        "App/Views/Settings/AboutView.swift",
+        "Library/DirectConfig.swift"
+      ]
+    }
+  ],
+  "summary": {
+    "existing_tests_broken": false,
+    "broken_test_detail": "grep for facebookURL, crowdinURL across DOSBTSTests/*.swift returned no matches. The only DirectConfig references in tests are DirectConfig.minReadableGlucose and DirectConfig.maxReadableGlucose, which are untouched by this diff. No existing test will fail after merge.",
+    "new_tests_required": false,
+    "rationale": "All code changes are static string removals/additions (URL constants and UI label strings). There are no new branches, no new logic, no state mutations, and no error paths introduced. The threshold for requiring tests — a new code path that can silently regress — is not met."
+  }
+}

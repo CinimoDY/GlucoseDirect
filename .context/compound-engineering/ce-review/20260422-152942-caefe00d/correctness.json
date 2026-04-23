@@ -1,0 +1,22 @@
+{
+  "reviewer": "correctness",
+  "findings": [],
+  "residual_risks": [
+    "AboutView mailto row is silently hidden if URL(string: \"mailto:\\(appSupportMail)\") returns nil. This is strictly safer than the previous force-unwrap (which would have crashed), but if AppSupportMail is ever configured to a value with URL-illegal characters (spaces, unencoded angle brackets, etc.) the entire 'App email' row disappears with no user-visible error. The build-time ENV var APP_SUPPORT_MAIL is controlled internally so this is low risk in practice. Confidence too low to report as finding.",
+    "URL(staticString:) uses '\\(staticString)' interpolation which converts StaticString to String at runtime. Verified in a local Swift REPL that this preserves the exact literal contents for typical URL strings (including URLs with fragments like '#faq' and path components). The single preconditionFailure is reachable only if someone passes a literally malformed URL — but StaticString only accepts compile-time literals, so this is caught in dev. The author explicitly blessed this pattern; not a finding.",
+    "static let URL(staticString:) constants are lazy in Swift, so a malformed literal would only crash on first access of that specific constant. All four converted URLs (paypal.me/creepymonstr, github.com/sponsors/CinimoDY, github.com/.../FAQ.md#faq, github.com/CinimoDY/DOSBTS) parse successfully via URL(string:) — no crash risk.",
+    "Library/Extensions/URL.swift is under Library/ (fileSystemSynchronized) and is NOT in the widget's exclusion set (which still only excludes Extensions/Float.swift + Resources/*). The extension imports only Foundation, so widget-target compilation works. Confirmed via pbxproj inspection.",
+    "DirectConfig.appSchemaURL intentionally remains URL(string: \"dosbts://\") (Optional<URL>) because it's compared to event.url (Optional<URL>) in AppleCalendarExport.swift:114/185 and assigned at :155. Not converted to URL(staticString:) — this is deliberate and preserves existing semantics.",
+    "Removed @available guards in AppleHealthImport.swift (iOS 15.4 on fetchNutritionSamples/fetchExerciseSamples, iOS 16.0 on workout.statistics) are now covered by the iOS 26.0 deployment target. HKSampleQueryDescriptor (iOS 15.4+), HKQuantityType(.dietaryCarbohydrates) shorthand (iOS 15.4+), and HKWorkout.statistics(for:) (iOS 16.0+) are all available at iOS 26.0.",
+    "Removed legacy eventStore.requestAccess(to:) branch in AppleCalendarExport.swift. requestFullAccessToEvents (iOS 17.0+) is available at iOS 26.0. No code path depended on the old API.",
+    "Removed if #available(iOS 16.1, *) wrapping widgetCenterMiddleware() in App.swift:227,278. Middleware function no longer carries @available attribute, unconditional call is type-correct.",
+    "Removed ChartViewCompatibility.swift (deleted file). All private types (TextInfoCompatibility, ZoomLevelCompatibility, MinuteUpdaterCompatibility, private Color | operator) were self-contained. No external references found (verified via grep).",
+    "Removed @State showImagePicker in FoodPhotoAnalysisView.swift along with its usage site. No orphan references.",
+    "Removed Localizable.strings keys (\"App donate\", \"App facebook group\", \"App translation\") are not referenced anywhere in Swift code (verified via grep). Clean removal."
+  ],
+  "testing_gaps": [
+    "No runtime smoke test that validates all four DirectConfig URL(staticString:) constants actually parse (they should — verified statically, but a single-assertion test like #expect(DirectConfig.faqURL.absoluteString.hasPrefix(\"https://\")) would catch future mistakes where someone adds a 5th malformed URL constant).",
+    "No test verifies AboutView's mailto row behavior when appSupportMail contains URL-invalid characters (edge case, low priority).",
+    "No UI-level verification that the widget extension still compiles and links with the new Library/Extensions/URL.swift included; static analysis says yes (Foundation-only, not in exclusion set), but only xcodebuild on the DOSBTSWidget scheme would confirm."
+  ]
+}

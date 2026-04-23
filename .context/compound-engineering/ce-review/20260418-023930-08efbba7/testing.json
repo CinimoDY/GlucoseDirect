@@ -1,0 +1,121 @@
+{
+  "reviewer": "testing",
+  "findings": [
+    {
+      "id": "T001",
+      "severity": "high",
+      "confidence": 0.95,
+      "category": "tests_that_dont_assert_behavior",
+      "title": "iobAtHalfDIA uses a wide range assertion instead of verifying the exponential formula",
+      "detail": "The test at IOBCalculatorTests.swift:29-33 asserts only that percentEffectRemaining(at: 3*60*60) is between 0.2 and 0.6. The Maksimovic exponential model produces a mathematically deterministic value at exactly t=DIA/2 given fixed actionDuration and peakActivityTime. A range of (0.2, 0.6) is so wide it would pass even if the formula were wrong by ~40%. The correct approach is to compute the expected value from the formula constants (tau, a, S) and assert within a tight tolerance (e.g. < 0.001). Without this, the test provides false confidence that the core physics formula is correct.",
+      "file": "/Users/doke/extracode/DOSBTS/DOSBTSTests/IOBCalculatorTests.swift",
+      "line": 29
+    },
+    {
+      "id": "T002",
+      "severity": "high",
+      "confidence": 0.92,
+      "category": "untested_branches",
+      "title": "0.05U threshold boundary is not tested precisely — only a value that falls clearly below it",
+      "detail": "The belowThreshold test (line 101-108) uses a bolus delivered 5.9 hours ago with 1U rapid-acting. At t=5.9h the model returns a value near 0 which incidentally falls below 0.05U. However, the test does not verify the boundary behavior: (a) a total of exactly 0.05U (whether it returns 0 or 0.05 is ambiguous), (b) a total of 0.051U (should return non-zero), (c) per-bucket thresholding — the code in computeIOB lines 130-132 also applies the 0.05 threshold independently to mealSnackIOB and correctionBasalIOB; no test exercises the case where total >= 0.05 but one bucket is < 0.05 (so total is non-zero but one bucket should zero out). This independent bucket threshold is a distinct, untested branch.",
+      "file": "/Users/doke/extracode/DOSBTS/DOSBTSTests/IOBCalculatorTests.swift",
+      "line": 101
+    },
+    {
+      "id": "T003",
+      "severity": "high",
+      "confidence": 0.97,
+      "category": "untested_branches",
+      "title": "Zero-duration basal fallback path (computeBasalIOB guard) has no test",
+      "detail": "IOBCalculator.swift lines 143-149 contain an explicit guard: when totalDuration == 0 for a basal delivery, it falls back to treating it as a bolus using the basalModel. No test in IOBCalculatorTests creates a basal InsulinDelivery with starts == ends. The basalDecay test uses a 2-hour basal. This branch is particularly important because it is a safety fallback that changes which model is used for the calculation.",
+      "file": "/Users/doke/extracode/DOSBTS/Library/Content/IOBCalculator.swift",
+      "line": 143
+    },
+    {
+      "id": "T004",
+      "severity": "medium",
+      "confidence": 0.90,
+      "category": "missing_edge_case_coverage",
+      "title": "No test for very large DIA values (24h+) such as long-acting insulins",
+      "detail": "InsulinPreset only exposes rapidActing and ultraRapid (both 6h DIA). The IOB computation and ExponentialInsulinModel accept arbitrary DIA via the public init. No test instantiates ExponentialInsulinModel with actionDuration = 24*60*60 (e.g. glargine). With a 24h DIA and tp set proportionally, the tau computation could produce edge-case values (tau close to 0, or a close to 1) that cause numerical instability in the formula. The prompt specifically identified this as a risk; nothing in the tests addresses it.",
+      "file": "/Users/doke/extracode/DOSBTS/DOSBTSTests/IOBCalculatorTests.swift",
+      "line": 13
+    },
+    {
+      "id": "T005",
+      "severity": "medium",
+      "confidence": 0.88,
+      "category": "missing_edge_case_coverage",
+      "title": "No test verifies negative IOB cannot occur — model allows negative via max(0,min(1,iob)) but computeIOB does not clamp totals",
+      "detail": "percentEffectRemaining clamps its return to [0,1] via max(0,min(1,iob)). However, computeIOB sums results without clamping. If a bug caused percentEffectRemaining to return a small negative before the clamp (e.g., at time == actionDuration - epsilon), or if bucket subtraction logic were ever added, the total could be negative. No test asserts result.total >= 0 for boundary inputs, nor does any test construct a scenario that stresses the lower bound of the model formula. The prompt specifically called this out as an unchecked scenario.",
+      "file": "/Users/doke/extracode/DOSBTS/DOSBTSTests/IOBCalculatorTests.swift",
+      "line": 64
+    },
+    {
+      "id": "T006",
+      "severity": "medium",
+      "confidence": 0.85,
+      "category": "tests_that_dont_assert_behavior",
+      "title": "overlappingBoluses uses only a loose range assertion — the correct IOB sum is computable",
+      "detail": "The test at lines 135-146 asserts result.total is in (2.0, 3.0). The exact value is deterministic: 1.0 * percentEffectRemaining(at: 0) + 2.0 * percentEffectRemaining(at: 3600). Both calls can be computed analytically from the model constants. A wide range assertion would pass even if the summation were off by 0.4U, which is clinically significant in an insulin calculation context.",
+      "file": "/Users/doke/extracode/DOSBTS/DOSBTSTests/IOBCalculatorTests.swift",
+      "line": 135
+    },
+    {
+      "id": "T007",
+      "severity": "low",
+      "confidence": 0.82,
+      "category": "tests_that_dont_assert_behavior",
+      "title": "IOBStateTests only verify state mutation plumbing, not that the reducer rejects invalid values",
+      "detail": "setBasalDIA asserts that reducing .setBasalDIAMinutes(minutes: 240) sets state.basalDIAMinutes to 240. There is no test for boundary values: 0 minutes, negative minutes, or an implausibly large value (e.g. 1440 minutes / 24h). If the reducer stores any integer unchecked, a user could set basalDIAMinutes to 0 and cause a division-by-zero or NaN when constructing ExponentialInsulinModel (since tau = tp*(1 - tp/td)/(1 - 2*tp/td) diverges as td -> 0).",
+      "file": "/Users/doke/extracode/DOSBTS/DOSBTSTests/DirectReducerTests.swift",
+      "line": 211
+    }
+  ],
+  "residual_risks": [
+    {
+      "id": "RR001",
+      "description": "ExponentialInsulinModel formula can produce NaN if peakActivityTime == actionDuration/2 exactly, because the denominator (1 - 2*tp/td) becomes 0 when computing tau. No guard or test exists for this input. If the UI lets users set tp and td independently, this is reachable.",
+      "severity": "high",
+      "confidence": 0.88
+    },
+    {
+      "id": "RR002",
+      "description": "computeBasalIOB iterates segments where elapsed <= 0 and assigns the full segment dose. If a basal delivery extends into the future (ends > at date), future segments get full dose but there is no cap preventing correctionBasalIOB from exceeding delivery.units. No test exercises this case.",
+      "severity": "medium",
+      "confidence": 0.80
+    },
+    {
+      "id": "RR003",
+      "description": "The threshold zeroing in computeIOB lines 130-132 is applied per-bucket independently but after the total check. It is possible for mealSnackIOB and correctionBasalIOB to each be below 0.05 while their sum is >= 0.05 (e.g. 0.04 + 0.04 = 0.08). In that case total is returned as 0.08 but both sub-buckets are zeroed to 0, making total != mealSnackIOB + correctionBasalIOB. This inconsistency is not tested.",
+      "severity": "medium",
+      "confidence": 0.95
+    }
+  ],
+  "testing_gaps": [
+    {
+      "gap": "No test verifies the exponential formula produces a known correct numeric value at any specific time point (only boundary values at t=0 and t=DIA are exact; t=DIA/2 uses a 40-point range).",
+      "impact": "Core physics formula could be subtly wrong without any test catching it."
+    },
+    {
+      "gap": "0.05U threshold boundary not tested at the boundary value itself, nor is the per-bucket independent threshold tested.",
+      "impact": "The most safety-critical filtering logic (zeroing clinically insignificant IOB) has only incidental coverage."
+    },
+    {
+      "gap": "Zero-duration basal path (starts == ends with type .basal) is untested.",
+      "impact": "Silent fallback to bolus-style calculation with basalModel; regression would go undetected."
+    },
+    {
+      "gap": "No ExponentialInsulinModel tests with long-acting DIA (e.g. 24h / 1440 min).",
+      "impact": "Numerical stability of tau/a/S constants at large DIA is unverified."
+    },
+    {
+      "gap": "No assertion that IOB results are non-negative across all input combinations.",
+      "impact": "Negative IOB displayed to user could cause incorrect dosing decisions."
+    },
+    {
+      "gap": "IOBStateTests do not cover invalid basalDIAMinutes values (0, negative, >1440) that could cause NaN in model construction.",
+      "impact": "Reducer accepts any integer; downstream model construction could produce NaN without warning."
+    }
+  ]
+}

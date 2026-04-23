@@ -122,6 +122,7 @@ enum DirectAction {
     case analyzeFoodText(query: String, history: [ConversationTurn] = [])
     case deleteClaudeAPIKey
     case setAIConsentFoodPhoto(enabled: Bool)
+    case setHasSeenBGRelocationHint(seen: Bool)
     case setClaudeAPIKeyValid(isValid: Bool)
     case setFoodAnalysisResult(result: NutritionEstimate?)
     case setFoodAnalysisError(error: String)

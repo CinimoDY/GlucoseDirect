@@ -1,0 +1,2402 @@
+diff --git a/App/App.swift b/App/App.swift
+index 8b438fa6..37986142 100644
+--- a/App/App.swift
++++ b/App/App.swift
+@@ -217,23 +217,21 @@ private func createSimulatorAppStore() -> DirectStore {
+         readAloudMiddelware(),
+         bellmanAlarmMiddelware(),
+         nightscoutMiddleware(),
+         appGroupSharingMiddleware(),
+         screenLockMiddleware(),
+         sensorErrorMiddleware(),
+         storeExportMiddleware(),
+         claudeMiddleware()
+     ]
+ 
+-    if #available(iOS 16.1, *) {
+-        middlewares.append(widgetCenterMiddleware())
+-    }
++    middlewares.append(widgetCenterMiddleware())
+ 
+     middlewares.append(sensorConnectorMiddelware([
+         SensorConnectionInfo(id: DirectConfig.virtualID, name: "Virtual") { VirtualLibreConnection(subject: $0) }
+     ]))
+ 
+     if DirectConfig.isDebug {
+         middlewares.append(debugMiddleware())
+     }
+ 
+     return DirectStore(initialState: AppState(), reducer: directReducer, middlewares: middlewares)
+@@ -268,23 +266,21 @@ private func createAppStore() -> DirectStore {
+         readAloudMiddelware(),
+         bellmanAlarmMiddelware(),
+         nightscoutMiddleware(),
+         appGroupSharingMiddleware(),
+         screenLockMiddleware(),
+         sensorErrorMiddleware(),
+         storeExportMiddleware(),
+         claudeMiddleware()
+     ]
+ 
+-    if #available(iOS 16.1, *) {
+-        middlewares.append(widgetCenterMiddleware())
+-    }
++    middlewares.append(widgetCenterMiddleware())
+ 
+     var connectionInfos: [SensorConnectionInfo] = []
+ 
+     #if canImport(CoreNFC)
+         if NFCTagReaderSession.readingAvailable {
+             connectionInfos.append(SensorConnectionInfo(id: DirectConfig.libre2ID, name: LocalizedString("Without transmitter"), connectionCreator: { LibreConnection(subject: $0) }))
+             connectionInfos.append(SensorConnectionInfo(id: DirectConfig.bubbleID, name: LocalizedString("Bubble transmitter"), connectionCreator: { BubbleConnection(subject: $0) }))
+         } else {
+             connectionInfos.append(SensorConnectionInfo(id: DirectConfig.bubbleID, name: LocalizedString("Bubble transmitter"), connectionCreator: { BubbleConnection(subject: $0) }))
+         }
+diff --git a/App/Modules/AppleExport/AppleCalendarExport.swift b/App/Modules/AppleExport/AppleCalendarExport.swift
+index fa1d7543..c2de63f4 100644
+--- a/App/Modules/AppleExport/AppleCalendarExport.swift
++++ b/App/Modules/AppleExport/AppleCalendarExport.swift
+@@ -81,36 +81,26 @@ private class AppleCalendarExportService {
+ 
+     init() {
+         DirectLog.info("Create AppleCalendarExportService")
+     }
+ 
+     // MARK: Internal
+ 
+     lazy var eventStore: EKEventStore = .init()
+ 
+     func requestAccess(completionHandler: @escaping CalendarExportHandler) {
+-        if #available(iOS 17.0, *) {
+-            eventStore.requestFullAccessToEvents { granted, error in
+-                if granted, error == nil {
+-                    completionHandler(true)
+-                } else {
+-                    completionHandler(false)
+-                }
++        eventStore.requestFullAccessToEvents { granted, error in
++            if granted, error == nil {
++                completionHandler(true)
++            } else {
++                completionHandler(false)
+             }
+-        } else {
+-            eventStore.requestAccess(to: EKEntityType.event, completion: { granted, error in
+-                if granted, error == nil {
+-                    completionHandler(true)
+-                } else {
+-                    completionHandler(false)
+-                }
+-            })
+         }
+     }
+ 
+     func clearGlucoseEvents() {
+         guard let calendar = calendar else {
+             return
+         }
+ 
+         let predicate = eventStore.predicateForEvents(
+             withStart: Date(timeIntervalSinceNow: -24 * 3600),
+diff --git a/App/Modules/AppleImport/AppleHealthImport.swift b/App/Modules/AppleImport/AppleHealthImport.swift
+index 8e78fb0f..cc23ce11 100644
+--- a/App/Modules/AppleImport/AppleHealthImport.swift
++++ b/App/Modules/AppleImport/AppleHealthImport.swift
+@@ -159,40 +159,38 @@ private class AppleHealthImportService {
+         let ownBundleID = Bundle.main.bundleIdentifier ?? ""
+         let date = state.selectedDate ?? Date()
+         let excludedSources = Set(state.healthImportExcludedSources)
+ 
+         Task {
+             defer {
+                 self.isSyncing = false
+                 publisher.send(completion: .finished)
+             }
+ 
+-            if #available(iOS 15.4, *) {
+-                // Nutrition sync
+-                do {
+-                    let meals = try await fetchNutritionSamples(dateRange: dateRange, existingMeals: existingMeals, ownBundleID: ownBundleID, excludedSources: excludedSources)
+-                    if !meals.isEmpty {
+-                        publisher.send(.addMealEntry(mealEntryValues: meals))
+-                    }
+-                } catch {
+-                    DirectLog.error("HealthKit nutrition sync error: \(error.localizedDescription)")
++            // Nutrition sync
++            do {
++                let meals = try await fetchNutritionSamples(dateRange: dateRange, existingMeals: existingMeals, ownBundleID: ownBundleID, excludedSources: excludedSources)
++                if !meals.isEmpty {
++                    publisher.send(.addMealEntry(mealEntryValues: meals))
+                 }
++            } catch {
++                DirectLog.error("HealthKit nutrition sync error: \(error.localizedDescription)")
++            }
+ 
+-                // Exercise sync
+-                do {
+-                    let exercises = try await fetchExerciseSamples(dateRange: dateRange, existingExercises: existingExercises, ownBundleID: ownBundleID, excludedSources: excludedSources)
+-                    if !exercises.isEmpty {
+-                        publisher.send(.addExerciseEntry(exerciseEntryValues: exercises))
+-                    }
+-                } catch {
+-                    DirectLog.error("HealthKit exercise sync error: \(error.localizedDescription)")
++            // Exercise sync
++            do {
++                let exercises = try await fetchExerciseSamples(dateRange: dateRange, existingExercises: existingExercises, ownBundleID: ownBundleID, excludedSources: excludedSources)
++                if !exercises.isEmpty {
++                    publisher.send(.addExerciseEntry(exerciseEntryValues: exercises))
+                 }
++            } catch {
++                DirectLog.error("HealthKit exercise sync error: \(error.localizedDescription)")
+             }
+ 
+             // Heart rate (uses HKStatisticsCollectionQuery, available since iOS 8)
+             do {
+                 let series = try await fetchHourlyHeartRate(for: date)
+                 publisher.send(.setHeartRateSeries(heartRateSeries: series))
+             } catch {
+                 DirectLog.error("HealthKit heart rate query error: \(error.localizedDescription)")
+             }
+         }
+@@ -210,21 +208,20 @@ private class AppleHealthImportService {
+                 let series = try await fetchHourlyHeartRate(for: date)
+                 publisher.send(.setHeartRateSeries(heartRateSeries: series))
+             } catch {
+                 DirectLog.error("HealthKit heart rate query error: \(error.localizedDescription)")
+             }
+         }
+     }
+ 
+     // MARK: - Private: Nutrition Fetch
+ 
+-    @available(iOS 15.4, *)
+     private func fetchNutritionSamples(dateRange: DateInterval, existingMeals: [MealEntry], ownBundleID: String, excludedSources: Set<String> = []) async throws -> [MealEntry] {
+         let carbType = HKQuantityType(.dietaryCarbohydrates)
+         let predicate = HKQuery.predicateForSamples(withStart: dateRange.start, end: dateRange.end)
+ 
+         let descriptor = HKSampleQueryDescriptor(
+             predicates: [.quantitySample(type: carbType, predicate: predicate)],
+             sortDescriptors: [SortDescriptor(\.startDate)]
+         )
+         let samples = try await descriptor.result(for: healthStore)
+ 
+@@ -263,21 +260,20 @@ private class AppleHealthImportService {
+                 mealDescription: sourceName,
+                 carbsGrams: carbs
+             ))
+         }
+ 
+         return meals
+     }
+ 
+     // MARK: - Private: Exercise Fetch
+ 
+-    @available(iOS 15.4, *)
+     private func fetchExerciseSamples(dateRange: DateInterval, existingExercises: [ExerciseEntry], ownBundleID: String, excludedSources: Set<String> = []) async throws -> [ExerciseEntry] {
+         let predicate = HKQuery.predicateForSamples(withStart: dateRange.start, end: dateRange.end)
+ 
+         let descriptor = HKSampleQueryDescriptor(
+             predicates: [.workout(predicate)],
+             sortDescriptors: [SortDescriptor(\.startDate)]
+         )
+         let workouts = try await descriptor.result(for: healthStore)
+ 
+         let externalWorkouts = workouts.filter {
+@@ -286,25 +282,22 @@ private class AppleHealthImportService {
+         }
+ 
+         let existingStarts = Set(existingExercises.map { $0.startTime })
+ 
+         var exercises: [ExerciseEntry] = []
+         for workout in externalWorkouts {
+             let roundedStart = workout.startDate.toRounded(on: 1, .minute)
+             if existingStarts.contains(roundedStart) { continue }
+ 
+             let duration = workout.duration / 60.0
+-            var calories: Double? = nil
+-            if #available(iOS 16.0, *) {
+-                calories = workout.statistics(for: HKQuantityType(.activeEnergyBurned))?
+-                    .sumQuantity()?.doubleValue(for: .kilocalorie())
+-            }
++            let calories = workout.statistics(for: HKQuantityType(.activeEnergyBurned))?
++                .sumQuantity()?.doubleValue(for: .kilocalorie())
+             let sourceName = workout.sourceRevision.source.name
+ 
+             exercises.append(ExerciseEntry(
+                 startTime: workout.startDate,
+                 endTime: workout.endDate,
+                 activityType: workout.workoutActivityType.displayName,
+                 durationMinutes: duration,
+                 activeCalories: calories,
+                 source: sourceName
+             ))
+diff --git a/App/Modules/WidgetCenter/WidgetCenter.swift b/App/Modules/WidgetCenter/WidgetCenter.swift
+index abf42320..e222aa75 100644
+--- a/App/Modules/WidgetCenter/WidgetCenter.swift
++++ b/App/Modules/WidgetCenter/WidgetCenter.swift
+@@ -1,28 +1,26 @@
+ //
+ //  Widget.swift
+ //  DOSBTSApp
+ //
+ 
+ import ActivityKit
+ import Combine
+ import Foundation
+ import WidgetKit
+ 
+-@available(iOS 16.1, *)
+ func widgetCenterMiddleware() -> Middleware<DirectState, DirectAction> {
+     widgetCenterMiddleware(service: LazyService<ActivityGlucoseService>(initialization: {
+         ActivityGlucoseService()
+     }))
+ }
+ 
+-@available(iOS 16.1, *)
+ private func widgetCenterMiddleware(service: LazyService<ActivityGlucoseService>) -> Middleware<DirectState, DirectAction> {
+     return { state, action, _ in
+         switch action {
+         case .startup:
+             guard state.glucoseLiveActivity else {
+                 break
+             }
+ 
+             service.value.start(alarmLow: state.alarmLow, alarmHigh: state.alarmHigh, sensorState: state.sensor?.state, connectionState: state.connectionState, glucose: state.latestSensorGlucose, glucoseUnit: state.glucoseUnit)
+ 
+@@ -116,21 +114,20 @@ private func widgetCenterMiddleware(service: LazyService<ActivityGlucoseService>
+         default:
+             break
+         }
+ 
+         return Empty().eraseToAnyPublisher()
+     }
+ }
+ 
+ // MARK: - ActivityGlucoseService
+ 
+-@available(iOS 16.1, *)
+ private class ActivityGlucoseService {
+     // MARK: Lifecycle
+ 
+     init() {
+         DirectLog.info("Create ActivityGlucoseService")
+     }
+ 
+     // MARK: Internal
+ 
+     var isActivated: Bool {
+diff --git a/App/Views/AddViews/AIConsentView.swift b/App/Views/AddViews/AIConsentView.swift
+index 377af0cb..9290d2b2 100644
+--- a/App/Views/AddViews/AIConsentView.swift
++++ b/App/Views/AddViews/AIConsentView.swift
+@@ -23,21 +23,21 @@ struct AIConsentView: View {
+                 consentBullet("Your photo, a text prompt, and your saved food preferences are sent")
+                 consentBullet("No glucose or health data is included")
+                 consentBullet("Anthropic does not store your images or use them for model training (Zero Data Retention)")
+                 consentBullet("Data is transmitted securely via HTTPS/TLS")
+                 consentBullet("You can revoke access anytime in Settings")
+             }
+             .font(DOSTypography.caption)
+             .padding(.vertical, 8)
+ 
+             Link("Anthropic Privacy Policy",
+-                 destination: URL(string: "https://www.anthropic.com/privacy") ?? URL(string: "https://anthropic.com")!)
++                 destination: URL(staticString: "https://www.anthropic.com/privacy"))
+                 .font(DOSTypography.caption)
+                 .foregroundStyle(AmberTheme.cgaCyan)
+ 
+             Button(action: {
+                 onConsent()
+                 dismiss()
+             }) {
+                 Text("Allow Food Photo Analysis")
+                     .frame(maxWidth: .infinity)
+             }
+diff --git a/App/Views/AddViews/FoodPhotoAnalysisView.swift b/App/Views/AddViews/FoodPhotoAnalysisView.swift
+index 0eb7e1bb..600cd94d 100644
+--- a/App/Views/AddViews/FoodPhotoAnalysisView.swift
++++ b/App/Views/AddViews/FoodPhotoAnalysisView.swift
+@@ -69,21 +69,20 @@ struct FoodPhotoAnalysisView: View {
+                 customPortionText = ""
+             }
+         }
+     }
+ 
+     // MARK: Private
+ 
+     @State private var selectedItem: Any?
+     @State private var showCamera = false
+     @State private var showConsentSheet = false
+-    @State private var showImagePicker = false
+     @State private var isItemScanActive = false // guards onDisappear from clearing during child push
+ 
+     // Staging plate state
+     @State private var stagedItems: [EditableFoodItem] = []
+     @State private var editDescription = ""
+     @State private var editTimestamp = Date()
+     @FocusState private var focusedItemID: UUID?
+ 
+     // Inline item barcode scan
+     @State private var scanTargetIndex: Int?
+@@ -193,32 +192,21 @@ struct FoodPhotoAnalysisView: View {
+     private func stopProgressTimer() {
+         progressTimer?.invalidate()
+         progressTimer = nil
+     }
+ 
+     // MARK: - Photo picker
+ 
+     private var photoPickerSection: some View {
+         Section(
+             content: {
+-                if #available(iOS 16.0, *) {
+-                    photosPickerButton
+-                } else {
+-                    Button(action: { showImagePicker = true }) {
+-                        Label("Choose from Library", systemImage: "photo")
+-                    }
+-                    .sheet(isPresented: $showImagePicker) {
+-                        CameraView(sourceType: .photoLibrary) { image in
+-                            analyzeImage(image)
+-                        }
+-                    }
+-                }
++                photosPickerButton
+ 
+                 Button(action: { showCamera = true }) {
+                     Label("Take Photo", systemImage: "camera")
+                 }
+                 .sheet(isPresented: $showCamera) {
+                     CameraView { image in
+                         analyzeImage(image)
+                     }
+                 }
+             },
+@@ -237,21 +225,20 @@ struct FoodPhotoAnalysisView: View {
+                             .foregroundStyle(AmberTheme.amberDark)
+                     } else {
+                         Text("Set up your API key in Settings first.")
+                             .foregroundStyle(AmberTheme.cgaRed)
+                     }
+                 }
+             }
+         )
+     }
+ 
+-    @available(iOS 16.0, *)
+     private var photosPickerButton: some View {
+         PhotosPicker(selection: Binding(
+             get: { selectedItem as? PhotosPickerItem },
+             set: { selectedItem = $0 }
+         ), matching: .images) {
+             Label("Choose from Library", systemImage: "photo")
+         }
+         .onChange(of: selectedItem as? PhotosPickerItem) { item in
+             guard let item = item else { return }
+             handlePhotoSelection(item)
+@@ -755,21 +742,20 @@ struct FoodPhotoAnalysisView: View {
+                     .foregroundStyle(AmberTheme.amber)
+             case .low:
+                 Text("Low")
+                     .foregroundStyle(AmberTheme.cgaRed)
+             }
+         }
+     }
+ 
+     // MARK: - Actions
+ 
+-    @available(iOS 16.0, *)
+     private func handlePhotoSelection(_ item: PhotosPickerItem) {
+         Task {
+             guard let data = try? await item.loadTransferable(type: Data.self),
+                   let image = UIImage(data: data)
+             else { return }
+             analyzeImage(image)
+         }
+     }
+ 
+     private func analyzeImage(_ image: UIImage) {
+diff --git a/App/Views/Overview/ChartView.swift b/App/Views/Overview/ChartView.swift
+index ce136e07..10e3a881 100644
+--- a/App/Views/Overview/ChartView.swift
++++ b/App/Views/Overview/ChartView.swift
+@@ -9,21 +9,20 @@ import SwiftUI
+ // MARK: - ChartView
+ 
+ // MARK: - ReportType
+ 
+ private enum ReportType: String, CaseIterable {
+     case glucose = "GLUCOSE"
+     case timeInRange = "TIME IN RANGE"
+     case statistics = "STATISTICS"
+ }
+ 
+-@available(iOS 16.0, *)
+ struct ChartView: View {
+     // MARK: Internal
+ 
+     @EnvironmentObject var store: DirectStore
+     @State private var selectedReportType: ReportType = .glucose
+ 
+     var body: some View {
+         Section(
+             content: {
+                 VStack {
+diff --git a/App/Views/Overview/ChartViewCompatibility.swift b/App/Views/Overview/ChartViewCompatibility.swift
+deleted file mode 100644
+index a3c1a6d2..00000000
+--- a/App/Views/Overview/ChartViewCompatibility.swift
++++ /dev/null
+@@ -1,718 +0,0 @@
+-//
+-//  ChartViewCompatibility.swift
+-//  App
+-//
+-
+-import Accelerate
+-import Combine
+-import SwiftUI
+-
+-// MARK: - ChartViewCompatibility
+-
+-struct ChartViewCompatibility: View {
+-    // MARK: Internal
+-
+-    @Environment(\.colorScheme) var colorScheme
+-
+-    @EnvironmentObject var store: DirectStore
+-
+-    var chartView: some View {
+-        GeometryReader { geo in
+-            ZStack(alignment: .leading) {
+-                yGridView()
+-                alarmLowGridView()
+-                alarmHighGridView()
+-                targetGridView()
+-                scrollGridView(fullSize: geo.size).padding(.leading, Config.y.padding)
+-            }
+-            .gesture(TapGesture(count: 2).onEnded { _ in
+-                store.dispatch(.setChartShowLines(enabled: !store.state.chartShowLines))
+-            })
+-            .onChange(of: colorScheme) { scheme in
+-                if deviceColorScheme != scheme {
+-                    DirectLog.info("onChange colorScheme: \(scheme)")
+-                    deviceColorScheme = scheme
+-                }
+-            }
+-            .onChange(of: store.state.chartShowLines) { chartShowLines in
+-                DirectLog.info("onChange chartShowLines: \(chartShowLines)")
+-
+-                updateSensorGlucosePath(fullSize: geo.size, glucoseValues: sensorGlucoseValues)
+-                updateBloodGlucosePath(fullSize: geo.size, glucoseValues: bloodGlucoseValues)
+-            }
+-            .onChange(of: store.state.alarmLow) { alarmLow in
+-                DirectLog.info("onChange alarmLow: \(alarmLow)")
+-
+-                updateYGrid(fullSize: geo.size, alarmLow: alarmLow, alarmHigh: store.state.alarmHigh, targetValue: store.state.targetValue, glucoseUnit: store.state.glucoseUnit)
+-                updateAlarmLowGrid(fullSize: geo.size, alarmLow: alarmLow)
+-            }
+-            .onChange(of: store.state.alarmHigh) { alarmHigh in
+-                DirectLog.info("onChange alarmHigh: \(alarmHigh)")
+-
+-                updateYGrid(fullSize: geo.size, alarmLow: store.state.alarmLow, alarmHigh: alarmHigh, targetValue: store.state.targetValue, glucoseUnit: store.state.glucoseUnit)
+-                updateAlarmHighGrid(fullSize: geo.size, alarmHigh: alarmHigh)
+-            }
+-            .onChange(of: store.state.targetValue) { targetValue in
+-                DirectLog.info("onChange targetValue: \(targetValue)")
+-
+-                updateYGrid(fullSize: geo.size, alarmLow: store.state.alarmLow, alarmHigh: store.state.alarmHigh, targetValue: targetValue, glucoseUnit: store.state.glucoseUnit)
+-                updateTargetGrid(fullSize: geo.size, targetValue: targetValue)
+-            }
+-            .onChange(of: store.state.glucoseUnit) { glucoseUnit in
+-                DirectLog.info("onChange glucoseUnit: \(glucoseUnit)")
+-
+-                updateYGrid(fullSize: geo.size, alarmLow: store.state.alarmLow, alarmHigh: store.state.alarmHigh, targetValue: store.state.targetValue, glucoseUnit: glucoseUnit)
+-            }
+-            .onChange(of: store.state.sensorGlucoseValues) { _ in
+-                DirectLog.info("onChange glucoseValues: \(store.state.sensorGlucoseValues.count)")
+-
+-                updateHelpVariables(fullSize: geo.size, glucoseValues: store.state.sensorGlucoseValues)
+-                updateGlucoseValues(sensorGlucoseValues: store.state.sensorGlucoseValues, bloodGlucoseValues: store.state.bloodGlucoseValues)
+-            }
+-            .onChange(of: store.state.bloodGlucoseValues) { _ in
+-                DirectLog.info("onChange glucoseValues: \(store.state.bloodGlucoseValues.count)")
+-
+-                updateHelpVariables(fullSize: geo.size, glucoseValues: store.state.sensorGlucoseValues)
+-                updateGlucoseValues(sensorGlucoseValues: store.state.sensorGlucoseValues, bloodGlucoseValues: store.state.bloodGlucoseValues)
+-            }
+-            .onChange(of: store.state.chartZoomLevel) { zoomLevel in
+-                DirectLog.info("onChange zoomLevel: \(zoomLevel)")
+-
+-                updateZoomLevel(level: zoomLevel)
+-                updateHelpVariables(fullSize: geo.size, glucoseValues: store.state.sensorGlucoseValues)
+-                updateGlucoseValues(sensorGlucoseValues: store.state.sensorGlucoseValues, bloodGlucoseValues: store.state.bloodGlucoseValues)
+-            }
+-            .onChange(of: sensorGlucoseValues) { _ in
+-                DirectLog.info("onChange sensorGlucoseValues")
+-
+-                updateYGrid(fullSize: geo.size, alarmLow: store.state.alarmLow, alarmHigh: store.state.alarmHigh, targetValue: store.state.targetValue, glucoseUnit: store.state.glucoseUnit)
+-                updateXGrid(fullSize: geo.size, firstTimeStamp: self.firstTimeStamp, lastTimeStamp: self.lastTimeStamp)
+-
+-                updateAlarmLowGrid(fullSize: geo.size, alarmLow: store.state.alarmLow)
+-                updateAlarmHighGrid(fullSize: geo.size, alarmHigh: store.state.alarmHigh)
+-                updateTargetGrid(fullSize: geo.size, targetValue: store.state.targetValue)
+-
+-                updateSensorGlucosePath(fullSize: geo.size, glucoseValues: sensorGlucoseValues)
+-            }
+-            .onChange(of: bloodGlucoseValues) { _ in
+-                DirectLog.info("onChange bloodGlucoseValues")
+-
+-                updateYGrid(fullSize: geo.size, alarmLow: store.state.alarmLow, alarmHigh: store.state.alarmHigh, targetValue: store.state.targetValue, glucoseUnit: store.state.glucoseUnit)
+-                updateXGrid(fullSize: geo.size, firstTimeStamp: self.firstTimeStamp, lastTimeStamp: self.lastTimeStamp)
+-
+-                updateAlarmLowGrid(fullSize: geo.size, alarmLow: store.state.alarmLow)
+-                updateAlarmHighGrid(fullSize: geo.size, alarmHigh: store.state.alarmHigh)
+-                updateTargetGrid(fullSize: geo.size, targetValue: store.state.targetValue)
+-
+-                updateBloodGlucosePath(fullSize: geo.size, glucoseValues: bloodGlucoseValues)
+-            }
+-            .onAppear {
+-                DirectLog.info("onAppear")
+-
+-                updateZoomLevel(level: store.state.chartZoomLevel)
+-                updateHelpVariables(fullSize: geo.size, glucoseValues: store.state.sensorGlucoseValues)
+-                updateGlucoseValues(sensorGlucoseValues: store.state.sensorGlucoseValues, bloodGlucoseValues: store.state.bloodGlucoseValues)
+-            }
+-        }
+-    }
+-
+-    var body: some View {
+-        Section {
+-            chartView
+-                .padding(.leading, 5)
+-                .padding(.trailing, 0)
+-                .padding(.top, 15)
+-                .padding(.bottom, 5)
+-                .frame(height: Config.height)
+-
+-            HStack {
+-                ForEach(Config.zoomLevels, id: \.level) { zoom in
+-                    Button(
+-                        action: {
+-                            store.dispatch(.setChartZoomLevel(level: zoom.level))
+-                        },
+-                        label: {
+-                            Circle()
+-                                .if(store.state.chartZoomLevel == zoom.level) {
+-                                    $0.fill(Config.y.textColor)
+-                                } else: {
+-                                    $0.stroke(Config.y.textColor)
+-                                }
+-                                .frame(width: 12, height: 12)
+-
+-                            Text(zoom.title)
+-                                .font(DOSTypography.bodySmall)
+-                                .foregroundColor(Config.y.textColor)
+-                        }
+-                    ).buttonStyle(.plain)
+-
+-                    Spacer()
+-                }
+-
+-                Button(
+-                    action: {
+-                        store.dispatch(.setChartShowLines(enabled: !store.state.chartShowLines))
+-                    },
+-                    label: {
+-                        Rectangle()
+-                            .if(store.state.chartShowLines) {
+-                                $0.fill(Config.y.textColor)
+-                            } else: {
+-                                $0.stroke(Config.y.textColor)
+-                            }
+-                            .frame(width: 12, height: 12)
+-
+-                        Text("Line")
+-                            .font(DOSTypography.bodySmall)
+-                            .foregroundColor(Config.y.textColor)
+-                    }
+-                ).buttonStyle(.plain)
+-            }
+-        }
+-    }
+-
+-    // MARK: Private
+-
+-    private enum Config {
+-        enum alarm {
+-            static let strokeStyle = StrokeStyle(lineWidth: lineWidth)
+-
+-            static var color: Color { AmberTheme.cgaRed.opacity(opacity) }
+-        }
+-
+-        enum target {
+-            static let strokeStyle = StrokeStyle(lineWidth: lineWidth)
+-
+-            static var color: Color { AmberTheme.cgaGreen.opacity(opacity) }
+-        }
+-
+-        enum now {
+-            static let strokeStyle = StrokeStyle(lineWidth: lineWidth, dash: [4, 8])
+-
+-            static var color: Color { AmberTheme.cgaCyan.opacity(opacity) }
+-        }
+-
+-        enum dot {
+-            static let size: CGFloat = 3.5
+-
+-            static var sensorGlucoseColor: Color { AmberTheme.cgaCyan }
+-            static var bloodGlucoseColor: Color { AmberTheme.cgaRed }
+-        }
+-
+-        enum line {
+-            static var size = 2.5
+-
+-            static var sensorGlucoseColor: Color { AmberTheme.cgaCyan }
+-            static var bloodGlucoseColor: Color { AmberTheme.cgaRed }
+-        }
+-
+-        enum x {
+-            static let fontSize: CGFloat = 12
+-            static let strokeStyle = StrokeStyle(lineWidth: lineWidth)
+-            static let stepWidth: Double = 5
+-
+-            static var color: Color { AmberTheme.amberMuted } // .opacity(opacity)
+-            static var textColor: Color { AmberTheme.amberDark }
+-        }
+-
+-        enum y {
+-            static let additionalBottom: CGFloat = fontSize * 2
+-            static let fontSize: CGFloat = 12
+-            static let fontWidth: CGFloat = 28
+-            static let padding: CGFloat = 20
+-            static let strokeStyle = StrokeStyle(lineWidth: lineWidth)
+-
+-            static let mgdLGrid: [Int] = [0, 50, 100, 150, 200, 250, 300, 350, 400]
+-            static let mmolLGrid: [Int] = [0, 54, 108, 162, 216, 270, 324, 378]
+-
+-            static var color: Color { AmberTheme.amberMuted }
+-            static var textColor: Color { AmberTheme.amberDark }
+-        }
+-
+-        static let zoomGridStep: [Int: Double] = [
+-            1: 15,
+-            5: 60,
+-            15: 180,
+-            30: 360,
+-        ]
+-
+-        static let zoomLevels: [ZoomLevelCompatibility] = [
+-            ZoomLevelCompatibility(level: 1, title: "1m"),
+-            ZoomLevelCompatibility(level: 5, title: "5m"),
+-            ZoomLevelCompatibility(level: 15, title: "15m"),
+-            ZoomLevelCompatibility(level: 30, title: "30m"),
+-        ]
+-
+-        static let endID = "End"
+-        static let height: CGFloat = 350
+-        static let lineWidth = 0.1
+-        static let maxGlucose = 400
+-        static let minGlucose = 0
+-        static let opacity = 0.5
+-
+-        static var backgroundColor: Color { AmberTheme.dosBlack }
+-    }
+-
+-    @StateObject private var updater = MinuteUpdaterCompatibility()
+-    @State private var alarmHighGridPath = Path()
+-    @State private var alarmLowGridPath = Path()
+-    @State private var firstTimeStamp: Date? = nil
+-    @State private var sensorGlucosePath = Path()
+-    @State private var bloodGlucosePath = Path()
+-    @State private var glucoseSteps: Int = 0
+-    @State private var lastTimeStamp: Date? = nil
+-    @State private var targetGridPath = Path()
+-    @State private var xGridPath = Path()
+-    @State private var xGridTexts: [TextInfoCompatibility] = []
+-    @State private var yGridPath = Path()
+-    @State private var yGridTexts: [TextInfoCompatibility] = []
+-    @State private var deviceOrientation = UIDevice.current.orientation
+-    @State private var deviceColorScheme = ColorScheme.light
+-    @State private var sensorGlucoseValues: [SensorGlucose] = []
+-    @State private var bloodGlucoseValues: [BloodGlucose] = []
+-    @State private var zoomGridStep = Config.zoomGridStep[Config.zoomLevels.first!.level]!
+-
+-    private let calculationQueue = DispatchQueue(label: "libre-direct.chart-calculation")
+-
+-    private func scrollGridView(fullSize: CGSize) -> some View {
+-        ScrollView(.horizontal, showsIndicators: false) {
+-            ScrollViewReader { scroll in
+-                ZStack {
+-                    xGridView()
+-
+-                    nowView(fullSize: fullSize)
+-                        .zIndex(2)
+-
+-                    if store.state.chartShowLines {
+-                        cgmLineView()
+-                            .zIndex(3)
+-                    } else {
+-                        cgmDotsView()
+-                            .zIndex(3)
+-                    }
+-
+-                    bgmDotsView().zIndex(4)
+-                }
+-                .frame(width: CGFloat(Double(glucoseSteps) * Config.x.stepWidth))
+-                .onChange(of: store.state.sensorGlucoseValues) { _ in
+-                    scroll.scrollTo(Config.endID, anchor: .trailing)
+-                }
+-                .onChange(of: store.state.bloodGlucoseValues) { _ in
+-                    scroll.scrollTo(Config.endID, anchor: .trailing)
+-                }
+-                .onChange(of: store.state.chartZoomLevel) { _ in
+-                    scroll.scrollTo(Config.endID, anchor: .trailing)
+-                }.onAppear {
+-                    DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(250)) {
+-                        scroll.scrollTo(Config.endID, anchor: .trailing)
+-                    }
+-                }
+-            }
+-        }
+-    }
+-
+-    private func alarmHighGridView() -> some View {
+-        alarmHighGridPath
+-            .stroke(style: Config.alarm.strokeStyle)
+-            .stroke(Config.alarm.color)
+-    }
+-
+-    private func alarmLowGridView() -> some View {
+-        alarmLowGridPath
+-            .stroke(style: Config.alarm.strokeStyle)
+-            .stroke(Config.alarm.color)
+-    }
+-
+-    private func nowView(fullSize: CGSize) -> some View {
+-        Path { path in
+-            #if targetEnvironment(simulator)
+-                let now = ISO8601DateFormatter().date(from: "2021-08-01T11:50:00+0200") ?? Date()
+-            #else
+-                let now = Date().toRounded(on: 1, .minute)
+-            #endif
+-
+-            let x = self.translateTimeStampToX(timestamp: now)
+-
+-            path.move(to: CGPoint(x: x, y: 0))
+-            path.addLine(to: CGPoint(x: x, y: fullSize.height - Config.y.additionalBottom))
+-        }
+-        .stroke(style: Config.now.strokeStyle)
+-        .stroke(Config.now.color)
+-    }
+-
+-    private func cgmLineView() -> some View {
+-        sensorGlucosePath
+-            .stroke(Config.line.sensorGlucoseColor, lineWidth: Config.line.size)
+-    }
+-
+-    private func cgmDotsView() -> some View {
+-        sensorGlucosePath
+-            .fill(Config.dot.sensorGlucoseColor)
+-    }
+-
+-    private func bgmDotsView() -> some View {
+-        bloodGlucosePath
+-            .fill(Config.dot.bloodGlucoseColor)
+-    }
+-
+-    private func targetGridView() -> some View {
+-        targetGridPath
+-            .stroke(style: Config.target.strokeStyle)
+-            .stroke(Config.target.color)
+-    }
+-
+-    private func xGridView() -> some View {
+-        ZStack {
+-            xGridPath
+-                .stroke(style: Config.x.strokeStyle)
+-                .stroke(Config.x.color)
+-
+-            ForEach(xGridTexts, id: \.self.x) { text in
+-                let fontWeight: Font.Weight = text.highlight ? .semibold : .regular
+-
+-                Text(text.description)
+-                    .foregroundColor(Config.x.textColor)
+-                    .font(DOSTypography.caption)
+-                    .fontWeight(fontWeight)
+-                    .position(x: text.x, y: text.y)
+-                    .if(text.x == xGridTexts.last?.x) { $0.id(Config.endID) }
+-            }
+-        }
+-    }
+-
+-    private func yGridView() -> some View {
+-        ZStack {
+-            yGridPath
+-                .stroke(style: Config.y.strokeStyle)
+-                .stroke(Config.y.color)
+-
+-            ForEach(yGridTexts, id: \.self.y) { text in
+-                let fontWeight: Font.Weight = text.highlight ? .semibold : .regular
+-
+-                Text(text.description)
+-                    .foregroundColor(Config.y.textColor)
+-                    .font(DOSTypography.caption)
+-                    .fontWeight(fontWeight)
+-                    .padding(0)
+-                    .frame(width: Config.y.fontWidth, alignment: .trailing)
+-                    .position(x: text.x, y: text.y)
+-            }
+-        }
+-    }
+-
+-    private func updateZoomLevel(level: Int) {
+-        if Config.zoomLevels.contains(where: { $0.level == level }) {
+-            zoomGridStep = Config.zoomGridStep[level]!
+-        } else {
+-            store.dispatch(.setChartZoomLevel(level: Config.zoomLevels.first!.level))
+-        }
+-    }
+-
+-    private func updateHelpVariables(fullSize: CGSize, glucoseValues: [any Glucose]) {
+-        DirectLog.info("updateHelpVariables")
+-
+-        if let first = glucoseValues.first, let last = glucoseValues.last {
+-            let firstTimeStamp = first.timestamp.addingTimeInterval(-2 * zoomGridStep * 60)
+-
+-            #if targetEnvironment(simulator)
+-                let lastTimeStamp = last.timestamp.addingTimeInterval(2 * zoomGridStep * 60)
+-            #else
+-                let lastTimeStamp = Date().toRounded(on: 1, .minute).addingTimeInterval(2 * zoomGridStep * 60)
+-            #endif
+-
+-            let glucoseSteps = Int(firstTimeStamp.distance(to: lastTimeStamp) / 60) / store.state.chartZoomLevel
+-
+-            self.firstTimeStamp = firstTimeStamp
+-            self.lastTimeStamp = lastTimeStamp
+-            self.glucoseSteps = glucoseSteps
+-        }
+-    }
+-
+-    private func updateGlucoseValues(sensorGlucoseValues: [SensorGlucose], bloodGlucoseValues: [BloodGlucose]) {
+-        DirectLog.info("updateGlucoseValues")
+-
+-        if store.state.chartZoomLevel == 1 {
+-            self.sensorGlucoseValues = sensorGlucoseValues
+-            self.bloodGlucoseValues = bloodGlucoseValues
+-        } else {
+-            calculationQueue.async {
+-                let filteredValues = sensorGlucoseValues.map { value in
+-                    (value.timestamp.toRounded(on: store.state.chartZoomLevel, .minute), value.glucoseValue)
+-                }
+-
+-                let groupedValues: [Date: [(Date, Int)]] = Dictionary(grouping: filteredValues, by: { $0.0 })
+-                let sensorGlucoseValues: [SensorGlucose] = groupedValues.map { group in
+-                    let sumGlucoseValues = group.value.reduce(0) {
+-                        $0 + $1.1
+-                    }
+-
+-                    let meanGlucoseValues = sumGlucoseValues / group.value.count
+-
+-                    return SensorGlucose(timestamp: group.key, rawGlucoseValue: meanGlucoseValues, intGlucoseValue: meanGlucoseValues)
+-                }.sorted(by: { $0.timestamp < $1.timestamp })
+-
+-                DispatchQueue.main.async {
+-                    self.sensorGlucoseValues = sensorGlucoseValues
+-                    self.bloodGlucoseValues = bloodGlucoseValues
+-                }
+-            }
+-        }
+-    }
+-
+-    private func updateAlarmHighGrid(fullSize: CGSize, alarmHigh: Int?) {
+-        DirectLog.info("updateAlarmHighGrid")
+-
+-        calculationQueue.async {
+-            if let alarmHigh = alarmHigh {
+-                let alarmHighGridPath = Path { path in
+-                    let y = self.translateGlucoseToY(fullSize: fullSize, glucose: CGFloat(alarmHigh))
+-
+-                    path.move(to: CGPoint(x: Config.y.padding, y: y))
+-                    path.addLine(to: CGPoint(x: fullSize.width, y: y))
+-                }
+-
+-                DispatchQueue.main.async {
+-                    self.alarmHighGridPath = alarmHighGridPath
+-                }
+-            }
+-        }
+-    }
+-
+-    private func updateAlarmLowGrid(fullSize: CGSize, alarmLow: Int?) {
+-        DirectLog.info("updateAlarmLowGrid")
+-
+-        calculationQueue.async {
+-            if let alarmLow = alarmLow {
+-                let alarmLowGridPath = Path { path in
+-                    let y = self.translateGlucoseToY(fullSize: fullSize, glucose: CGFloat(alarmLow))
+-
+-                    path.move(to: CGPoint(x: Config.y.padding, y: y))
+-                    path.addLine(to: CGPoint(x: fullSize.width, y: y))
+-                }
+-
+-                DispatchQueue.main.async {
+-                    self.alarmLowGridPath = alarmLowGridPath
+-                }
+-            }
+-        }
+-    }
+-
+-    private func updateSensorGlucosePath(fullSize: CGSize, glucoseValues: [SensorGlucose]) {
+-        DirectLog.info("updateSensorGlucosePath")
+-        var isFirst = true
+-
+-        calculationQueue.async {
+-            let sensorGlucosePath = Path { path in
+-                for glucose in glucoseValues {
+-                    let x = self.translateTimeStampToX(timestamp: glucose.timestamp)
+-                    let y = self.translateGlucoseToY(fullSize: fullSize, glucose: CGFloat(glucose.glucoseValue))
+-
+-                    if store.state.chartShowLines {
+-                        if isFirst {
+-                            isFirst = false
+-                            path.move(to: CGPoint(x: x, y: y))
+-                        }
+-
+-                        path.addLine(to: CGPoint(x: x, y: y))
+-                    } else {
+-                        path.addEllipse(in: CGRect(x: x - Config.dot.size / 2, y: y - Config.dot.size / 2, width: Config.dot.size, height: Config.dot.size))
+-                    }
+-                }
+-            }
+-
+-            DispatchQueue.main.async {
+-                self.sensorGlucosePath = sensorGlucosePath
+-            }
+-        }
+-    }
+-
+-    private func updateBloodGlucosePath(fullSize: CGSize, glucoseValues: [BloodGlucose]) {
+-        DirectLog.info("updateBloodGlucosePath")
+-
+-        calculationQueue.async {
+-            let sensorGlucosePath = Path { path in
+-                for glucose in glucoseValues {
+-                    let x = self.translateTimeStampToX(timestamp: glucose.timestamp)
+-                    let y = self.translateGlucoseToY(fullSize: fullSize, glucose: CGFloat(glucose.glucoseValue))
+-
+-                    path.addEllipse(in: CGRect(x: x - Config.dot.size, y: y - Config.dot.size, width: Config.dot.size * 2, height: Config.dot.size * 2))
+-                }
+-            }
+-
+-            DispatchQueue.main.async {
+-                self.bloodGlucosePath = sensorGlucosePath
+-            }
+-        }
+-    }
+-
+-    private func updateTargetGrid(fullSize: CGSize, targetValue: Int?) {
+-        DirectLog.info("updateTargetGrid")
+-
+-        calculationQueue.async {
+-            if let targetValue = targetValue {
+-                let targetGridPath = Path { path in
+-                    let y = self.translateGlucoseToY(fullSize: fullSize, glucose: CGFloat(targetValue))
+-
+-                    path.move(to: CGPoint(x: Config.y.padding, y: y))
+-                    path.addLine(to: CGPoint(x: fullSize.width, y: y))
+-                }
+-
+-                DispatchQueue.main.async {
+-                    self.targetGridPath = targetGridPath
+-                }
+-            }
+-        }
+-    }
+-
+-    private func updateXGrid(fullSize: CGSize, firstTimeStamp: Date?, lastTimeStamp: Date?) {
+-        DirectLog.info("updateXGrid")
+-
+-        calculationQueue.async {
+-            if let firstTimeStamp = firstTimeStamp, let lastTimeStamp = lastTimeStamp {
+-                let allHours = Date.valuesBetween(
+-                    from: firstTimeStamp.toRounded(on: Int(zoomGridStep), .minute).addingTimeInterval(-3600),
+-                    to: lastTimeStamp.toRounded(on: Int(zoomGridStep), .minute).addingTimeInterval(3600),
+-                    component: .minute,
+-                    step: Int(zoomGridStep)
+-                )
+-
+-                let xGridPath = Path { path in
+-                    for hour in allHours {
+-                        if hour == Date().toRounded(on: 1, .minute) {
+-                            continue
+-                        }
+-
+-                        path.move(to: CGPoint(x: self.translateTimeStampToX(timestamp: hour), y: 0))
+-                        path.addLine(to: CGPoint(x: self.translateTimeStampToX(timestamp: hour), y: fullSize.height - Config.y.additionalBottom))
+-                    }
+-                }
+-
+-                var xGridTexts: [TextInfoCompatibility] = []
+-                for hour in allHours {
+-                    let highlight = Calendar.current.component(.minute, from: hour) == 0
+-                    let x = self.translateTimeStampToX(timestamp: hour)
+-                    let y = fullSize.height - Config.y.fontSize
+-                    xGridTexts.append(TextInfoCompatibility(description: hour.toLocalTime(), x: x, y: y, highlight: highlight))
+-                }
+-
+-                DispatchQueue.main.async {
+-                    self.xGridPath = xGridPath
+-                    self.xGridTexts = xGridTexts
+-                }
+-            }
+-        }
+-    }
+-
+-    private func updateYGrid(fullSize: CGSize, alarmLow: Int?, alarmHigh: Int?, targetValue: Int?, glucoseUnit: GlucoseUnit) {
+-        DirectLog.info("updateYGrid")
+-
+-        calculationQueue.async {
+-            let gridParts = store.state.glucoseUnit == .mgdL
+-                ? Config.y.mgdLGrid
+-                : Config.y.mmolLGrid
+-
+-            let yGridPath = Path { path in
+-                for i in gridParts {
+-                    if i == alarmLow || i == alarmHigh || i == targetValue {
+-                        continue
+-                    }
+-
+-                    let y = self.translateGlucoseToY(fullSize: fullSize, glucose: CGFloat(i))
+-
+-                    path.move(to: CGPoint(x: Config.y.padding, y: y))
+-                    path.addLine(to: CGPoint(x: fullSize.width, y: y))
+-                }
+-            }
+-
+-            var yGridTexts: [TextInfoCompatibility] = []
+-            for i in gridParts {
+-                if i <= DirectConfig.minReadableGlucose {
+-                    continue
+-                }
+-
+-                let y = self.translateGlucoseToY(fullSize: fullSize, glucose: CGFloat(i))
+-                yGridTexts.append(TextInfoCompatibility(description: i.asGlucose(glucoseUnit: glucoseUnit), x: 0, y: y, highlight: false))
+-            }
+-
+-            DispatchQueue.main.async {
+-                self.yGridPath = yGridPath
+-                self.yGridTexts = yGridTexts
+-            }
+-        }
+-    }
+-
+-    private func translateGlucoseToY(fullSize: CGSize, glucose: CGFloat) -> CGFloat {
+-        let inMin = CGFloat(Config.minGlucose)
+-        let inMax = CGFloat(Config.maxGlucose)
+-        let outMin = fullSize.height - Config.y.additionalBottom
+-        let outMax = CGFloat(0)
+-
+-        let y = (glucose - inMin) * (outMax - outMin) / (inMax - inMin) + outMin
+-        return y
+-    }
+-
+-    private func translateStepsToX(steps: Int) -> CGFloat {
+-        return CGFloat(steps) * CGFloat(Config.x.stepWidth)
+-    }
+-
+-    private func translateTimeStampToX(timestamp: Date) -> CGFloat {
+-        if let first = firstTimeStamp {
+-            let steps = Int(first.distance(to: timestamp) / 60) / store.state.chartZoomLevel
+-
+-            return translateStepsToX(steps: steps)
+-        }
+-
+-        return 0
+-    }
+-}
+-
+-// MARK: - TextInfoCompatibility
+-
+-private struct TextInfoCompatibility {
+-    let description: String
+-    let x: CGFloat
+-    let y: CGFloat
+-    let highlight: Bool
+-}
+-
+-// MARK: - ZoomLevelCompatibility
+-
+-private struct ZoomLevelCompatibility {
+-    let level: Int
+-    let title: String
+-}
+-
+-// MARK: - MinuteUpdaterCompatibility
+-
+-private class MinuteUpdaterCompatibility: ObservableObject {
+-    // MARK: Lifecycle
+-
+-    init() {
+-        let fireDate = Date().toRounded(on: 1, .minute).addingTimeInterval(60)
+-        DirectLog.info("MinuteUpdater, init with \(fireDate)")
+-
+-        let timer = Timer(fire: fireDate, interval: 60, repeats: true) { _ in
+-            DirectLog.info("MinuteUpdater, fires at \(Date())")
+-            self.objectWillChange.send()
+-        }
+-        RunLoop.main.add(timer, forMode: .common)
+-
+-        self.timer = timer
+-    }
+-
+-    // MARK: Internal
+-
+-    var timer: Timer?
+-}
+-
+-infix operator |: AdditionPrecedence
+-private extension Color {
+-    /// Easily define two colors for both light and dark mode.
+-    /// - Parameters:
+-    ///   - lightMode: The color to use in light mode.
+-    ///   - darkMode: The color to use in dark mode.
+-    /// - Returns: A dynamic color that uses both given colors respectively for the given user interface style.
+-    static func | (lightMode: Color, darkMode: Color) -> Color {
+-        return UITraitCollection.current.userInterfaceStyle == .light ? lightMode : darkMode
+-    }
+-}
+diff --git a/App/Views/Overview/ConnectionView.swift b/App/Views/Overview/ConnectionView.swift
+index c3dd9a8b..268f96d8 100644
+--- a/App/Views/Overview/ConnectionView.swift
++++ b/App/Views/Overview/ConnectionView.swift
+@@ -9,33 +9,33 @@ import SwiftUI
+ 
+ struct ConnectionView: View {
+     // MARK: Internal
+ 
+     @EnvironmentObject var store: DirectStore
+ 
+     var body: some View {
+         if let connectionError = store.state.connectionError, let connectionErrorTimestamp = store.state.connectionErrorTimestamp?.toLocalTime() {
+             Section(
+                 content: {
+-                    Link(connectionError, destination: URL(string: DirectConfig.faqURL)!)
++                    Link(connectionError, destination: DirectConfig.faqURL)
+                         .foregroundColor(AmberTheme.cgaRed)
+ 
+                     HStack {
+                         Text("Connection error timestamp")
+                         Spacer()
+                         Text(connectionErrorTimestamp)
+                     }
+ 
+                     HStack {
+                         Text("Help")
+                         Spacer()
+-                        Link("App faq", destination: URL(string: DirectConfig.faqURL)!)
++                        Link("App faq", destination: DirectConfig.faqURL)
+                             .lineLimit(1)
+                             .truncationMode(.head)
+                     }
+                 },
+                 header: {
+                     Label("Connection error", systemImage: "exclamationmark.triangle")
+                         .foregroundColor(AmberTheme.cgaRed)
+                 }
+             )
+         }
+diff --git a/App/Views/OverviewView.swift b/App/Views/OverviewView.swift
+index 86b8a6ed..d5c5f64a 100644
+--- a/App/Views/OverviewView.swift
++++ b/App/Views/OverviewView.swift
+@@ -39,25 +39,21 @@ struct OverviewView: View {
+                 GlucoseView()
+                     .listRowSeparator(.hidden)
+ 
+                 // Treatment countdown banner (between hero and chart)
+                 if store.state.treatmentCycleActive {
+                     TreatmentBannerView()
+                         .listRowSeparator(.hidden)
+                 }
+ 
+                 if !store.state.sensorGlucoseValues.isEmpty || !store.state.bloodGlucoseValues.isEmpty {
+-                    if #available(iOS 16.0, *) {
+-                        ChartView()
+-                    } else {
+-                        ChartViewCompatibility()
+-                    }
++                    ChartView()
+                 }
+ 
+                 ConnectionView()
+                 SensorView()
+             }.listStyle(.grouped)
+ 
+             StickyQuickActions()
+         }
+         .sheet(item: $activeSheet, onDismiss: {
+             // Present pending sheet after current one fully dismisses (avoids asyncAfter timing hack)
+diff --git a/App/Views/Settings/AboutView.swift b/App/Views/Settings/AboutView.swift
+index 9f4c9c70..55d52e7e 100644
+--- a/App/Views/Settings/AboutView.swift
++++ b/App/Views/Settings/AboutView.swift
+@@ -22,58 +22,60 @@ struct AboutView: View {
+                 }
+ 
+                 if let appAuthor = DirectConfig.appAuthor, !appAuthor.isEmpty {
+                     HStack {
+                         Text("App author")
+                         Spacer()
+                         Text(verbatim: appAuthor)
+                     }
+                 }
+ 
+-                if let appSupportMail = DirectConfig.appSupportMail, !appSupportMail.isEmpty {
++                if let appSupportMail = DirectConfig.appSupportMail,
++                   !appSupportMail.isEmpty,
++                   let mailURL = URL(string: "mailto:\(appSupportMail)") {
+                     HStack {
+                         Text("App email")
+                         Spacer()
+-                        Link(appSupportMail, destination: URL(string: "mailto:\(appSupportMail)")!)
++                        Link(appSupportMail, destination: mailURL)
+                             .lineLimit(1)
+                             .truncationMode(.head)
+                     }
+                 }
+ 
+                 HStack {
+                     Text("App website")
+                     Spacer()
+-                    Link("GitHub", destination: URL(string: DirectConfig.githubURL)!)
++                    Link("GitHub", destination: DirectConfig.githubURL)
+                         .lineLimit(1)
+                         .truncationMode(.head)
+                 }
+ 
+                 HStack {
+                     Text("App faq")
+                     Spacer()
+-                    Link("GitHub", destination: URL(string: DirectConfig.faqURL)!)
++                    Link("GitHub", destination: DirectConfig.faqURL)
+                         .lineLimit(1)
+                         .truncationMode(.head)
+                 }
+ 
+                 HStack {
+                     Text(verbatim: "Support upstream GlucoseDirect")
+                     Spacer()
+-                    Link("PayPal", destination: URL(string: DirectConfig.upstreamDonateURL)!)
++                    Link("PayPal", destination: DirectConfig.upstreamDonateURL)
+                         .lineLimit(1)
+                         .truncationMode(.head)
+                 }
+ 
+                 HStack {
+                     Text(verbatim: "Tip the DOSBTS fork")
+                     Spacer()
+-                    Link("Sponsors", destination: URL(string: DirectConfig.sponsorURL)!)
++                    Link("Sponsors", destination: DirectConfig.sponsorURL)
+                         .lineLimit(1)
+                         .truncationMode(.head)
+                 }
+             },
+             header: {
+                 Label("About \(DirectConfig.appName)", systemImage: "info")
+             }
+         )
+         
+         Section(
+diff --git a/App/Views/Settings/GlucoseSettingsView.swift b/App/Views/Settings/GlucoseSettingsView.swift
+index 5b14e7f4..09869b07 100644
+--- a/App/Views/Settings/GlucoseSettingsView.swift
++++ b/App/Views/Settings/GlucoseSettingsView.swift
+@@ -24,24 +24,22 @@ struct GlucoseSettingsView: View {
+                     store.dispatch(.setAlarmLow(lowerLimit: value))
+                 }
+ 
+                 NumberSelectorView(key: LocalizedString("Upper limit"), value: store.state.alarmHigh, step: 5, min: store.state.alarmLow, displayValue: store.state.alarmHigh.asGlucose(glucoseUnit: store.state.glucoseUnit, withUnit: true)) { value in
+                     store.dispatch(.setAlarmHigh(upperLimit: value))
+                 }
+ 
+                 Toggle("Normal glucose notification", isOn: normalGlucoseNotification).toggleStyle(SwitchToggleStyle(tint: AmberTheme.amber))
+                 Toggle("Alarm glucose notification", isOn: alarmGlucoseNotification).toggleStyle(SwitchToggleStyle(tint: AmberTheme.amber))
+ 
+-                if #available(iOS 16.1, *) {
+-                    Toggle("Glucose Live Activity", isOn: glucoseLiveActivity).toggleStyle(SwitchToggleStyle(tint: AmberTheme.amber))
+-                }
+-                
++                Toggle("Glucose Live Activity", isOn: glucoseLiveActivity).toggleStyle(SwitchToggleStyle(tint: AmberTheme.amber))
++
+                 Toggle("Glucose read aloud", isOn: readGlucose).toggleStyle(SwitchToggleStyle(tint: AmberTheme.amber))
+             },
+             header: {
+                 Label("Glucose settings", systemImage: "cross.case")
+             }
+         )
+     }
+ 
+     // MARK: Private
+ 
+diff --git a/CLAUDE.md b/CLAUDE.md
+index fbdf62a8..96711e9d 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -42,24 +42,24 @@ View dispatches Action -> Store.dispatch() -> Reducer mutates State
+ - **Two middleware arrays** in `App.swift` (device + simulator) — both must be updated when adding middleware
+ - **Deployment target is iOS 26.0** — bumped from 15.0 in DMNC-769 to match DOOMBTS and adopt iOS 17+ APIs (new `onChange(of:_:)` two-arg form, etc.). Existing `if #available(iOS 15.x/16.x/17.x, *)` guards are now dead branches and can be cleaned up incrementally.
+ - **Deploy to TestFlight:** `./deploy.sh` (uses ASC API key). `ExportOptions.plist` uses automatic signing. Bump `CURRENT_PROJECT_VERSION` in pbxproj before each deploy. If a connected iPhone is passcode-locked, archive will fail — unlock or disconnect it. Provisioning profiles are per-macOS-account; if deploying from a new account, archive once from Xcode first to generate them.
+ - **SwiftUI nested sheets are unreliable** — never present a `.sheet` from within a view that is itself presented as a `.sheet`. Use `NavigationLink` (push) instead. This applies to all iOS versions, not just iOS 15. See `docs/solutions/ui-bugs/swiftui-nested-sheets-present-wrong-view-20260316.md`.
+ - **Cross-middleware listening** — multiple middlewares can handle the same action (e.g., `.addMealEntry` triggers both `mealEntryStoreMiddleware` and `favoriteFoodStoreMiddleware`). Comment these cross-dependencies for maintainability.
+ - **Data load guards** — all DataStore middlewares guard `state.appState == .active` before loading. The `.active` state is set in `ContentView.onAppear`. If adding new data store middlewares, follow this pattern: handle `.setAppState(.active)` to trigger initial load, and guard `.active` in the load action handler. See `docs/solutions/logic-errors/appstate-inactive-blocks-data-loading-20260317.md`.
+ - **OverviewView uses ActiveSheet enum** — all sheets (insulin, meal, blood glucose, treatment modal, filtered food entry, treatment recheck) are consolidated into a single `.sheet(item:)` with an `ActiveSheet` enum discriminator. This prevents iOS 15 sibling sheet collisions. Use `pendingSheet` + `onDismiss` for dismiss-then-present sequencing (not `asyncAfter`).
+ - **Overview layout order** — hero glucose → treatment banner (if active) → chart (with report type selector) → action buttons → connection → sensor. Matches Libre-style flow. ChartView has a `@State selectedReportType` enum switching between GLUCOSE (chart), TIME IN RANGE (TAR/TIR/TBR bars), and STATISTICS (AVG/SD/CV/GMI). The chart content is extracted into a `GlucoseChartContent` computed property.
+ - **Food analysis has three input paths** — `analyzeFood(imageData:)` for photos, `analyzeFoodText(query:history:)` for NL text (with optional multi-turn follow-up), and `analyzeFoodBarcode(code:)` for barcode scanning (Open Food Facts). All three share `foodAnalysisResult/Loading/Error` state and reuse `FoodPhotoAnalysisView` as the staging plate. Photo and text paths require `aiConsentFoodPhoto` consent gate; barcode path does NOT (OFF is free). Text path supports conversational follow-up (up to 3 rounds) when confidence is low — follow-up state lives in `@State` (not Redux), staging plate stays visible during follow-up loading.
+ - **Treatment workflow (Rule of 15)** — `TreatmentCycleMiddleware` orchestrates guided hypo treatment: alarm fires → `.showTreatmentPrompt` → user logs treatment → 15-min countdown → recheck glucose → stabilised or treat again. Two UI surfaces: UNNotificationAction buttons (background/lock screen) and TreatmentModalView (foreground). Alarm suppression during countdown (sound-only, banners continue) with critical-low safety floor (`alarmLow - 15 mg/dL` breaks through). Treatment cycle state persists to UserDefaults (survives app kill). TreatmentEvent stored in GRDB (write-only V1) for future absorption analysis. `treatmentCycleSnoozeUntil` is separate from `alarmSnoozeUntil` — GlucoseNotification checks both. Configurable wait time via `hypoTreatmentWaitMinutes` (default 15). TreatmentBannerView has 4 states: countdown, rechecking, stale data, recovered (auto-dismiss 5s).
+-- **Predictive low alarm** — GlucoseNotification middleware extrapolates glucose trajectory using smoothed `minuteChange` (avg of 3 readings) projected 20 min forward. Fires "Trending Low" notification with `predictiveLowAlarm` UNNotificationCategory ("EAT NOW" button) when predicted to cross `alarmLow`. CRITICAL: does NOT trigger autosnooze — actual low alarm fires independently. Does NOT fire when `treatmentCycleActive` (prevents snooze cascade). Once-per-episode dedup via `predictiveLowAlarmFired` flag, cleared at `alarmLow + 10` or on actual low. Chart shows dashed projection line (iOS 16+ only) with red cross marker at predicted threshold crossing. Toggle: `showPredictiveLowAlarm` (default on).
++- **Predictive low alarm** — GlucoseNotification middleware extrapolates glucose trajectory using smoothed `minuteChange` (avg of 3 readings) projected 20 min forward. Fires "Trending Low" notification with `predictiveLowAlarm` UNNotificationCategory ("EAT NOW" button) when predicted to cross `alarmLow`. CRITICAL: does NOT trigger autosnooze — actual low alarm fires independently. Does NOT fire when `treatmentCycleActive` (prevents snooze cascade). Once-per-episode dedup via `predictiveLowAlarmFired` flag, cleared at `alarmLow + 10` or on actual low. Chart shows dashed projection line with red cross marker at predicted threshold crossing. Toggle: `showPredictiveLowAlarm` (default on).
+ - **Chart markers** — Meal/insulin entries grouped by 15-min `timegroup`. Single entries show diamond, groups show circle with count + total carbs (e.g. "3x 45g"). Tapping a group opens detail sheet with individual items (swipe-to-delete, tap-to-edit). Meal edit sheet has Delete button (`deleteCallback`). Insulin tap shows `confirmationDialog` with Delete option.
+ - **Stale data indicator** — GlucoseView shows "X MIN AGO" warning when latest reading is >5 min old. Amber text for 5-14 min, red for 15+. Prevents dosing decisions on silently stale data.
+-- **Insulin-on-Board (IOB)** — `IOBCalculator.swift` implements OpenAPS oref0 Maksimovic exponential decay model. `InsulinPreset` enum (rapidActing peak 75m/DIA 6h, ultraRapid peak 55m/DIA 6h) with separate basal DIA (2-24h). IOB computed on-read from `iobDeliveries` (DIA-window filtered, loaded by `IOBMiddleware`). Hero display (GlucoseView) with 60s refresh timer, split display toggle (M=meal/snack, B=basal+corr). Chart AreaMark overlay (iOS 16+ only, cgaCyan/amberDark). Stacking warning in AddInsulinView (amber, correction bolus only, reactive to picker). IOB on TreatmentBannerView (countdown/rechecking states, second line). `InsulinSettingsView` with preset picker, basal DIA stepper, split toggle. Future deliveries excluded from IOB (not yet delivered). Zero threshold: 0.05U.
++- **Insulin-on-Board (IOB)** — `IOBCalculator.swift` implements OpenAPS oref0 Maksimovic exponential decay model. `InsulinPreset` enum (rapidActing peak 75m/DIA 6h, ultraRapid peak 55m/DIA 6h) with separate basal DIA (2-24h). IOB computed on-read from `iobDeliveries` (DIA-window filtered, loaded by `IOBMiddleware`). Hero display (GlucoseView) with 60s refresh timer, split display toggle (M=meal/snack, B=basal+corr). Chart AreaMark overlay (cgaCyan/amberDark). Stacking warning in AddInsulinView (amber, correction bolus only, reactive to picker). IOB on TreatmentBannerView (countdown/rechecking states, second line). `InsulinSettingsView` with preset picker, basal DIA stepper, split toggle. Future deliveries excluded from IOB (not yet delivered). Zero threshold: 0.05U.
+ - **Meal impact overlay** — Tap single meal markers to see 2-hour post-meal glucose delta (color-coded green/amber/red), confounder detection (correction bolus, exercise, stacked meal), and PersonalFood rolling glycemic average. `MealImpactStore` middleware computes impacts on dual triggers (retroactive on app activation + real-time on new glucose readings). `analysisSessionId` links AI-analyzed meals to PersonalFood glycemic scores.
+ - **Event marker lane** — Dedicated 32px lane above the glucose chart replacing in-chart meal/insulin annotations. SF Symbol icons per type (`fork.knife` meals, `syringe.fill` insulin, `figure.run` exercise). Zoom-dependent consolidation groups nearby markers at wider zoom levels. `EventMarkerLaneView` is a self-contained view receiving pre-computed `ConsolidatedMarkerGroup` data and tap callbacks. Tap meal → meal impact overlay; tap insulin → confirmation dialog; tap group → expanded panel.
+ - **Daily Digest tab** — Fourth tab (Overview > Lists > Settings > Digest) showing daily glucose summary. `DailyDigestMiddleware` computes stats from raw GRDB data (glucose, meals, insulin, exercise) and generates AI insight via Claude Haiku with full context + 7-day cross-day history. `DailyDigest` model persisted to GRDB for history browsing. Date navigation for past days. Today always recomputes (no stale cache). Separate `aiConsentDailyDigest` consent toggle. Events loaded into `dailyDigestEvents` state for timeline display. `DigestView` has date nav bar, 2x3 stats grid (color-coded), AI insight card (cyan border), and chronological event timeline.
+ - **GRDB deadlock: never write inside asyncRead** — `DatabaseQueue` serializes all access. Calling `dbQueue.write` from inside a `dbQueue.asyncRead` callback deadlocks (read holds queue, write waits for queue). Always return data via the Future promise and do writes separately. See `docs/solutions/logic-errors/grdb-write-inside-asyncread-deadlock-20260420.md`.
+ - **Combine Future-to-async bridge: guard double-resume** — When bridging a `Future` to async/await via `withCheckedThrowingContinuation`, the `receiveValue` and `receiveCompletion` callbacks both fire (Future emits one value then completes). Must use a `resumed` flag to call `continuation.resume` exactly once. See `docs/solutions/logic-errors/combine-future-async-bridge-double-resume-20260420.md`.
+ - **Widget target has separate design system** — `Widgets/WidgetDesignSystem.swift` mirrors AmberTheme/DOSTypography colors and fonts for the widget extension (can't import app module). Pure logic types (`SparklineBuilder`, `DataStaleness`) live in `Library/Content/SparklineBuilder.swift` (both targets) for testability. Widget-specific color properties are extensions in the widget file.
+ - **Widget shared data via App Group** — `AppGroupSharing` middleware writes TIR, IOB, last meal, and sparkline to `UserDefaults.shared` (App Group suite) on each glucose update. IOB is pre-computed (read from `sharedIOB`), not recomputed in the sharing middleware. Widget data writes dispatch to background queue.
+ - **Live Activity data flows through ContentState** — never read `UserDefaults.shared` directly in Live Activity views. All data (glucose, IOB, sparkline) must pass through `SensorGlucoseActivityAttributes.ContentState` via `ActivityGlucoseService.getStatus()`. Direct UserDefaults reads bypass ActivityKit's sync mechanism and serve stale data on lock screen/rehydration.
+ - **Snapshot testing** — XCTest target `DOSBTSTests` with 138 tests covering IOB calculation engine, IOB reducer state, treatment cycle lifecycle, predictive alarm flags, alarm snooze auto-clear, treatment prompt state, MealImpact model, MealImpact reducer, delta thresholds, rolling average math, analysisSessionId linkage, PersonalFood glycemic fields, DailyDigest model/reducer, GlucoseStatistics computed properties, SensorGlucose clamping/minuteChange, SensorTrend slope classification, CustomCalibration regression, Sensor lifecycle, alarm thresholds, connection state, and glucose unit switching. Swift Testing framework (`@Test`, `#expect`). Run with Cmd+U on simulator.
+ 
+diff --git a/Library/Content/SensorGlucoseActivityAttributes.swift b/Library/Content/SensorGlucoseActivityAttributes.swift
+index f17f2aff..fcf91465 100644
+--- a/Library/Content/SensorGlucoseActivityAttributes.swift
++++ b/Library/Content/SensorGlucoseActivityAttributes.swift
+@@ -1,21 +1,20 @@
+ //
+ //  SensorGlucoseActivityAttributes.swift
+ //  DOSBTS
+ //
+ 
+ import ActivityKit
+ import Foundation
+ 
+ // MARK: - SensorGlucoseActivityAttributes
+ 
+-@available(iOS 16.1, *)
+ struct SensorGlucoseActivityAttributes: ActivityAttributes {
+     public typealias GlucoseStatus = ContentState
+ 
+     public struct ContentState: Codable, Hashable {
+         var alarmLow: Int
+         var alarmHigh: Int
+ 
+         var sensorState: SensorState?
+         var connectionState: SensorConnectionState?
+ 
+diff --git a/Library/DirectConfig.swift b/Library/DirectConfig.swift
+index d554954b..1ccff49f 100644
+--- a/Library/DirectConfig.swift
++++ b/Library/DirectConfig.swift
+@@ -5,25 +5,25 @@
+ 
+ import Foundation
+ 
+ // MARK: - AppConfig
+ 
+ enum DirectConfig {
+     static let appSchemaURL = URL(string: "dosbts://")
+     static let bubbleID = "bubble"
+     static let calibrationsViewTag = 3
+     static let digestViewTag = 5
+-    static let upstreamDonateURL = "https://www.paypal.me/creepymonstr"
+-    static let sponsorURL = "https://github.com/sponsors/CinimoDY"
++    static let upstreamDonateURL = URL(staticString: "https://www.paypal.me/creepymonstr")
++    static let sponsorURL = URL(staticString: "https://github.com/sponsors/CinimoDY")
+     static let expiredNotificationInterval: Double = 1 * 60 * 60 // in seconds
+-    static let faqURL = "https://github.com/creepymonster/GlucoseDirect/blob/main/FAQ.md#faq"
+-    static let githubURL = "https://github.com/CinimoDY/DOSBTS"
++    static let faqURL = URL(staticString: "https://github.com/creepymonster/GlucoseDirect/blob/main/FAQ.md#faq")
++    static let githubURL = URL(staticString: "https://github.com/CinimoDY/DOSBTS")
+     static let lastChartHours = 24
+     static let libre2ID = "libre2"
+     static let libreLinkID = "librelink"
+     static let listsViewTag = 2
+     static let maxReadableGlucose = 501
+     static let minGlucoseStatisticsDays = 7
+     static let minReadableGlucose = 39
+     static let overviewViewTag = 1
+     static let projectName = "DOSBTS"
+     static let settingsViewTag = 4
+diff --git a/Library/Extensions/URL.swift b/Library/Extensions/URL.swift
+new file mode 100644
+index 00000000..53e353b0
+--- /dev/null
++++ b/Library/Extensions/URL.swift
+@@ -0,0 +1,15 @@
++//
++//  URL.swift
++//  DOSBTS
++//
++
++import Foundation
++
++extension URL {
++    init(staticString: StaticString) {
++        guard let url = URL(string: "\(staticString)") else {
++            preconditionFailure("Invalid static URL: \(staticString)")
++        }
++        self = url
++    }
++}
+diff --git a/Library/ar.lproj/Localizable.strings b/Library/ar.lproj/Localizable.strings
+index 7ee1bde1..1ab6a230 100644
+--- a/Library/ar.lproj/Localizable.strings
++++ b/Library/ar.lproj/Localizable.strings
+@@ -46,36 +46,33 @@
+ /* (No Comment) */
+ "Alert, sensor expired" = "Alert, sensor expired";
+ 
+ /* (No Comment) */
+ "Alert, sensor expiring soon" = "Alert, sensor expiring soon";
+ 
+ /* (No Comment) */
+ "App author" = "Author";
+ 
+ /* (No Comment) */
+-"App donate" = "Donate";
+ 
+ /* (No Comment) */
+ "App email" = "eMail";
+ 
+ /* (No Comment) */
+-"App facebook group" = "Facebook group";
+ 
+ /* (No Comment) */
+ "App faq" = "FAQ";
+ 
+ /* (No Comment) */
+ "App support mail" = "Support";
+ 
+ /* (No Comment) */
+-"App translation" = "Translation";
+ 
+ /* (No Comment) */
+ "App version" = "Version";
+ 
+ /* (No Comment) */
+ "App website" = "Website";
+ 
+ /* (No Comment) */
+ "Apple export settings" = "Apple export settings";
+ 
+diff --git a/Library/bg.lproj/Localizable.strings b/Library/bg.lproj/Localizable.strings
+index c960fbd9..61ccefce 100644
+--- a/Library/bg.lproj/Localizable.strings
++++ b/Library/bg.lproj/Localizable.strings
+@@ -43,36 +43,33 @@
+ /* (No Comment) */
+ "Alert, sensor expired" = "Предупреждение, сензорът е изтекъл";
+ 
+ /* (No Comment) */
+ "Alert, sensor expiring soon" = "Предупреждение, сензорът изтича скоро";
+ 
+ /* (No Comment) */
+ "App author" = "Автор";
+ 
+ /* (No Comment) */
+-"App donate" = "Дарение";
+ 
+ /* (No Comment) */
+ "App email" = "е-поща";
+ 
+ /* (No Comment) */
+-"App facebook group" = "Група във Facebook";
+ 
+ /* (No Comment) */
+ "App faq" = "Често задавани въпроси";
+ 
+ /* (No Comment) */
+ "App support mail" = "Поддръжка";
+ 
+ /* (No Comment) */
+-"App translation" = "Превод";
+ 
+ /* (No Comment) */
+ "App version" = "Версия";
+ 
+ /* (No Comment) */
+ "App website" = "Сайт";
+ 
+ /* (No Comment) */
+ "Apple export settings" = "Настройки за експорт на Apple";
+ 
+diff --git a/Library/cs.lproj/Localizable.strings b/Library/cs.lproj/Localizable.strings
+index e0d97208..57568b9b 100644
+--- a/Library/cs.lproj/Localizable.strings
++++ b/Library/cs.lproj/Localizable.strings
+@@ -43,36 +43,33 @@
+ /* (No Comment) */
+ "Alert, sensor expired" = "Výstraha, expirovaný senzor";
+ 
+ /* (No Comment) */
+ "Alert, sensor expiring soon" = "Výstraha, senzor brzy expiruje";
+ 
+ /* (No Comment) */
+ "App author" = "Autor";
+ 
+ /* (No Comment) */
+-"App donate" = "Přispět";
+ 
+ /* (No Comment) */
+ "App email" = "e-mail";
+ 
+ /* (No Comment) */
+-"App facebook group" = "Skupina na Facebooku";
+ 
+ /* (No Comment) */
+ "App faq" = "FAQ";
+ 
+ /* (No Comment) */
+ "App support mail" = "Podpora";
+ 
+ /* (No Comment) */
+-"App translation" = "Překlad";
+ 
+ /* (No Comment) */
+ "App version" = "Verze";
+ 
+ /* (No Comment) */
+ "App website" = "Webová stránka";
+ 
+ /* (No Comment) */
+ "Apple export settings" = "Nastavení exportu Apple";
+ 
+diff --git a/Library/de.lproj/Localizable.strings b/Library/de.lproj/Localizable.strings
+index e4dc791e..bef0a25d 100644
+--- a/Library/de.lproj/Localizable.strings
++++ b/Library/de.lproj/Localizable.strings
+@@ -43,36 +43,33 @@
+ /* (No Comment) */
+ "Alert, sensor expired" = "Achtung, Sensor abgelaufen";
+ 
+ /* (No Comment) */
+ "Alert, sensor expiring soon" = "Alert, Sensor läuft bald ab";
+ 
+ /* (No Comment) */
+ "App author" = "Autor";
+ 
+ /* (No Comment) */
+-"App donate" = "Spenden";
+ 
+ /* (No Comment) */
+ "App email" = "E-Mail";
+ 
+ /* (No Comment) */
+-"App facebook group" = "Facebook";
+ 
+ /* (No Comment) */
+ "App faq" = "FAQ";
+ 
+ /* (No Comment) */
+ "App support mail" = "Support";
+ 
+ /* (No Comment) */
+-"App translation" = "Übersetzung";
+ 
+ /* (No Comment) */
+ "App version" = "Version";
+ 
+ /* (No Comment) */
+ "App website" = "Webseite";
+ 
+ /* (No Comment) */
+ "Apple export settings" = "Apple Export-Einstellungen";
+ 
+diff --git a/Library/en.lproj/Localizable.strings b/Library/en.lproj/Localizable.strings
+index 84c0a5f8..50f44607 100644
+--- a/Library/en.lproj/Localizable.strings
++++ b/Library/en.lproj/Localizable.strings
+@@ -43,36 +43,33 @@
+ /* (No Comment) */
+ "Alert, sensor expired" = "Alert, sensor expired";
+ 
+ /* (No Comment) */
+ "Alert, sensor expiring soon" = "Alert, sensor expiring soon";
+ 
+ /* (No Comment) */
+ "App author" = "Author";
+ 
+ /* (No Comment) */
+-"App donate" = "Donate";
+ 
+ /* (No Comment) */
+ "App email" = "eMail";
+ 
+ /* (No Comment) */
+-"App facebook group" = "Facebook group";
+ 
+ /* (No Comment) */
+ "App faq" = "FAQ";
+ 
+ /* (No Comment) */
+ "App support mail" = "Support";
+ 
+ /* (No Comment) */
+-"App translation" = "Translation";
+ 
+ /* (No Comment) */
+ "App version" = "Version";
+ 
+ /* (No Comment) */
+ "App website" = "Website";
+ 
+ /* (No Comment) */
+ "Apple export settings" = "Apple export settings";
+ 
+diff --git a/Library/es.lproj/Localizable.strings b/Library/es.lproj/Localizable.strings
+index 4e934c67..290d1b0e 100644
+--- a/Library/es.lproj/Localizable.strings
++++ b/Library/es.lproj/Localizable.strings
+@@ -43,36 +43,33 @@
+ /* (No Comment) */
+ "Alert, sensor expired" = "Alerta: sensor caducado";
+ 
+ /* (No Comment) */
+ "Alert, sensor expiring soon" = "Alerta: el sensor caducará pronto";
+ 
+ /* (No Comment) */
+ "App author" = "Autor";
+ 
+ /* (No Comment) */
+-"App donate" = "Donar";
+ 
+ /* (No Comment) */
+ "App email" = "Correo electrónico";
+ 
+ /* (No Comment) */
+-"App facebook group" = "Facebook";
+ 
+ /* (No Comment) */
+ "App faq" = "FAQ";
+ 
+ /* (No Comment) */
+ "App support mail" = "Soporte";
+ 
+ /* (No Comment) */
+-"App translation" = "Traducción";
+ 
+ /* (No Comment) */
+ "App version" = "Versión";
+ 
+ /* (No Comment) */
+ "App website" = "Sitio Web";
+ 
+ /* (No Comment) */
+ "Apple export settings" = "Ajustes de exportación de Apple";
+ 
+diff --git a/Library/fi.lproj/Localizable.strings b/Library/fi.lproj/Localizable.strings
+index b7451b20..e79626e8 100644
+--- a/Library/fi.lproj/Localizable.strings
++++ b/Library/fi.lproj/Localizable.strings
+@@ -43,36 +43,33 @@
+ /* (No Comment) */
+ "Alert, sensor expired" = "Sensori loppunut hälytys";
+ 
+ /* (No Comment) */
+ "Alert, sensor expiring soon" = "Sensori loppuu pian hälytys";
+ 
+ /* (No Comment) */
+ "App author" = "Author";
+ 
+ /* (No Comment) */
+-"App donate" = "Donate";
+ 
+ /* (No Comment) */
+ "App email" = "eMail";
+ 
+ /* (No Comment) */
+-"App facebook group" = "Facebook group";
+ 
+ /* (No Comment) */
+ "App faq" = "FAQ";
+ 
+ /* (No Comment) */
+ "App support mail" = "Support";
+ 
+ /* (No Comment) */
+-"App translation" = "Translation";
+ 
+ /* (No Comment) */
+ "App version" = "Versio";
+ 
+ /* (No Comment) */
+ "App website" = "Verkkosivu";
+ 
+ /* (No Comment) */
+ "Apple export settings" = "Apple vientiasetukset";
+ 
+diff --git a/Library/fr.lproj/Localizable.strings b/Library/fr.lproj/Localizable.strings
+index 6c7e41be..6fa71406 100644
+--- a/Library/fr.lproj/Localizable.strings
++++ b/Library/fr.lproj/Localizable.strings
+@@ -43,36 +43,33 @@
+ /* (No Comment) */
+ "Alert, sensor expired" = "Alerte, capteur expiré";
+ 
+ /* (No Comment) */
+ "Alert, sensor expiring soon" = "Alerte, capteur expirant bientôt";
+ 
+ /* (No Comment) */
+ "App author" = "Auteur";
+ 
+ /* (No Comment) */
+-"App donate" = "Faire un don";
+ 
+ /* (No Comment) */
+ "App email" = "eMail";
+ 
+ /* (No Comment) */
+-"App facebook group" = "Groupe Facebook";
+ 
+ /* (No Comment) */
+ "App faq" = "FAQ";
+ 
+ /* (No Comment) */
+ "App support mail" = "Assistance";
+ 
+ /* (No Comment) */
+-"App translation" = "Traduction";
+ 
+ /* (No Comment) */
+ "App version" = "Version";
+ 
+ /* (No Comment) */
+ "App website" = "Site Internet";
+ 
+ /* (No Comment) */
+ "Apple export settings" = "Paramètres d'exportation Apple";
+ 
+diff --git a/Library/it.lproj/Localizable.strings b/Library/it.lproj/Localizable.strings
+index 09f892c4..4f2173f7 100644
+--- a/Library/it.lproj/Localizable.strings
++++ b/Library/it.lproj/Localizable.strings
+@@ -43,36 +43,33 @@
+ /* (No Comment) */
+ "Alert, sensor expired" = "Allarme, sensore scaduto";
+ 
+ /* (No Comment) */
+ "Alert, sensor expiring soon" = "Allarme, Sensore in scadenza";
+ 
+ /* (No Comment) */
+ "App author" = "Autore";
+ 
+ /* (No Comment) */
+-"App donate" = "Donare";
+ 
+ /* (No Comment) */
+ "App email" = "e-Mail";
+ 
+ /* (No Comment) */
+-"App facebook group" = "Facebook";
+ 
+ /* (No Comment) */
+ "App faq" = "FAQ";
+ 
+ /* (No Comment) */
+ "App support mail" = "Supporto";
+ 
+ /* (No Comment) */
+-"App translation" = "Traduzione";
+ 
+ /* (No Comment) */
+ "App version" = "Versione";
+ 
+ /* (No Comment) */
+ "App website" = "Sito Web";
+ 
+ /* (No Comment) */
+ "Apple export settings" = "Impostazioni di esportazione Apple";
+ 
+diff --git a/Library/ka.lproj/Localizable.strings b/Library/ka.lproj/Localizable.strings
+index 9a0a840b..36174e42 100644
+--- a/Library/ka.lproj/Localizable.strings
++++ b/Library/ka.lproj/Localizable.strings
+@@ -43,36 +43,33 @@
+ /* (No Comment) */
+ "Alert, sensor expired" = "შეტყობინება, სენსორს ვადა გაუვიდა";
+ 
+ /* (No Comment) */
+ "Alert, sensor expiring soon" = "შეტყობინება, სენსორს ვადა გასდის";
+ 
+ /* (No Comment) */
+ "App author" = "ავტორი";
+ 
+ /* (No Comment) */
+-"App donate" = "პროექტის დახმარება";
+ 
+ /* (No Comment) */
+ "App email" = "იმეილი";
+ 
+ /* (No Comment) */
+-"App facebook group" = "Facebook ჯგუფი";
+ 
+ /* (No Comment) */
+ "App faq" = "ხდკ";
+ 
+ /* (No Comment) */
+ "App support mail" = "მხარდაჭერა";
+ 
+ /* (No Comment) */
+-"App translation" = "თარგმანი";
+ 
+ /* (No Comment) */
+ "App version" = "ვერსია";
+ 
+ /* (No Comment) */
+ "App website" = "ვებგვერდი";
+ 
+ /* (No Comment) */
+ "Apple export settings" = "Apple ექსპორტის პარამეტრები";
+ 
+diff --git a/Library/nl.lproj/Localizable.strings b/Library/nl.lproj/Localizable.strings
+index d3fdc2ec..7a5121ef 100644
+--- a/Library/nl.lproj/Localizable.strings
++++ b/Library/nl.lproj/Localizable.strings
+@@ -43,36 +43,33 @@
+ /* (No Comment) */
+ "Alert, sensor expired" = "Alarm, sensor verlopen";
+ 
+ /* (No Comment) */
+ "Alert, sensor expiring soon" = "Alert, sensor verloopt binnenkort";
+ 
+ /* (No Comment) */
+ "App author" = "Author";
+ 
+ /* (No Comment) */
+-"App donate" = "Doneer";
+ 
+ /* (No Comment) */
+ "App email" = "eMail";
+ 
+ /* (No Comment) */
+-"App facebook group" = "Facebook group";
+ 
+ /* (No Comment) */
+ "App faq" = "FAQ";
+ 
+ /* (No Comment) */
+ "App support mail" = "Support";
+ 
+ /* (No Comment) */
+-"App translation" = "Translation";
+ 
+ /* (No Comment) */
+ "App version" = "Versie";
+ 
+ /* (No Comment) */
+ "App website" = "Website";
+ 
+ /* (No Comment) */
+ "Apple export settings" = "Apple export instellingen";
+ 
+diff --git a/Library/pl.lproj/Localizable.strings b/Library/pl.lproj/Localizable.strings
+index 82a6260e..95504b03 100644
+--- a/Library/pl.lproj/Localizable.strings
++++ b/Library/pl.lproj/Localizable.strings
+@@ -43,36 +43,33 @@
+ /* (No Comment) */
+ "Alert, sensor expired" = "Koniec działania sensora";
+ 
+ /* (No Comment) */
+ "Alert, sensor expiring soon" = "Sensor wkrótce przestanie działać";
+ 
+ /* (No Comment) */
+ "App author" = "Autor";
+ 
+ /* (No Comment) */
+-"App donate" = "Darowizna";
+ 
+ /* (No Comment) */
+ "App email" = "E-Mail";
+ 
+ /* (No Comment) */
+-"App facebook group" = "Grupa na Facebook";
+ 
+ /* (No Comment) */
+ "App faq" = "Najczęściej zadawane pytania";
+ 
+ /* (No Comment) */
+ "App support mail" = "Pomoc";
+ 
+ /* (No Comment) */
+-"App translation" = "Tłumaczenie";
+ 
+ /* (No Comment) */
+ "App version" = "Wersja";
+ 
+ /* (No Comment) */
+ "App website" = "Strona";
+ 
+ /* (No Comment) */
+ "Apple export settings" = "Ustawienia eksportu Apple";
+ 
+diff --git a/Library/pt-PT.lproj/Localizable.strings b/Library/pt-PT.lproj/Localizable.strings
+index d02b06e9..cdedd98e 100644
+--- a/Library/pt-PT.lproj/Localizable.strings
++++ b/Library/pt-PT.lproj/Localizable.strings
+@@ -43,36 +43,33 @@
+ /* (No Comment) */
+ "Alert, sensor expired" = "Alerta, sensor expirou";
+ 
+ /* (No Comment) */
+ "Alert, sensor expiring soon" = "Alerta, sensor a expirar em breve";
+ 
+ /* (No Comment) */
+ "App author" = "Autor";
+ 
+ /* (No Comment) */
+-"App donate" = " Doar";
+ 
+ /* (No Comment) */
+ "App email" = "e-mail";
+ 
+ /* (No Comment) */
+-"App facebook group" = "Facebook";
+ 
+ /* (No Comment) */
+ "App faq" = "FAQ";
+ 
+ /* (No Comment) */
+ "App support mail" = "Apoio";
+ 
+ /* (No Comment) */
+-"App translation" = "Tradução.";
+ 
+ /* (No Comment) */
+ "App version" = "Versão";
+ 
+ /* (No Comment) */
+ "App website" = "Website";
+ 
+ /* (No Comment) */
+ "Apple export settings" = " Definições de exportação da Apple ";
+ 
+diff --git a/Library/ru.lproj/Localizable.strings b/Library/ru.lproj/Localizable.strings
+index 9a32fa11..d91242f9 100644
+--- a/Library/ru.lproj/Localizable.strings
++++ b/Library/ru.lproj/Localizable.strings
+@@ -43,36 +43,33 @@
+ /* (No Comment) */
+ "Alert, sensor expired" = "Тревога, сенсор закончился";
+ 
+ /* (No Comment) */
+ "Alert, sensor expiring soon" = "Тревога, сенсор скоро закончится";
+ 
+ /* (No Comment) */
+ "App author" = "Автор";
+ 
+ /* (No Comment) */
+-"App donate" = "Пожертвовать";
+ 
+ /* (No Comment) */
+ "App email" = "эл. почта";
+ 
+ /* (No Comment) */
+-"App facebook group" = "Группа в Facebook";
+ 
+ /* (No Comment) */
+ "App faq" = "ЧаВо";
+ 
+ /* (No Comment) */
+ "App support mail" = "Поддержка";
+ 
+ /* (No Comment) */
+-"App translation" = "Перевод";
+ 
+ /* (No Comment) */
+ "App version" = "Версия";
+ 
+ /* (No Comment) */
+ "App website" = "Сайт";
+ 
+ /* (No Comment) */
+ "Apple export settings" = "Настройки экспорта Apple";
+ 
+diff --git a/Library/sv.lproj/Localizable.strings b/Library/sv.lproj/Localizable.strings
+index 50cc22fd..44763955 100644
+--- a/Library/sv.lproj/Localizable.strings
++++ b/Library/sv.lproj/Localizable.strings
+@@ -43,36 +43,33 @@
+ /* (No Comment) */
+ "Alert, sensor expired" = "Varning, sensor har utgått";
+ 
+ /* (No Comment) */
+ "Alert, sensor expiring soon" = "Varning, sensor behöver snart bytas";
+ 
+ /* (No Comment) */
+ "App author" = "Upphovsman";
+ 
+ /* (No Comment) */
+-"App donate" = "Donera";
+ 
+ /* (No Comment) */
+ "App email" = "E-post";
+ 
+ /* (No Comment) */
+-"App facebook group" = "Facebook";
+ 
+ /* (No Comment) */
+ "App faq" = "FAQ";
+ 
+ /* (No Comment) */
+ "App support mail" = "Support";
+ 
+ /* (No Comment) */
+-"App translation" = "Översättning";
+ 
+ /* (No Comment) */
+ "App version" = "Version";
+ 
+ /* (No Comment) */
+ "App website" = "Hemsida";
+ 
+ /* (No Comment) */
+ "Apple export settings" = "Apple Hälsa exportinställningar";
+ 
+diff --git a/Library/tr.lproj/Localizable.strings b/Library/tr.lproj/Localizable.strings
+index a97a6865..40872501 100644
+--- a/Library/tr.lproj/Localizable.strings
++++ b/Library/tr.lproj/Localizable.strings
+@@ -43,36 +43,33 @@
+ /* (No Comment) */
+ "Alert, sensor expired" = "Uyarı, sensör süresi doldu";
+ 
+ /* (No Comment) */
+ "Alert, sensor expiring soon" = "Uyarı, sensör süresi yakında sona eriyor";
+ 
+ /* (No Comment) */
+ "App author" = "Yazar";
+ 
+ /* (No Comment) */
+-"App donate" = "Bağışta Bulun";
+ 
+ /* (No Comment) */
+ "App email" = "e-posta";
+ 
+ /* (No Comment) */
+-"App facebook group" = "Facebook Grubu";
+ 
+ /* (No Comment) */
+ "App faq" = "SSS";
+ 
+ /* (No Comment) */
+ "App support mail" = "Destek";
+ 
+ /* (No Comment) */
+-"App translation" = "Çeviri";
+ 
+ /* (No Comment) */
+ "App version" = "Sürüm";
+ 
+ /* (No Comment) */
+ "App website" = "Web sitesi";
+ 
+ /* (No Comment) */
+ "Apple export settings" = "Apple dışa aktarma ayarları";
+ 
+diff --git a/Library/uk.lproj/Localizable.strings b/Library/uk.lproj/Localizable.strings
+index 078d2cc2..90be79a7 100644
+--- a/Library/uk.lproj/Localizable.strings
++++ b/Library/uk.lproj/Localizable.strings
+@@ -43,36 +43,33 @@
+ /* (No Comment) */
+ "Alert, sensor expired" = "Увага, термін дії датчика закінчився";
+ 
+ /* (No Comment) */
+ "Alert, sensor expiring soon" = "Увага, термін дії датчика закінчиться найближчим часом";
+ 
+ /* (No Comment) */
+ "App author" = "Автор";
+ 
+ /* (No Comment) */
+-"App donate" = "Підтримати";
+ 
+ /* (No Comment) */
+ "App email" = "електронна пошта";
+ 
+ /* (No Comment) */
+-"App facebook group" = "Група у Facebook";
+ 
+ /* (No Comment) */
+ "App faq" = "Питання та відповіді";
+ 
+ /* (No Comment) */
+ "App support mail" = "Підтримка";
+ 
+ /* (No Comment) */
+-"App translation" = "Переклад";
+ 
+ /* (No Comment) */
+ "App version" = "Версія";
+ 
+ /* (No Comment) */
+ "App website" = "Сайт";
+ 
+ /* (No Comment) */
+ "Apple export settings" = "Налаштування експорту Apple";
+ 
+diff --git a/Library/zh-Hans.lproj/Localizable.strings b/Library/zh-Hans.lproj/Localizable.strings
+index c92ef749..62d52e9b 100644
+--- a/Library/zh-Hans.lproj/Localizable.strings
++++ b/Library/zh-Hans.lproj/Localizable.strings
+@@ -43,36 +43,33 @@
+ /* (No Comment) */
+ "Alert, sensor expired" = "警报，传感器过期";
+ 
+ /* (No Comment) */
+ "Alert, sensor expiring soon" = "警报，传感器即将到期";
+ 
+ /* (No Comment) */
+ "App author" = "版本";
+ 
+ /* (No Comment) */
+-"App donate" = "捐赠";
+ 
+ /* (No Comment) */
+ "App email" = "电子邮件";
+ 
+ /* (No Comment) */
+-"App facebook group" = "Facebook 群组";
+ 
+ /* (No Comment) */
+ "App faq" = "常见问答（FAQ）";
+ 
+ /* (No Comment) */
+ "App support mail" = "支持";
+ 
+ /* (No Comment) */
+-"App translation" = "翻译";
+ 
+ /* (No Comment) */
+ "App version" = "版本";
+ 
+ /* (No Comment) */
+ "App website" = "网站";
+ 
+ /* (No Comment) */
+ "Apple export settings" = "苹果导出设置";
+ 
+diff --git a/Library/zh-Hant.lproj/Localizable.strings b/Library/zh-Hant.lproj/Localizable.strings
+index a4d2281e..33d33c8f 100644
+--- a/Library/zh-Hant.lproj/Localizable.strings
++++ b/Library/zh-Hant.lproj/Localizable.strings
+@@ -43,36 +43,33 @@
+ /* (No Comment) */
+ "Alert, sensor expired" = "警報，感測器過期";
+ 
+ /* (No Comment) */
+ "Alert, sensor expiring soon" = "警報，感測器即將失效";
+ 
+ /* (No Comment) */
+ "App author" = "Author";
+ 
+ /* (No Comment) */
+-"App donate" = "Donate";
+ 
+ /* (No Comment) */
+ "App email" = "eMail";
+ 
+ /* (No Comment) */
+-"App facebook group" = "Facebook group";
+ 
+ /* (No Comment) */
+ "App faq" = "FAQ";
+ 
+ /* (No Comment) */
+ "App support mail" = "Support";
+ 
+ /* (No Comment) */
+-"App translation" = "Translation";
+ 
+ /* (No Comment) */
+ "App version" = "版本";
+ 
+ /* (No Comment) */
+ "App website" = "網址";
+ 
+ /* (No Comment) */
+ "Apple export settings" = "Apple export settings";
+ 
+diff --git a/Widgets/GlucoseActivityWidget.swift b/Widgets/GlucoseActivityWidget.swift
+index e9b23c8f..c44558aa 100644
+--- a/Widgets/GlucoseActivityWidget.swift
++++ b/Widgets/GlucoseActivityWidget.swift
+@@ -2,21 +2,20 @@
+ //  GlucoseActivityWidget.swift
+ //  DOSBTSWidget
+ //
+ 
+ import ActivityKit
+ import SwiftUI
+ import WidgetKit
+ 
+ // MARK: - GlucoseActivityWidget
+ 
+-@available(iOS 16.1, *)
+ struct GlucoseActivityWidget: Widget {
+     var body: some WidgetConfiguration {
+         ActivityConfiguration(for: SensorGlucoseActivityAttributes.self) { context in
+             GlucoseActivityView(context: context.state)
+         } dynamicIsland: { context in
+             DynamicIsland {
+                 DynamicIslandExpandedRegion(.center) {
+                     DynamicIslandCenterView(context: context.state)
+                 }
+             } compactLeading: {
+@@ -56,26 +55,24 @@ struct GlucoseActivityWidget: Widget {
+                         .foregroundColor(WidgetColors.amber)
+                         .strikethrough(connectionState != .connected, color: WidgetColors.cgaRed)
+                 }
+             }
+         }
+     }
+ }
+ 
+ // MARK: - GlucoseStatusContext
+ 
+-@available(iOS 16.1, *)
+ protocol GlucoseStatusContext {
+     var context: SensorGlucoseActivityAttributes.GlucoseStatus { get }
+ }
+ 
+-@available(iOS 16.1, *)
+ extension GlucoseStatusContext {
+     var warning: String? {
+         if let sensorState = context.sensorState, sensorState != .ready {
+             return sensorState.localizedDescription
+         }
+ 
+         if let connectionState = context.connectionState, connectionState != .connected {
+             return connectionState.localizedDescription
+         }
+ 
+@@ -86,21 +83,20 @@ extension GlucoseStatusContext {
+         glucose.glucoseValue < context.alarmLow || glucose.glucoseValue > context.alarmHigh
+     }
+ 
+     func getGlucoseColor(glucose: any Glucose) -> Color {
+         isAlarm(glucose: glucose) ? WidgetColors.cgaRed : WidgetColors.amber
+     }
+ }
+ 
+ // MARK: - DynamicIslandCenterView
+ 
+-@available(iOS 16.1, *)
+ struct DynamicIslandCenterView: View, GlucoseStatusContext {
+     @State var context: SensorGlucoseActivityAttributes.GlucoseStatus
+ 
+     var body: some View {
+         VStack(spacing: 4) {
+             if let latestGlucose = context.glucose, let glucoseUnit = context.glucoseUnit {
+                 HStack(alignment: .lastTextBaseline, spacing: 16) {
+                     if latestGlucose.type != .high {
+                         Text(verbatim: latestGlucose.glucoseValue.asGlucose(glucoseUnit: glucoseUnit))
+                             .font(WidgetFonts.mono(size: 52, weight: .bold))
+@@ -154,21 +150,20 @@ struct DynamicIslandCenterView: View, GlucoseStatusContext {
+                     .foregroundColor(WidgetColors.amberDark)
+             }
+         }
+         .padding(.bottom)
+         .widgetBackground(backgroundView: WidgetColors.dosBlack)
+     }
+ }
+ 
+ // MARK: - GlucoseActivityView
+ 
+-@available(iOS 16.1, *)
+ struct GlucoseActivityView: View, GlucoseStatusContext {
+     @State var context: SensorGlucoseActivityAttributes.GlucoseStatus
+ 
+     var body: some View {
+         HStack(spacing: 12) {
+             if let latestGlucose = context.glucose, let glucoseUnit = context.glucoseUnit {
+                 // Left: Glucose + trend
+                 VStack(spacing: 2) {
+                     HStack(alignment: .top, spacing: 6) {
+                         Group {
+@@ -257,21 +252,20 @@ struct GlucoseActivityView: View, GlucoseStatusContext {
+             }
+         }
+         .padding(.horizontal, 16)
+         .padding(.vertical, 10)
+         .widgetBackground(backgroundView: WidgetColors.dosBlack)
+     }
+ }
+ 
+ // MARK: - GlucoseActivityWidget_Previews
+ 
+-@available(iOS 16.1, *)
+ struct GlucoseActivityWidget_Previews: PreviewProvider {
+     static var previews: some View {
+         GlucoseActivityView(
+             context: SensorGlucoseActivityAttributes.GlucoseStatus(
+                 alarmLow: 80,
+                 alarmHigh: 160,
+                 sensorState: .expired,
+                 connectionState: .disconnected,
+                 glucoseUnit: .mgdL,
+                 startDate: Date(),
+diff --git a/Widgets/Widgets.swift b/Widgets/Widgets.swift
+index 7d816082..ee61d320 100644
+--- a/Widgets/Widgets.swift
++++ b/Widgets/Widgets.swift
+@@ -2,38 +2,26 @@
+ //  Widgets.swift
+ //  Widgets
+ //
+ 
+ import SwiftUI
+ import WidgetKit
+ 
+ @main
+ struct Widgets: WidgetBundle {
+     var body: some Widget {
+-        if #available(iOS 16.1, *) {
+-            return WidgetBundleBuilder.buildBlock(
+-                GlucoseWidget(),
+-                GlucoseActivityWidget(),
+-                SensorWidget(),
+-                TransmitterWidget()
+-            )
+-        } else {
+-            return WidgetBundleBuilder.buildBlock(
+-                GlucoseWidget(),
+-                SensorWidget(),
+-                TransmitterWidget()
+-            )
+-        }
++        WidgetBundleBuilder.buildBlock(
++            GlucoseWidget(),
++            GlucoseActivityWidget(),
++            SensorWidget(),
++            TransmitterWidget()
++        )
+     }
+ }
+ 
+ extension View {
+     func widgetBackground(backgroundView: some View) -> some View {
+-        if #available(watchOS 10.0, iOSApplicationExtension 17.0, iOS 17.0, macOSApplicationExtension 14.0, *) {
+-            return containerBackground(for: .widget) {
+-                backgroundView
+-            }
+-        } else {
+-            return background(backgroundView)
++        containerBackground(for: .widget) {
++            backgroundView
+         }
+     }
+ }

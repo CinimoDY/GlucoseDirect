@@ -1,0 +1,56 @@
+{
+  "run_id": "20260422-111337-db0c6cef",
+  "pr": 22,
+  "verdict": "PASS",
+  "score": "0/0 high-priority parity gaps",
+  "summary": "PR #22 is a pure rebrand: URL constants updated in DirectConfig.swift (facebookURL/crowdinURL removed, sponsorURL added, githubURL repointed), label copy updated in AboutView.swift, new localisation strings added, and docs updated. All new user-facing actions are passive Link taps that open external URLs. These require no agent tool equivalent — an agent can invoke any URL directly. No stateful actions, no Redux dispatches, no GRDB writes, and no middleware changes are introduced.",
+  "findings": {
+    "critical": [],
+    "warnings": [],
+    "observations": []
+  },
+  "capability_map": [
+    {
+      "ui_action": "Link tap — PayPal donate (upstream)",
+      "location": "App/Views/Settings/AboutView.swift:59",
+      "agent_tool": "N/A — external URL open, no app state",
+      "in_prompt": false,
+      "priority": "low",
+      "status": "ok"
+    },
+    {
+      "ui_action": "Link tap — GitHub Sponsors (DOSBTS fork)",
+      "location": "App/Views/Settings/AboutView.swift:67",
+      "agent_tool": "N/A — external URL open, no app state",
+      "in_prompt": false,
+      "priority": "low",
+      "status": "ok"
+    },
+    {
+      "ui_action": "Link tap — GitHub repo (pre-existing, repointed)",
+      "location": "App/Views/Settings/AboutView.swift (existing)",
+      "agent_tool": "N/A — external URL open, no app state",
+      "in_prompt": false,
+      "priority": "low",
+      "status": "ok"
+    },
+    {
+      "ui_action": "Link tap — FAQ (pre-existing, unchanged)",
+      "location": "App/Views/Settings/AboutView.swift (existing)",
+      "agent_tool": "N/A — external URL open, no app state",
+      "in_prompt": false,
+      "priority": "low",
+      "status": "ok"
+    }
+  ],
+  "removed_actions": [
+    {
+      "ui_action": "Link tap — Facebook group (removed)",
+      "note": "Link removed from AboutView; was low-priority external URL, no parity gap created by removal"
+    },
+    {
+      "ui_action": "Link tap — Crowdin translation (removed)",
+      "note": "Link removed from AboutView; was low-priority external URL, no parity gap created by removal"
+    }
+  ]
+}

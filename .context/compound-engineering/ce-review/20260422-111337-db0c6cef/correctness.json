@@ -1,0 +1,60 @@
+{
+  "reviewer": "correctness",
+  "findings": [
+    {
+      "id": "C-01",
+      "severity": "P2",
+      "confidence": 0.97,
+      "file": "README.md",
+      "line": null,
+      "title": "Test count claim is off by one",
+      "description": "README.md states '137 passing as of build 60' (also echoed in CLAUDE.md). Counting @Test annotations across all DOSBTSTests/*.swift files yields 138: DirectReducerTests=37, IOBCalculatorTests=19, GlucoseStatisticsTests=19, MealImpactTests=23, CustomCalibrationTests=13, DailyDigestTests=4, SensorTests=9, SensorTrendTests=14, DOSBTSTests=0. Total=138. The claim is factually wrong by one test.",
+      "trace": "grep -rn '@Test\\b' DOSBTSTests/ --include='*.swift' | wc -l => 138",
+      "suggested_fix": "Change '137 passing' to '138 passing' in README.md (and CLAUDE.md if updated in this PR)."
+    },
+    {
+      "id": "C-02",
+      "severity": "P3",
+      "confidence": 0.98,
+      "file": "CHANGELOG.md",
+      "line": null,
+      "title": "Multiple build entry dates do not match git commit dates",
+      "description": "Six CHANGELOG build entries carry dates that differ from the actual commit dates recorded in git:\n- [Build 60] CHANGELOG=2026-04-22, git commit d7a67a2b=2026-04-20 (+2 days)\n- [Build 59] CHANGELOG=2026-04-22, git commit 44ac076a=2026-04-20 (+2 days)\n- [Build 54] CHANGELOG=2026-04-20, git commit 141d2c22=2026-04-18 (+2 days)\n- [Build 53] CHANGELOG=2026-04-19, git commit b1f03675=2026-04-17 (+2 days)\n- [Build 52] CHANGELOG=2026-04-18, git commit 58658f59=2026-04-17 (+1 day)\n- [Build 51] CHANGELOG=2026-04-18, git commit c2d0280d=2026-04-17 (+1 day)\nBuilds 49 and 50 match (both 2026-04-17). The pattern of +2 days on the more recent entries suggests the CHANGELOG was written from memory on today's date (2026-04-22) rather than checked against git log.",
+      "trace": "git show <sha> --format='%ad' --date=short for each build-bump commit",
+      "suggested_fix": "Correct each bracketed date to match the corresponding build-bump commit date: Build 60→2026-04-20, Build 59→2026-04-20, Build 54→2026-04-18, Build 53→2026-04-17, Build 52→2026-04-17, Build 51→2026-04-17."
+    },
+    {
+      "id": "C-03",
+      "severity": "P3",
+      "confidence": 0.92,
+      "file": "Library/en.lproj/Localizable.strings",
+      "line": null,
+      "title": "New localization keys absent from all non-English locale files",
+      "description": "Keys 'Support upstream GlucoseDirect' and 'Tip the DOSBTS fork' were added only to en.lproj. The project ships 18 other locale .strings files (de, fr, ar, bg, cs, es, fi, it, ka, nl, pl, pt-PT, ru, sv, tr, uk, zh-Hans, zh-Hant). When SwiftUI's Text() looks up a key missing from the device locale's .strings file, it falls back to the raw key string as the display value. Since the keys are valid English sentences, the fallback is readable but untranslated — non-English users see English labels in these two About rows. This is a known and acceptable SwiftUI fallback, not a crash. Impact is UX-only for non-English locales.",
+      "trace": "grep 'Support upstream GlucoseDirect' Library/de.lproj/Localizable.strings => (no output)",
+      "suggested_fix": "Either add translation stubs (key=key) to all other locale files to silence future translation tooling warnings, or document that these rows are intentionally English-only for now."
+    }
+  ],
+  "residual_risks": [
+    {
+      "area": "DirectConfig.swift — force-unwrap URL construction in AboutView",
+      "description": "AboutView line 61 and 69 use URL(string:)! with DirectConfig.donateURL and DirectConfig.sponsorURL. Both are hardcoded string literals ('https://www.paypal.me/creepymonstr' and 'https://github.com/sponsors/CinimoDY') that are valid URLs and will never be nil at runtime. No correctness risk introduced by this PR. Pre-existing pattern throughout the file.",
+      "risk_level": "none"
+    },
+    {
+      "area": "LICENSE.md copyright preservation",
+      "description": "The parenthetical '(original GlucoseDirect)' appended to Reimar Metzen's copyright line is an annotation, not a substitution. The name and year are preserved verbatim as required by MIT. Not a legal-correctness issue within the scope of this review.",
+      "risk_level": "none"
+    },
+    {
+      "area": "facebookURL / crowdinURL removal",
+      "description": "Grepped all .swift files under App/, Library/, and Widgets/ for both constants. Zero references remain. The removal is a clean compile with no dangling references.",
+      "risk_level": "none"
+    }
+  ],
+  "testing_gaps": [
+    {
+      "description": "No automated test verifies that DirectConfig.sponsorURL parses to a non-nil URL. The existing codebase has no tests for DirectConfig constants in general, so this is consistent with existing coverage — but a one-line test would catch future typos in the URL string before they reach users."
+    }
+  ]
+}

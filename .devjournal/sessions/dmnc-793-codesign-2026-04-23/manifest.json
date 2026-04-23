@@ -1,0 +1,10 @@
+{
+  "name": "dmnc-793-codesign",
+  "date": "2026-04-23",
+  "project": "dosbts",
+  "linearIssues": [
+    "DMNC-793",
+    "DMNC-796",
+    "DMNC-798"
+  ]
+}

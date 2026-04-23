@@ -1,0 +1,49 @@
+{
+  "reviewer": "correctness",
+  "findings": [
+    {
+      "id": "pr25-c-1",
+      "title": "Foreground-inactive scene path relies on fallback; fallback may pick a backgrounded scene on iPad multi-window",
+      "file": "App/Extensions/UIScreen.swift",
+      "lines": "15-24",
+      "severity": "low",
+      "confidence": 0.62,
+      "category": "incorrect-state-transition",
+      "description": "The `current` computed property filters for `activationState == .foregroundActive`, then falls back to `connectedScenes.compactMap { ... }.first?.screen`. Two related correctness concerns: (a) when the single app scene is `.foregroundInactive` (e.g. mid-transition, during control-center pull, or during app-switcher), the primary filter yields nil and the fallback returns `.first?.screen` — which is still the same scene, so behavior is correct but only by luck of the fallback. (b) On iPad multi-window (two-up), if neither scene is `.foregroundActive` (both inactive while switching), the fallback picks whichever scene happens to be first in `connectedScenes` enumeration order — which may be the background scene, not the one the user is interacting with. The resulting `UIScreen` is the same physical display on iPad, so `bounds.size` is identical for both scenes, so this doesn't actually produce a wrong value today. This is noted as residual risk rather than a bug because the chart dimensions come from `UIScreen.bounds`, which is per-display not per-scene. If the code is later refactored to read scene-specific size (e.g. split-view dimensions), the fallback's scene selection becomes semantically load-bearing.",
+      "suggested_fix": "Prefer also accepting `.foregroundInactive` before falling back to any scene: `.first(where: { [.foregroundActive, .foregroundInactive].contains($0.activationState) })`. The eventual `.first?.screen` fallback still catches the pre-connection / background-only edge case."
+    },
+    {
+      "id": "pr25-c-2",
+      "title": "Zero-scenes edge case produces negative screenWidth in ChartView.updateSeriesMetadata",
+      "file": "App/Views/Overview/ChartView.swift",
+      "lines": "1101-1107, 1237",
+      "severity": "low",
+      "confidence": 0.55,
+      "category": "null-propagation",
+      "description": "When `UIScreen.current` is nil (zero connected window scenes — only possible in the extreme app-launch window before any `UIWindowScene` is attached), `UIScreen.screenWidth` returns 0 and `UIScreen.screenHeight` returns 0. The ChartView call sites compute `UIScreen.screenWidth - 40`, which becomes -40 when `current` is nil. Line 103/123/126 apply `max(0, screenWidth, seriesWidth)` so the negative value is clamped to 0 (safe). BUT line 1237 computes `(screenWidth / CGFloat(zoomLevel.visibleHours * 60))` without clamping — `minuteWidth` becomes negative, `seriesWidth = minuteWidth * chartMinutes` becomes negative, and the next body evaluation consumes a negative `seriesWidth` into `max(0, screenWidth, seriesWidth)` where it's discarded. No crash, no wrong value persists past the next body evaluation. The state is self-healing on the next redraw (when scenes are connected). In practice, `updateSeriesMetadata` runs on a 100ms debounce after body evaluation, and SwiftUI views aren't mounted until a scene exists. Suppressed to low confidence because the reachable path requires SwiftUI to evaluate ChartView.body with zero connected scenes, which the lifecycle prevents.",
+      "suggested_fix": "Defensive: clamp `UIScreen.screenWidth` fallback to something positive, or clamp `screenWidth` in ChartView to `max(0, UIScreen.screenWidth - 40)`. Not required for today's correctness but reduces fragility if the extension is reused in other contexts (e.g. background task, pre-connection)."
+    },
+    {
+      "id": "pr25-c-3",
+      "title": "Nil fallback returns 0 / .zero, masking misconfiguration rather than propagating",
+      "file": "App/Extensions/UIScreen.swift",
+      "lines": "26-36",
+      "severity": "low",
+      "confidence": 0.65,
+      "category": "broken-error-propagation",
+      "description": "The three computed properties silently default to 0 / `.zero` when `current` is nil. This masks the misconfiguration (no scenes connected) rather than surfacing it. Callers (`ChartView`) blindly consume the 0 and produce subtly wrong layout instead of an explicit failure or fallback to a reasonable default (e.g. the main screen's native bounds via the pre-iOS-13 `UIScreen.fixedCoordinateSpace` or a conservative default). Behavior identical to the old code only when `UIScreen.main` was always non-nil — which it was, pre-iOS-13 semantics. Post-iOS-13 scene-based world, nil is reachable (albeit rare). Consider whether silent 0 is the right default for layout math, or whether falling back to a sensible constant (e.g. 375pt iPhone SE width) is better than silently rendering a zero-size chart."
+    }
+  ],
+  "residual_risks": [
+    "The fallback chain in `current` depends on `UIApplication.shared.connectedScenes` enumeration order when no scene is `.foregroundActive` — today this is benign because `UIScreen.bounds` is per-display, but if the code is later refactored to read scene-specific geometry (split view sizes, window bounds), the fallback's scene selection becomes semantically load-bearing and could pick the wrong scene.",
+    "`UIApplication.shared.connectedScenes` must be accessed on the main thread. Current call sites (`ChartView.screenWidth`/`screenHeight`) are inside SwiftUI body or main-queue-dispatched work, so this is safe. Future callers must preserve this invariant — consider annotating `current` with `@MainActor` for compile-time enforcement.",
+    "iPad multi-scene scenario: when both scenes are `.foregroundInactive` (mid-transition), the fallback arbitrarily picks one. Benign today, fragile tomorrow.",
+    "If `UIScreen.current` returns nil during app launch (before any scene is connected) and ChartView is evaluated in that window, `seriesWidth` will briefly go negative inside `updateSeriesMetadata`. The value is overwritten on the next body evaluation so this does not cause persistent visual corruption, but it does mean ChartView briefly holds a negative `seriesWidth` state. No evidence this path is reachable in practice."
+  ],
+  "testing_gaps": [
+    "No unit test covers `UIScreen.current` returning nil — the three computed properties' fallback paths (0, 0, .zero) are exercised only at runtime.",
+    "No test verifies ChartView behavior when `UIScreen.screenWidth`/`.screenHeight` return 0 — particularly whether `updateSeriesMetadata` gracefully handles negative `screenWidth` (screenWidth - 40 = -40).",
+    "No integration test for iPad multi-scene activation states — the `.first { .foregroundActive }` filter is untested when multiple `UIWindowScene` instances exist.",
+    "Post-migration manual verification: chart dimensions on iPhone and iPad (if supported) after cold launch, background-to-foreground transitions, and (on iPad) split-view activation. Listed testing gap because the PR does not add automated coverage for any of these paths."
+  ]
+}

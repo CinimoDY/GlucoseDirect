@@ -1,0 +1,71 @@
+{
+  "reviewer": "performance",
+  "findings": [
+    {
+      "id": "PERF-01",
+      "title": "IOB series generation is O(T * N * S) with no memoization — recomputes fully on every insulin change",
+      "file": "/Users/doke/extracode/DOSBTS/App/Views/Overview/ChartView.swift",
+      "lines": "1251-1294",
+      "confidence": 0.92,
+      "severity": "high",
+      "description": "updateInsulinSeries() runs on the calculationQueue but has no incremental update logic. For a 24-hour chart with 5-min intervals: T=288 time points. For each point, computeIOB() iterates over all N iobDeliveries. For each basal delivery in that set, computeBasalIOB() further loops over S = delivery_duration / 300 segments (a 12-hour basal = 144 segments). Total work per updateInsulinSeries call: 288 * N_boluses + 288 * sum(basal_segments_per_delivery). A user with 4 boluses + 1 12-hour basal accrues 288*(4 + 144) = ~42,600 exp() calls per chart refresh. updateInsulinSeries is triggered by onChange of insulinDeliveryValues, iobDeliveries.count, bolusInsulinPreset, and basalDIAMinutes — all four fire on any new glucose reading via the iobMiddleware (addSensorGlucose -> loadIOBDeliveries -> setIOBDeliveries which changes iobDeliveries.count). So this runs every 5 minutes on every sensor update regardless of whether insulin data changed.",
+      "reproduction": "Add 1 basal delivery spanning 8 hours + 3 boluses. Watch chart on a device with Instruments Time Profiler while the sensor fires. updateInsulinSeries will show ~33,000 exp() evaluations per sensor reading.",
+      "recommendation": "Cache the iobSeries in state (keyed on iobDeliveries hash + model params + time range) and skip recomputation when deliveries and range are unchanged. Alternatively, only trigger updateInsulinSeries from onChange(of: store.state.iobDeliveries.count) and not from onChange(of: store.state.insulinDeliveryValues) — the latter fires on every DB reload even when IOB-relevant data is unchanged."
+    },
+    {
+      "id": "PERF-02",
+      "title": "TreatmentBannerView.currentIOB is a computed property called on every 1-second timer tick",
+      "file": "/Users/doke/extracode/DOSBTS/App/Views/Overview/TreatmentBannerView.swift",
+      "lines": "16-28",
+      "confidence": 0.91,
+      "severity": "medium",
+      "description": "currentIOB is a computed var (not @State) that runs the full computeIOB() loop synchronously on the main thread every time SwiftUI evaluates body. The view has a 1-second Timer publisher (startTimer → Timer.publish(every: 1)) that calls updateRemaining() which sets @State remainingSeconds, forcing a body re-evaluation every second. Each re-evaluation calls currentIOB, which allocates two ExponentialInsulinModel structs, iterates all iobDeliveries, and for each basal delivery runs the 5-min segmentation loop — all on the main thread at 1 Hz. For a user with a 12-hour basal, that is 144 exp() calls per second on the main thread for the entire duration the banner is visible (up to 15 minutes).",
+      "reproduction": "Show TreatmentBannerView in countdown state with one 8-hour basal delivery. Profile with Instruments → CPU Usage while banner is visible. currentIOB will appear in main-thread samples at 1-second cadence.",
+      "recommendation": "Hoist IOB to @State, initialize it in onAppear, and refresh it only on meaningful changes (onChange of store.state.iobDeliveries.count) rather than on every 1-second timer tick. The value changes on a minute scale, not a second scale."
+    },
+    {
+      "id": "PERF-03",
+      "title": "iobMiddleware triggers a GRDB query on every addSensorGlucose action — every 5-minute sensor reading",
+      "file": "/Users/doke/extracode/DOSBTS/App/Modules/IOB/IOBMiddleware.swift",
+      "lines": "12-14",
+      "confidence": 0.88,
+      "severity": "medium",
+      "description": "The middleware maps .addSensorGlucose → .loadIOBDeliveries → DataStore.shared.getIOBDeliveries(diaMinutes:). A CGM fires every 5 minutes, so this query runs 288 times per day unconditionally. The query fetches all insulin deliveries within the DIA window. While a single GRDB read is fast, the chained effect is: addSensorGlucose → loadIOBDeliveries → setIOBDeliveries (changes iobDeliveries.count) → onChange in ChartView fires updateInsulinSeries() + onChange in GlucoseView fires refreshIOB(). This means every glucose reading triggers two full IOB recomputations (chart series + GlucoseView scalar) even when no insulin was logged.",
+      "reproduction": "Add a log statement at the top of updateInsulinSeries and refreshIOB. Observe they fire every 5 minutes via the sensor glucose path.",
+      "recommendation": "In iobMiddleware, only emit .loadIOBDeliveries for .addSensorGlucose when the insulin delivery window has data. Alternatively, separate the triggers: reload deliveries only on addInsulinDelivery/deleteInsulinDelivery/setBolusInsulinPreset/setBasalDIAMinutes; for addSensorGlucose, emit a lighter .refreshIOBScalar action that recomputes the scalar only (no DB query, no chart series rebuild) using already-loaded state.iobDeliveries."
+    },
+    {
+      "id": "PERF-04",
+      "title": "GlucoseView refreshIOB allocates two ExponentialInsulinModel structs on every call including the 60-second timer",
+      "file": "/Users/doke/extracode/DOSBTS/App/Views/Overview/GlucoseView.swift",
+      "lines": "196-207",
+      "confidence": 0.80,
+      "severity": "low",
+      "description": "refreshIOB() constructs a new ExponentialInsulinModel for both bolus and basal on every invocation. The model struct precomputes tau/a/S constants involving exp() in init. This happens every 60 seconds from iobTimer, plus on every onChange of iobDeliveries.count, bolusInsulinPreset, and basalDIAMinutes. The models are identical across calls unless the preset or DIA changes (which is rare). The cost is small in isolation (two exp() calls in init) but is wasteful given the inputs don't change between 60-second ticks.",
+      "reproduction": "Minimal reproduction; measurable only with many concurrent instances or very high timer frequency.",
+      "recommendation": "Hoist model construction to computed properties or @State updated only when bolusInsulinPreset or basalDIAMinutes changes, so the 60-second timer tick reuses already-computed models."
+    }
+  ],
+  "residual_risks": [
+    {
+      "id": "RISK-01",
+      "description": "Chart IOB series length is bounded by the chart's time range (firstTimestamp to lastTimestamp), which for a 24h zoom is 288 points. If the app ever shows multi-day history (e.g., selectedDate browsing with no zoom restriction), T could grow to 2000+ points, and the O(T*N*S) cost would become user-perceptible (>100ms on calculationQueue). Currently the zoom caps visible range but firstTimestamp/lastTimestamp span the entire loaded dataset, not just the visible window — so even on 3h zoom, if 3 days of glucose data is loaded, T = ~864.",
+      "confidence": 0.75
+    },
+    {
+      "id": "RISK-02",
+      "description": "calculationQueue is a serial utility queue shared across updateSensorSeries, updateBloodSeries, updateInsulinSeries, updateMealSeries, updateExerciseSeries, and updateHeartRateLookup. All five are dispatched async to the same queue. If multiple state changes fire rapidly (e.g., initial load dispatches all five), they queue sequentially. updateInsulinSeries (most expensive) blocks the queue for the duration of the IOB series calculation, delaying sensor/blood series updates that are submitted after it.",
+      "confidence": 0.70
+    }
+  ],
+  "testing_gaps": [
+    {
+      "id": "GAP-01",
+      "description": "No performance test exists for updateInsulinSeries / computeIOB under realistic delivery counts. The existing IOBCalculatorTests cover correctness only. A measurement() test with 5 boluses + 2 basals across 24h time range would catch regressions before they ship."
+    },
+    {
+      "id": "GAP-02",
+      "description": "No test covers the frequency of GRDB queries triggered per sensor glucose event. An integration test that dispatches .addSensorGlucose N times and asserts loadIOBDeliveries fires at most once (or zero times when deliveries are empty) would prevent the per-reading query pattern from regressing."
+    }
+  ]
+}

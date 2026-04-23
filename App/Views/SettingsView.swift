@@ -9,32 +9,44 @@ struct SettingsView: View {
     @EnvironmentObject var store: DirectStore
 
     var body: some View {
-        List {
-            // Sensor
-            SensorConnectorSettingsView()
-            SensorConnectionConfigurationView()
+        NavigationStack {
+            List {
+                // Sensor details — pushes full sensor controls screen
+                NavigationLink {
+                    SensorDetailView()
+                } label: {
+                    Label("Sensor details", systemImage: "sensor.tag.radiowaves.forward.fill")
+                }
 
-            // Glucose & Alarms
-            Section {}.listRowBackground(Color.clear)
-            GlucoseSettingsView()
-            AlarmSettingsView()
-            InsulinSettingsView()
+                // Sensor
+                SensorConnectorSettingsView()
+                SensorConnectionConfigurationView()
 
-            // Export
-            Section {}.listRowBackground(Color.clear)
-            NightscoutSettingsView()
-            AppleExportSettingsView()
+                // Glucose & Alarms
+                Section {}.listRowBackground(Color.clear)
+                GlucoseSettingsView()
+                AlarmSettingsView()
+                InsulinSettingsView()
 
-            // AI & Extras
-            Section {}.listRowBackground(Color.clear)
-            AISettingsView()
-            BellmanSettingsView()
-            CalibrationSettingsView()
-            AdditionalSettingsView()
+                // Export
+                Section {}.listRowBackground(Color.clear)
+                NightscoutSettingsView()
+                AppleExportSettingsView()
 
-            // About
-            Section {}.listRowBackground(Color.clear)
-            AboutView()
-        }.listStyle(.grouped)
+                // AI & Extras
+                Section {}.listRowBackground(Color.clear)
+                AISettingsView()
+                BellmanSettingsView()
+                CalibrationSettingsView()
+                AdditionalSettingsView()
+
+                // About
+                Section {}.listRowBackground(Color.clear)
+                AboutView()
+            }
+            .listStyle(.grouped)
+            .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.inline)
+        }
     }
 }

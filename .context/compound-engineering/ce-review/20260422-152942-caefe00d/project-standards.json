@@ -1,0 +1,32 @@
+{
+  "reviewer": "project-standards",
+  "findings": [
+    {
+      "id": "ps-1",
+      "title": "CLAUDE.md line 43 is now stale after the sweep it documents",
+      "severity": "low",
+      "confidence": 0.72,
+      "category": "documentation-consistency",
+      "file": "/Users/doke/extracode/DOSBTS/CLAUDE.md",
+      "lines": "43",
+      "rule_cited": "CLAUDE.md line 43: 'Deployment target is iOS 26.0 ... Existing `if #available(iOS 15.x/16.x/17.x, *)` guards are now dead branches and can be cleaned up incrementally.'",
+      "violation": "This PR (DMNC-776/777/778) IS the cleanup sweep and edits CLAUDE.md in the same commit. After the PR lands, `grep -rn 'if #available\\|@available(iOS' App/ Library/ Widgets/` returns zero matches — the sweep is complete, not ongoing/incremental. Leaving the line saying guards 'can be cleaned up incrementally' misleads future readers into thinking there is still backlog work. The PR already edits CLAUDE.md to drop '(iOS 16+ only)' qualifiers on lines 57 and 59, so updating line 43 belongs in the same sweep.",
+      "suggested_fix": "Reword line 43's trailing sentence to 'All `if #available(iOS 15.x/16.x/17.x, *)` guards and `@available(iOS ...)` attributes were removed in DMNC-776/777/778.' (or similar past-tense form reflecting the completed sweep).",
+      "pre_existing": false
+    }
+  ],
+  "residual_risks": [
+    "`URL(staticString:)` uses `preconditionFailure` which crashes at runtime for a malformed literal. The project forbids force-unwrap (`!`), and this is the idiomatic replacement — URLs are compile-time-known literals. No CLAUDE.md rule forbids `preconditionFailure`. Low risk, not flagged.",
+    "AboutView's mailto `URL(string:)!` force-unwrap was replaced with a `guard let` that silently suppresses the row if construction fails. Behaviour is safer but slightly different (row disappears instead of crashing); acceptable given the 'No force unwrapping' rule takes precedence.",
+    "CLAUDE.md line 48 still mentions 'iOS 15 sibling sheet collisions' — this is a historical rationale for the ActiveSheet enum, not a live qualifier, so leaving it is correct."
+  ],
+  "testing_gaps": [
+    "No tests added for the new `URL(staticString:)` initializer. CLAUDE.md test-count rule (138 tests) is unchanged and this extension is trivial compile-time logic — no gap flagged."
+  ],
+  "scope_verified": {
+    "no_force_unwraps_introduced": true,
+    "no_pbxproj_changes": true,
+    "conventional_commit_ok": true,
+    "remaining_if_available_guards_in_source": 0
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "reviewer": "maintainability",
+  "findings": [
+    {
+      "id": "M1",
+      "category": "naming-that-obscures-intent",
+      "title": "donateURL name mismatch with its purpose in-context",
+      "file": "Library/DirectConfig.swift",
+      "line": 15,
+      "confidence": 0.82,
+      "description": "donateURL points to creepymonster's PayPal and is now rendered as 'Support upstream GlucoseDirect'. Two constants now exist side-by-side (donateURL / sponsorURL) where one is for the upstream author and the other is for the fork author. In six months, without the surrounding label, donateURL does not communicate whose donation it is. The pairing with sponsorURL makes the ambiguity concrete: a reader scanning DirectConfig.swift cannot distinguish which constant belongs to whom without cross-referencing AboutView. Renaming to upstreamDonateURL (or upstreamPayPalURL) makes the ownership self-evident at the declaration site and removes the need to hold the view label in mind.",
+      "suggestion": "Rename donateURL to upstreamDonateURL in DirectConfig.swift and update the single call-site in AboutView.swift."
+    },
+    {
+      "id": "M2",
+      "category": "dead-code",
+      "title": "Stale localisation keys in all 19 locales — App donate, App facebook group, App translation",
+      "file": "Library/en.lproj/Localizable.strings",
+      "confidence": 0.90,
+      "description": "Three string keys are unreachable dead code. 'App donate' exists in all 19 locale files but is not referenced anywhere in the Swift codebase (the view that used it was rewritten to use a raw string literal 'Support upstream GlucoseDirect'). 'App facebook group' and 'App translation' were removed from AboutView in this PR but remain in all 19 locale files. These will never be returned by NSLocalizedString and cannot be reached at runtime. Confirmed by grep: zero Swift call-sites for all three keys post-diff. Leaving them creates confusion for any future contributor who searches for where these keys are used, and adds to the translation surface area if Crowdin is ever re-enabled.",
+      "affected_locales": ["en", "de", "fr", "es", "it", "nl", "pl", "pt-PT", "ru", "sv", "tr", "uk", "zh-Hans", "zh-Hant", "ar", "bg", "cs", "fi", "ka"],
+      "suggestion": "Delete the three stale keys from all 19 Localizable.strings files. Also note: the two new keys ('Support upstream GlucoseDirect', 'Tip the DOSBTS fork') were added only to en.lproj — the other 18 locales will fall back to the English literal, which is fine, but it confirms these keys are not being translated and could simply be used as raw strings in the view, avoiding localisation table entries entirely."
+    },
+    {
+      "id": "M3",
+      "category": "naming-that-obscures-intent",
+      "title": "New AboutView label strings are not localised in 18 non-English locales",
+      "file": "App/Views/Settings/AboutView.swift",
+      "lines": [59, 67],
+      "confidence": 0.80,
+      "description": "The two new row labels 'Support upstream GlucoseDirect' and 'Tip the DOSBTS fork' were added to en.lproj/Localizable.strings but not to any of the 18 other locale files. SwiftUI Text() with a string literal participates in NSLocalizedString lookup: because the keys exist in en.lproj but not in de.lproj/fr.lproj/etc., non-English users will see the English strings. This is silently broken rather than explicitly raw — the pattern of the rest of AboutView (Text('App version'), Text('App author'), etc.) uses actual localisation keys, so this inconsistency will mislead a future contributor who assumes all AboutView labels are translated.",
+      "suggestion": "Either add the two keys to all 19 locale files (with the English value as a placeholder, same as upstream approach), or use Text(verbatim:) explicitly to signal that localisation is intentionally skipped for these two DOSBTS-specific rows."
+    },
+    {
+      "id": "M4",
+      "category": "dead-code",
+      "title": "faqURL points to upstream repo path that may not survive upstream archival",
+      "file": "Library/DirectConfig.swift",
+      "line": 18,
+      "confidence": 0.65,
+      "description": "faqURL = 'https://github.com/creepymonster/GlucoseDirect/blob/main/FAQ.md#faq' is used in two places: AboutView ('App faq' row) and ConnectionView (inline link on connection errors). The README now explicitly notes that upstream links may go dark. If the upstream repo is archived or deleted, this URL returns a 404 silently — there is no fallback. Unlike the PayPal link, the FAQ represents functional help content that users follow when they are stuck. The risk is not immediate but it is the highest-value URL to monitor since it surfaces at error-state moments.",
+      "suggestion": "Low-urgency: track this URL. If a DOSBTS-specific FAQ is ever written, redirect faqURL to it. Consider adding a comment at the declaration site noting the external dependency."
+    },
+    {
+      "id": "M5",
+      "category": "naming-that-obscures-intent",
+      "title": "CHANGELOG has no update mechanism or convention documented",
+      "file": "CHANGELOG.md",
+      "confidence": 0.70,
+      "description": "CHANGELOG.md is well-structured with an [Unreleased] section following Keep a Changelog. However, CLAUDE.md (the authoritative contributor guide) has no mention of when or how CHANGELOG.md should be updated — it documents commit conventions, deployment steps, and architecture, but changelog maintenance is absent. Without a stated convention (e.g. 'update [Unreleased] in every PR, promote to [Build N] on deploy'), the changelog will drift from the commit history within a few PRs. The [Unreleased] section already has two entries that reference PR #19, #20, #21 — these are from prior PRs, not this one, meaning the backfill is already slightly out of order relative to the TestFlight build numbers used as version identifiers.",
+      "suggestion": "Add a one-paragraph 'Changelog' section to CLAUDE.md specifying: update [Unreleased] in every PR; bump to [Build N] in deploy.sh or as part of the CURRENT_PROJECT_VERSION bump step. Without this, the changelog will become aspirational rather than accurate."
+    }
+  ],
+  "residual_risks": [
+    {
+      "id": "RR1",
+      "description": "All URL constants in DirectConfig.swift (faqURL, donateURL, sponsorURL, githubURL) are external dependencies with no runtime validation. URL(string:)! force-unwraps are safe only because these are string literals — but if a URL string is ever typo'd or the constants are refactored, the force-unwrap in AboutView and ConnectionView will crash. Low probability now, but the pattern is fragile.",
+      "severity": "low"
+    }
+  ],
+  "testing_gaps": [
+    {
+      "id": "TG1",
+      "description": "No snapshot or UI test covers AboutView. The two new rows ('Support upstream GlucoseDirect', 'Tip the DOSBTS fork') and the removed rows (Facebook, Crowdin) are untested. If AboutView is refactored in a future PR, there is no regression signal."
+    }
+  ]
+}

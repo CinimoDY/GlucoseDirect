@@ -8,37 +8,23 @@ import SwiftUI
 
 // MARK: - ChartView
 
-// MARK: - ReportType
-
-private enum ReportType: String, CaseIterable {
-    case glucose = "GLUCOSE"
-    case timeInRange = "TIME IN RANGE"
-    case statistics = "STATISTICS"
-}
-
 struct ChartView: View {
     // MARK: Internal
 
     @EnvironmentObject var store: DirectStore
-    @State private var selectedReportType: ReportType = .glucose
+    let selectedReportType: ReportType
 
     var body: some View {
-        Section(
-            content: {
-                VStack {
-                    ReportTypeSelectorView
-
-                    switch selectedReportType {
-                    case .glucose:
-                        GlucoseChartContent
-                    case .timeInRange:
-                        TimeInRangeContent
-                    case .statistics:
-                        StatisticsContent
-                    }
-                }
+        VStack(spacing: 0) {
+            switch selectedReportType {
+            case .glucose:
+                GlucoseChartContent
+            case .timeInRange:
+                TimeInRangeContent
+            case .statistics:
+                StatisticsContent
             }
-        )
+        }
     }
 
     // MARK: - Glucose Chart Content
@@ -208,8 +194,6 @@ struct ChartView: View {
                             }.opacity(0.75)
                         }
                     }
-
-                    ZoomLevelsView
         }
         .sheet(item: $tappedMealEntry) { meal in
             AddMealView(
@@ -351,36 +335,6 @@ struct ChartView: View {
         }
     }
 
-    // MARK: - Report Type Selector
-
-    private var ReportTypeSelectorView: some View {
-        HStack(spacing: DOSSpacing.sm) {
-            ForEach(ReportType.allCases, id: \.self) { type in
-                Button(action: {
-                    DirectNotifications.shared.hapticFeedback()
-                    selectedReportType = type
-                }) {
-                    HStack(spacing: 4) {
-                        Circle()
-                            .if(selectedReportType == type) {
-                                $0.fill(AmberTheme.amberLight)
-                            } else: {
-                                $0.stroke(AmberTheme.amberLight)
-                            }
-                            .frame(width: 8, height: 8)
-
-                        Text(type.rawValue)
-                            .font(DOSTypography.caption)
-                            .foregroundColor(selectedReportType == type ? AmberTheme.amberLight : AmberTheme.amberDark)
-                    }
-                }
-                .buttonStyle(.plain)
-            }
-            Spacer()
-        }
-        .padding(.horizontal, 4)
-    }
-
     // MARK: - Time In Range Content
 
     private var TimeInRangeContent: some View {
@@ -472,39 +426,6 @@ struct ChartView: View {
                 }
             }
         }
-    }
-
-    var ZoomLevelsView: some View {
-        HStack {
-            ForEach(Config.zoomLevels, id: \.level) { zoom in
-                if zoom != Config.zoomLevels.first {
-                    Spacer()
-                }
-
-                Button(
-                    action: {
-                        DirectNotifications.shared.hapticFeedback()
-                        store.dispatch(.setChartZoomLevel(level: zoom.level))
-                    },
-                    label: {
-                        Circle()
-                            .if(isSelectedZoomLevel(level: zoom.level)) {
-                                $0.fill(AmberTheme.amberLight)
-                            } else: {
-                                $0.stroke(AmberTheme.amberLight)
-                            }
-                            .frame(width: 12, height: 12)
-
-                        Text(zoom.name)
-                            .font(DOSTypography.bodySmall)
-                            .foregroundColor(AmberTheme.amberLight)
-                    }
-                )
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal, 10)
-        .frame(maxWidth: .infinity)
     }
 
     var ChartView: some View {
@@ -1196,14 +1117,6 @@ struct ChartView: View {
         store.dispatch(.setSelectedDate(selectedDate: Calendar.current.date(byAdding: .day, value: +addDays, to: store.state.selectedDate ?? Date())))
 
         DirectNotifications.shared.hapticFeedback()
-    }
-
-    private func isSelectedZoomLevel(level: Int) -> Bool {
-        if let zoomLevel = zoomLevel, zoomLevel.level == level {
-            return true
-        }
-
-        return false
     }
 
     private func scrollToStart(scrollViewProxy: ScrollViewProxy, force: Bool = false) {

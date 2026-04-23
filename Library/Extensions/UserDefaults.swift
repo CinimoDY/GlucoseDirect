@@ -59,6 +59,7 @@ private enum Keys: String {
     case showInsulinInput = "libre-direct.settings.show-insulin-delivery-input"
     case showScanlines = "libre-direct.settings.show-scanlines"
     case aiConsentFoodPhoto = "libre-direct.settings.ai-consent-food-photo"
+    case hasSeenBGRelocationHint = "libre-direct.settings.has-seen-bg-relocation-hint"
     case aiConsentDailyDigest = "libre-direct.settings.ai-consent-daily-digest"
     case claudeAPIKeyValid = "libre-direct.settings.claude-api-key-valid"
     case thumbCalibrationMM = "libre-direct.settings.thumb-calibration-mm"
@@ -810,6 +811,15 @@ extension UserDefaults {
         }
         set {
             set(newValue, forKey: Keys.aiConsentFoodPhoto.rawValue)
+        }
+    }
+
+    var hasSeenBGRelocationHint: Bool {
+        get {
+            return bool(forKey: Keys.hasSeenBGRelocationHint.rawValue)
+        }
+        set {
+            set(newValue, forKey: Keys.hasSeenBGRelocationHint.rawValue)
         }
     }
 

@@ -1,0 +1,103 @@
+{
+  "reviewer": "maintainability",
+  "findings": [
+    {
+      "id": "M-001",
+      "category": "dead_code",
+      "title": "Dead variable entry in buildEntry()",
+      "description": "GlucoseWidget.swift line 78 creates var entry = GlucoseEntry() that is immediately discarded. The very next line constructs and returns a completely separate GlucoseEntry via a private extension initializer. The dead variable will mislead any reader trying to understand the entry construction path.",
+      "file": "/Users/doke/extracode/DOSBTS/Widgets/GlucoseWidget.swift",
+      "line": 78,
+      "confidence": 0.97,
+      "recommendation": "Delete the var entry = GlucoseEntry() line. It has no effect on the return value."
+    },
+    {
+      "id": "M-002",
+      "category": "unnecessary_indirection",
+      "title": "GlucoseStatusContext protocol has exactly two conformers in the same file",
+      "description": "GlucoseActivityWidget.swift defines protocol GlucoseStatusContext (lines 67-92) with two default-implementation methods (warning, getGlucoseColor). Both conformers (DynamicIslandCenterView and GlucoseActivityView) are in the same file, both @available(iOS 16.1, *), and the protocol is not imported or used outside this file. The indirection adds a lookup step (reader must find the protocol to understand where warning and getGlucoseColor come from) without enabling any reuse beyond two co-located structs. A private helper struct or free functions would be equally capable without the protocol machinery.",
+      "file": "/Users/doke/extracode/DOSBTS/Widgets/GlucoseActivityWidget.swift",
+      "lines": "67-92",
+      "confidence": 0.75,
+      "recommendation": "Collapse GlucoseStatusContext into a private helper struct or two free functions shared by the two views. Retain the protocol only if a third surface will conform to it."
+    },
+    {
+      "id": "M-003",
+      "category": "naming_obscures_intent",
+      "title": "GlucoseEntry convenience inits silently hardcode alarm thresholds",
+      "description": "GlucoseEntry (GlucoseWidget.swift lines 29-55) exposes a no-arg init() and a two-arg init(date:glucose:glucoseUnit:) that both hardcode alarmLow=70 and alarmHigh=180. The full-data private extension init is the only one that accepts real alarm values from UserDefaults. A developer writing a preview or test via the two-arg init will silently get hardcoded defaults that do not reflect user settings. The naming gives no signal that these are placeholder-only constructors.",
+      "file": "/Users/doke/extracode/DOSBTS/Widgets/GlucoseWidget.swift",
+      "lines": "29-55",
+      "confidence": 0.82,
+      "recommendation": "Mark the two convenience inits as placeholder-only with a comment, or rename them to static func placeholder(date:glucose:glucoseUnit:) -> GlucoseEntry so the intent is explicit at call sites."
+    },
+    {
+      "id": "M-004",
+      "category": "coupling_between_unrelated_modules",
+      "title": "IOB computation logic duplicated inside AppGroupSharingService",
+      "description": "AppGroupSharing.swift lines 170-183 re-implement IOB calculation inline (constructing ExponentialInsulinModel, calling computeIOB, applying the 0.05U floor). This same responsibility lives in IOBCalculator.swift and IOBMiddleware. If the IOB model changes (new preset, different floor threshold, updated peak times), there are now two places to update. WidgetCenter.swift already shows the correct pattern: it reads UserDefaults.shared.sharedIOB at line 228 rather than recomputing. AppGroupSharingService.setWidgetData should accept a pre-computed iob: Double? instead of raw deliveries and model parameters.",
+      "file": "/Users/doke/extracode/DOSBTS/App/Modules/AppGroupSharing/AppGroupSharing.swift",
+      "lines": "158-183",
+      "confidence": 0.88,
+      "recommendation": "Pass a pre-computed iob: Double? into setWidgetData from the middleware layer. Remove ExponentialInsulinModel construction and computeIOB from AppGroupSharingService. If computed IOB is available in state from IOBMiddleware, read it from state directly."
+    },
+    {
+      "id": "M-005",
+      "category": "naming_obscures_intent",
+      "title": "WidgetColors documents itself as a mirror of AmberTheme but omits three tokens",
+      "description": "WidgetDesignSystem.swift line 13 states it mirrors AmberTheme color constants, but amberPressed (#CC8C00), dosBorder (#594F47), and cardBackground (#1B1917) present in AmberTheme are absent from WidgetColors. The stated mirror contract is broken. A widget developer checking WidgetColors for a border or card color will incorrectly conclude it does not exist in the design system and either use a magic hex value or skip the treatment.",
+      "file": "/Users/doke/extracode/DOSBTS/Widgets/WidgetDesignSystem.swift",
+      "lines": "14-38",
+      "confidence": 0.72,
+      "recommendation": "Either add the missing tokens to WidgetColors with matching values, or update the comment to explicitly enumerate the intentional subset (e.g., amberPressed excluded because widgets have no pressed state)."
+    },
+    {
+      "id": "M-006",
+      "category": "coupling_between_unrelated_modules",
+      "title": "Live Activity view reads UserDefaults directly in body, bypassing ContentState",
+      "description": "GlucoseActivityWidget.swift line 207 reads UserDefaults.shared.sharedGlucoseSparkline directly inside GlucoseActivityView.body. ActivityKit Live Activities receive data exclusively through ContentState. Direct UserDefaults reads in a Live Activity view are untestable, violate the expected data flow, and will silently serve stale data if the App Group write from the main app has not completed before the view renders. The iob field already shows the correct pattern: it was added to ContentState and populated in WidgetCenter.getStatus().",
+      "file": "/Users/doke/extracode/DOSBTS/Widgets/GlucoseActivityWidget.swift",
+      "line": 207,
+      "confidence": 0.85,
+      "recommendation": "Add sparkline: [Int]? to SensorGlucoseActivityAttributes.ContentState, populate it in WidgetCenter.swift getStatus(), and read context.sparkline in GlucoseActivityView\u2014matching the iob pattern."
+    },
+    {
+      "id": "M-007",
+      "category": "naming_obscures_intent",
+      "title": "lastMeal uses .last on an unordered array as a proxy for most-recent",
+      "description": "AppGroupSharing.swift line 88 passes state.mealEntryValues.last as lastMeal, assuming array order equals chronological order. MealStore loads entries via getMealEntryValues(selectedDate:) with no explicit ORDER BY visible, and AppState declares mealEntryValues as a plain [MealEntry]. The intent is clearly most-recently-timestamped meal, but the expression does not say that. A query change, a batch import, or a future sort would silently change which meal is passed to the widget without any compiler warning.",
+      "file": "/Users/doke/extracode/DOSBTS/App/Modules/AppGroupSharing/AppGroupSharing.swift",
+      "line": 88,
+      "confidence": 0.7,
+      "recommendation": "Replace .last with .max(by: { $0.timestamp < $1.timestamp }) to express the intent explicitly and make it robust to array ordering changes."
+    }
+  ],
+  "residual_risks": [
+    {
+      "id": "RR-001",
+      "description": "The sparkline sampling in AppGroupSharingService.setWidgetData (lines 191-213) compares sampled.last != last.glucoseValue by Int equality to decide whether to append the final glucose point. If two consecutive readings have identical glucoseValue (e.g., sensor reports 112 twice), the last point is silently dropped. Not a crash, but a data quality edge case that makes the sparkline end one sample early."
+    },
+    {
+      "id": "RR-002",
+      "description": "GlucoseWidget.swift largeView line 477 reads UserDefaults.shared.sharedSensor directly in the view body, same anti-pattern as M-006 but lower severity since home screen widget views have less strict data isolation constraints than Live Activity ContentState."
+    },
+    {
+      "id": "RR-003",
+      "description": "WidgetFonts.glucoseHero (44pt) and WidgetFonts.glucoseLarge (52pt) both diverge from DOSTypography.glucoseHero (60pt) without documentation explaining the intentional size reduction for widget density. If the app-side hero size changes, the widget names imply equivalence that does not exist."
+    }
+  ],
+  "testing_gaps": [
+    {
+      "id": "TG-001",
+      "description": "SparklineBuilder.build() has no tests. The force-unwrap on values.min()! and values.max()! at line 124 is guarded by count >= 2, but boundary cases (all values identical producing range == 0, returned early with Path()) and the CGRect coordinate math are invisible to the test suite."
+    },
+    {
+      "id": "TG-002",
+      "description": "DataStaleness.init(since:) threshold cutoffs are untested. A test at the 5-min and 15-min boundaries would both document the intended behavior and catch the off-by-one between the enum comment (5-14 min) and the code (minutes < 15, i.e., up to 14:59)."
+    },
+    {
+      "id": "TG-003",
+      "description": "The IOB re-computation path inside AppGroupSharingService.setWidgetData (M-004) is not covered by DOSBTSTests, which tests IOBCalculator directly. A regression specific to the AppGroupSharing path (e.g., incorrect basalDIAMinutes unit conversion) would be invisible until a user reports wrong widget IOB values."
+    }
+  ]
+}
