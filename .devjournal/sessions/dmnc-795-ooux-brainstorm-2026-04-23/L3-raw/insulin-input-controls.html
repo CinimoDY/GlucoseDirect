@@ -1,0 +1,114 @@
+<h2>Insulin value + time — which native control?</h2>
+<p class="subtitle">Under the refined Pattern 2. All three keep the segmented category row on top and [ADD] at the bottom — comparing just the middle.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="i" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">I · Type-first (polished current)</div>
+        <div class="mockup-body" style="padding:12px;text-align:left">
+          <div style="display:flex;gap:4px;margin-bottom:12px;flex-wrap:wrap">
+            <div class="mock-button">MEAL</div>
+            <div class="mock-button" style="background:#ffb000;color:#000">SNACK</div>
+            <div class="mock-button">CORR</div>
+            <div class="mock-button">BASAL</div>
+          </div>
+          <div style="border-top:1px solid #444;padding:10px 0">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0">
+              <span>Units</span>
+              <span style="font-family:monospace;font-size:18px">2.5 U</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0">
+              <span>Time</span>
+              <span style="font-family:monospace;background:#333;padding:3px 8px;border-radius:4px">14:32 ▾</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>TextField · DatePicker.compact</h3>
+      <p>Tap units → decimal keypad. Tap time → popover with calendar + wheel. Most familiar iOS shape. Today's AddInsulinView, just prettier.</p>
+      <p style="color:#999;font-size:12px;margin-top:4px"><strong>Pros:</strong> native, precise, fast for people who type. <strong>Cons:</strong> keyboard jumps in for every entry.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="ii" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">II · Stepper + quick-time chips</div>
+        <div class="mockup-body" style="padding:12px;text-align:left">
+          <div style="display:flex;gap:4px;margin-bottom:12px;flex-wrap:wrap">
+            <div class="mock-button">MEAL</div>
+            <div class="mock-button" style="background:#ffb000;color:#000">SNACK</div>
+            <div class="mock-button">CORR</div>
+            <div class="mock-button">BASAL</div>
+          </div>
+          <div style="border-top:1px solid #444;padding:10px 0">
+            <div style="margin:6px 0">
+              <div style="font-size:12px;color:#999;margin-bottom:4px">UNITS</div>
+              <div style="display:flex;align-items:center;justify-content:center;gap:10px">
+                <div class="mock-button">−0.5</div>
+                <span style="font-family:monospace;font-size:28px;min-width:60px;text-align:center">2.5</span>
+                <div class="mock-button">+0.5</div>
+              </div>
+              <div style="font-size:10px;color:#666;text-align:center;margin-top:4px">tap the number to type</div>
+            </div>
+            <div style="margin:12px 0 6px">
+              <div style="font-size:12px;color:#999;margin-bottom:4px">TIME</div>
+              <div style="display:flex;gap:4px;flex-wrap:wrap">
+                <div class="mock-button" style="background:#ffb000;color:#000">NOW</div>
+                <div class="mock-button">−15m</div>
+                <div class="mock-button">−30m</div>
+                <div class="mock-button">−1h</div>
+                <div class="mock-button">⋯</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Stepper · quick-time</h3>
+      <p>Stepper around a big centered number; tap the number to type if you want precision. Time = 4 relative-time chips + "⋯" for custom picker.</p>
+      <p style="color:#999;font-size:12px;margin-top:4px"><strong>Pros:</strong> zero keyboard for 90% of entries, matches Apple Health / Streaks / Oura conventions, stays "in-context" like the category row. <strong>Cons:</strong> small extra component surface.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="iii" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">III · Wheel pickers</div>
+        <div class="mockup-body" style="padding:12px;text-align:left">
+          <div style="display:flex;gap:4px;margin-bottom:12px;flex-wrap:wrap">
+            <div class="mock-button">MEAL</div>
+            <div class="mock-button" style="background:#ffb000;color:#000">SNACK</div>
+            <div class="mock-button">CORR</div>
+            <div class="mock-button">BASAL</div>
+          </div>
+          <div style="border-top:1px solid #444;padding:6px 0">
+            <div style="font-size:12px;color:#999">UNITS</div>
+            <div style="font-family:monospace;font-size:13px;line-height:1.5;text-align:center;color:#888;padding:4px 0">
+              1.5<br>2.0<br><span style="color:#ffb000;font-weight:bold">▶ 2.5 ◀</span><br>3.0<br>3.5
+            </div>
+            <div style="font-size:12px;color:#999;margin-top:6px">TIME</div>
+            <div style="font-family:monospace;font-size:13px;line-height:1.5;text-align:center;color:#888;padding:4px 0">
+              14:30<br><span style="color:#ffb000;font-weight:bold">▶ 14:32 ◀</span><br>14:35
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Picker.wheel · DatePicker.wheels</h3>
+      <p>Classic iOS wheel pickers for both units and time. No keyboard ever. DOS-y vibe. Large screen footprint.</p>
+      <p style="color:#999;font-size:12px;margin-top:4px"><strong>Pros:</strong> most DOS-aesthetic, no keyboard, very native. <strong>Cons:</strong> slowest for wide ranges (2.5U requires 5+ scroll clicks), eats vertical space.</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="section" style="margin-top:16px;padding:10px;border:1px dashed #666;font-size:13px">
+  <strong>Lean: II.</strong> Stepper + quick-time chips is the shape Apple Health, Streaks, Oura, and most modern wellness apps use for frequent precise-but-small entries. Stays fully in-context (no keyboard popup), matches the chip-row vocabulary we're establishing for categories, and "⋯" always retains the native date-picker escape hatch for custom times. Keeps AddBloodGlucoseView's existing NumberSelectorView pattern (minus the slider, since insulin has a wider range than BG) as the shared primitive.
+</div>

@@ -1,0 +1,45 @@
+<h2>Pattern 2 · refined — category toggle + inline input panel</h2>
+<p class="subtitle">InsulinDelivery example. Does this match what you had in mind?</p>
+
+<div class="mockup">
+  <div class="mockup-header">INSULIN — inline entry</div>
+  <div class="mockup-body" style="padding:16px">
+
+    <div class="label">CATEGORY (single-select toggle row)</div>
+    <div style="display:flex;gap:4px;margin:6px 0 18px 0;flex-wrap:wrap">
+      <div class="mock-button">MEAL</div>
+      <div class="mock-button" style="background:#ffb000;color:#000">SNACK</div>
+      <div class="mock-button">CORR</div>
+      <div class="mock-button">BASAL</div>
+    </div>
+
+    <div class="label">INLINE INPUT PANEL FOR [SNACK]</div>
+    <div style="border:1px solid #555;padding:12px;margin-top:6px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0">
+        <span>Units</span>
+        <span style="font-family:monospace">[  2.5  ⇅ ]</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0">
+        <span>Time</span>
+        <span style="font-family:monospace">[ now · 14:32 ]</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0;color:#888;font-size:12px">
+        <em>(no IOB warning — SNACK is not CORR)</em>
+      </div>
+      <div style="margin-top:10px;text-align:right">
+        <button class="mock-button" style="background:#ffb000;color:#000">ADD</button>
+      </div>
+    </div>
+
+    <div style="margin-top:20px;padding:10px;border:1px dashed #666;font-size:12px">
+      <strong>Changes from the existing AddInsulinView:</strong>
+      <ul style="margin:6px 0 0 16px">
+        <li>Replace <code>Picker</code> menu with segmented chip row (all 4 types visible, single-select toggle)</li>
+        <li>Everything else — units field, time picker, IOB warning, ADD button — stays put</li>
+        <li>BASAL toggle still reveals the extra "Ends" picker (same conditional as today)</li>
+        <li>No preset doses, no drill-down row</li>
+      </ul>
+    </div>
+
+  </div>
+</div>

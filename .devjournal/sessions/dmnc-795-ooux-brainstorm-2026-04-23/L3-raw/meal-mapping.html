@@ -1,0 +1,115 @@
+<h2>Meal — which pattern(s)?</h2>
+<p class="subtitle">The hardest entry object. Today: QUICK favourites commit directly (no staging), Photo/Barcode route through staging, Manual is a plain form. We want consistency.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">A · Pattern 1 only — all roads lead to staging plate</div>
+        <div class="mockup-body" style="padding:12px;text-align:left">
+          <div style="font-size:11px;color:#999;margin-bottom:6px">ENTRY POINT (UnifiedFoodEntryView)</div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;gap:4px">
+              <div class="mock-button">★ ROLLS 45g</div>
+              <div class="mock-button">★ APPLE 15g</div>
+              <div class="mock-button">★ PIZZA 80g</div>
+            </div>
+            <div style="display:flex;gap:4px;margin-top:6px">
+              <div class="mock-button">📷 PHOTO</div>
+              <div class="mock-button">⌨ BARCODE</div>
+              <div class="mock-button">✏ MANUAL</div>
+            </div>
+            <div style="font-size:11px;color:#999;margin-top:10px">— every tap lands here —</div>
+            <div style="border:1px solid #ffb000;padding:10px;margin-top:4px">
+              <div style="font-size:11px;color:#ffb000">STAGING PLATE (Pattern 1)</div>
+              <div style="font-family:monospace;font-size:12px;margin-top:4px">
+                ▸ Apple · 1 medium · 15g<br>
+                ▸ [+ add item]<br>
+                Time: 14:32 · Total: 15g
+              </div>
+              <div style="text-align:right;margin-top:6px"><button class="mock-button" style="background:#ffb000;color:#000">LOG</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Staging plate always</h3>
+      <p>Favourite tap, photo, barcode, manual text — all paths populate the staging plate first. User reviews/edits → LOG commits. Pattern 2 not used.</p>
+      <p style="color:#999;font-size:12px;margin-top:4px"><strong>Pro:</strong> one consistent review step. Fixes the QUICK-row "surprise commit" today. <strong>Con:</strong> extra tap for regulars who <em>want</em> one-tap favourite logging.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">B · Pattern 2 as entry-method switch</div>
+        <div class="mockup-body" style="padding:12px;text-align:left">
+          <div style="font-size:11px;color:#999;margin-bottom:6px">CATEGORY ROW (Pattern 2)</div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap">
+            <div class="mock-button" style="background:#ffb000;color:#000">★ QUICK</div>
+            <div class="mock-button">📷 PHOTO</div>
+            <div class="mock-button">⌨ BARCODE</div>
+            <div class="mock-button">🔍 TEXT</div>
+            <div class="mock-button">✏ MANUAL</div>
+          </div>
+          <div style="border-top:1px solid #444;margin:10px 0;padding-top:8px">
+            <div style="font-size:11px;color:#999">INLINE PANEL for [★ QUICK]</div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">
+              <div class="mock-button">ROLLS 45g</div>
+              <div class="mock-button">APPLE 15g</div>
+              <div class="mock-button">PIZZA 80g</div>
+              <div class="mock-button">+ MORE…</div>
+            </div>
+          </div>
+          <div style="border:1px solid #ffb000;padding:8px;margin-top:10px">
+            <div style="font-size:11px;color:#ffb000">→ staging plate (Pattern 1)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Method as category + staging</h3>
+      <p>Entry-method chips form Pattern 2's toggle row. Selecting a method shows method-specific inline content; final commit always lands in staging plate.</p>
+      <p style="color:#999;font-size:12px;margin-top:4px"><strong>Pro:</strong> unifies vocabulary — Meal uses same chip-row idiom as Insulin. <strong>Con:</strong> "entry method" isn't a facet of the meal <em>object</em> — it's a tool choice. Feels slightly off-axis semantically.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">C · Pattern 1 + favourite shortcut</div>
+        <div class="mockup-body" style="padding:12px;text-align:left">
+          <div style="font-size:11px;color:#999;margin-bottom:6px">ENTRY POINT — tap favourite = 1-tap log</div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap">
+            <div class="mock-button">★ ROLLS 45g</div>
+            <div class="mock-button">★ APPLE 15g</div>
+            <div class="mock-button">★ PIZZA 80g</div>
+          </div>
+          <div style="font-size:10px;color:#666;margin-top:3px">tap = log now · long-press = edit first</div>
+          <div style="display:flex;gap:4px;margin-top:10px">
+            <div class="mock-button">📷 PHOTO</div>
+            <div class="mock-button">⌨ BARCODE</div>
+            <div class="mock-button">🔍 TEXT</div>
+            <div class="mock-button">✏ MANUAL</div>
+          </div>
+          <div style="font-size:11px;color:#999;margin-top:8px">— non-favourite paths → —</div>
+          <div style="border:1px solid #ffb000;padding:8px;margin-top:4px">
+            <div style="font-size:11px;color:#ffb000">STAGING PLATE (Pattern 1)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Pattern 1 + explicit 1-tap favourite</h3>
+      <p>Favourite tap = immediate log (keeps today's speed, by design). Long-press a favourite = open in staging plate for edit. Other methods → staging plate.</p>
+      <p style="color:#999;font-size:12px;margin-top:4px"><strong>Pro:</strong> preserves the "log a pre-vetted favourite in one tap" speed people rely on. <strong>Con:</strong> one object (Meal) ends up with two commit paths (direct + staged).</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="section" style="margin-top:16px;padding:10px;border:1px dashed #666;font-size:13px">
+  <strong>Lean: C.</strong> Option A is architecturally purest but punishes a frequent workflow (regular meal-loggers with curated favourites, where today's one-tap is the whole point). Option B forces an axis ("entry method") that isn't really a meal-object facet. C acknowledges that Meal is a list-producing object (Pattern 1) but carves a designed exception for favourites — with long-press as the power-user escape to edit. The two paths are justified by "favourites are user-curated pre-vetted data" which already passed a review step when the favourite was created.
+</div>

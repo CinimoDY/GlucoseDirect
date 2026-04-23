@@ -1,0 +1,101 @@
+<h2>Pattern 2 — what does "expand-in-context" actually do?</h2>
+<p class="subtitle">Concrete example: InsulinDelivery entry. Three candidate models. Click to pick.</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">A · Two-stage drill-down (category → presets)</div>
+        <div class="mockup-body">
+          <div class="label">BEFORE TAP</div>
+          <div style="display:flex;gap:4px;margin:4px 0;flex-wrap:wrap">
+            <div class="mock-button">MEAL</div>
+            <div class="mock-button">SNACK</div>
+            <div class="mock-button">CORR</div>
+            <div class="mock-button">BASAL</div>
+          </div>
+          <div class="label" style="margin-top:10px">AFTER TAP ON [MEAL]</div>
+          <div style="display:flex;gap:4px;margin:4px 0">
+            <div class="mock-button" style="background:#ffb000;color:#000">MEAL ▾</div>
+          </div>
+          <div style="display:flex;gap:4px;margin:4px 0;flex-wrap:wrap">
+            <div class="mock-button">2U</div>
+            <div class="mock-button">4U</div>
+            <div class="mock-button">6U</div>
+            <div class="mock-button">8U</div>
+            <div class="mock-button">+</div>
+          </div>
+          <div class="placeholder" style="margin-top:10px">→ pick preset → staging plate (prefilled)</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Drill-down</h3>
+      <p>Row 1 = categories. Tap → category collapses, row 2 of presets appears below. Tap a preset → staging plate. Two taps to commit-candidate.</p>
+      <p style="color:#888;font-size:12px;margin-top:6px"><em>Closest existing code: EventMarkerLaneView's expanded-panel-above-the-chart pattern.</em></p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">B · Flat chips — each chip is a full preset</div>
+        <div class="mockup-body">
+          <div class="label">BEFORE TAP</div>
+          <div style="display:flex;gap:4px;margin:4px 0;flex-wrap:wrap">
+            <div class="mock-button">MEAL 4U</div>
+            <div class="mock-button">CORR 2U</div>
+            <div class="mock-button">SNACK 3U</div>
+            <div class="mock-button">MEAL 6U</div>
+            <div class="mock-button">+ NEW</div>
+          </div>
+          <div class="label" style="margin-top:10px">AFTER TAP ON [MEAL 4U]</div>
+          <div style="display:flex;gap:4px;margin:4px 0">
+            <div class="mock-button" style="background:#ffb000;color:#000">MEAL 4U ✓</div>
+          </div>
+          <div class="placeholder" style="margin-top:10px">→ staging plate (prefilled: MEAL · 4U · now)</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Flat presets</h3>
+      <p>Each chip is a fully-realised "last used / favourited" entry. Tap → staging plate prefilled. No drill-down. One tap to commit-candidate.</p>
+      <p style="color:#888;font-size:12px;margin-top:6px"><em>Closest existing code: UnifiedFoodEntryView's QUICK favourites row (except today it <strong>commits directly</strong>, skipping staging).</em></p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">C · Chip opens a sheet</div>
+        <div class="mockup-body">
+          <div class="label">BEFORE TAP</div>
+          <div style="display:flex;gap:4px;margin:4px 0;flex-wrap:wrap">
+            <div class="mock-button">MEAL</div>
+            <div class="mock-button">SNACK</div>
+            <div class="mock-button">CORR</div>
+            <div class="mock-button">BASAL</div>
+          </div>
+          <div class="label" style="margin-top:10px">AFTER TAP ON [MEAL]</div>
+          <div class="placeholder" style="padding:10px;margin:4px 0;font-family:monospace;font-size:11px;text-align:left;white-space:pre">┌──────────────┐
+│  MEAL BOLUS  │
+│  ─────────── │
+│ [2U][4U][6U] │
+│ Custom: __ U │
+│ [×]    [GO]  │
+└──────────────┘</div>
+          <div class="placeholder" style="margin-top:10px">→ sheet GO → staging plate</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Chip → sheet → staging</h3>
+      <p>Tap category → modal opens with presets + custom entry. Confirm in modal → hand to staging. Highest friction — also breaks "in-context" literally.</p>
+      <p style="color:#888;font-size:12px;margin-top:6px"><em>This is the current pattern for most DOSBTS entry flows today.</em></p>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:20px;padding:12px;border:1px dashed #666">
+  <p style="font-size:13px"><strong>Recommendation: A.</strong> Two-stage drill-down matches your "expand-in-context" language literally (no modal, stays in the same row band), aligns with EventMarkerLaneView's existing shape, and scales to Meal favourites (row of tags → tap "BREAKFAST" → row of breakfast favourites → tap one → staging plate). B is faster but conflates "favourites list" with "category" — and forces every entry to be a named favourite.</p>
+</div>

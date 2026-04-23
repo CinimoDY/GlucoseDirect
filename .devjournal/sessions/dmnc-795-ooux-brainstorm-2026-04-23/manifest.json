@@ -1,0 +1,11 @@
+{
+  "name": "dmnc-795-ooux-brainstorm",
+  "date": "2026-04-23",
+  "project": "dosbts",
+  "linearIssues": [
+    "DMNC-795",
+    "DMNC-791",
+    "DMNC-796",
+    "DMNC-797"
+  ]
+}
