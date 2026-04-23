@@ -78,6 +78,7 @@ protocol DirectState {
     var showInsulinInput: Bool { get set }
     var showScanlines: Bool { get set }
     var aiConsentFoodPhoto: Bool { get set }
+    var hasSeenBGRelocationHint: Bool { get set }
     var claudeAPIKeyValid: Bool { get set }
     var foodAnalysisResult: NutritionEstimate? { get set }
     var foodAnalysisError: String? { get set }

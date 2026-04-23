@@ -338,6 +338,9 @@ func directReducer(state: inout DirectState, action: DirectAction) {
     case .setAIConsentFoodPhoto(enabled: let enabled):
         state.aiConsentFoodPhoto = enabled
 
+    case .setHasSeenBGRelocationHint(seen: let seen):
+        state.hasSeenBGRelocationHint = seen
+
     case .setClaudeAPIKeyValid(isValid: let isValid):
         state.claudeAPIKeyValid = isValid
 
