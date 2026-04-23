@@ -32,29 +32,31 @@ struct OverviewView: View {
 
     @State private var activeSheet: ActiveSheet?
     @State private var pendingSheet: ActiveSheet?
+    @State private var selectedReportType: ReportType = .glucose
 
     var body: some View {
         VStack(spacing: 0) {
-            List {
-                GlucoseView()
-                    .listRowSeparator(.hidden)
+            GlucoseView()
 
-                // Treatment countdown banner (between hero and chart)
-                if store.state.treatmentCycleActive {
-                    TreatmentBannerView()
-                        .listRowSeparator(.hidden)
-                }
+            SensorLineView()
 
-                if !store.state.sensorGlucoseValues.isEmpty || !store.state.bloodGlucoseValues.isEmpty {
-                    ChartView()
-                }
+            // Treatment countdown banner (between sensor line and chart toolbar)
+            if store.state.treatmentCycleActive {
+                TreatmentBannerView()
+            }
 
-                ConnectionView()
-                SensorView()
-            }.listStyle(.grouped)
+            ChartToolbarView(selectedReportType: $selectedReportType)
+
+            if !store.state.sensorGlucoseValues.isEmpty || !store.state.bloodGlucoseValues.isEmpty {
+                ChartView(selectedReportType: selectedReportType)
+                    .frame(maxHeight: .infinity)
+            } else {
+                Spacer()
+            }
 
             StickyQuickActions()
         }
+        .background(AmberTheme.dosBlack)
         .sheet(item: $activeSheet, onDismiss: {
             // Present pending sheet after current one fully dismisses (avoids asyncAfter timing hack)
             if let pending = pendingSheet {
@@ -172,15 +174,6 @@ struct OverviewView: View {
                     icon: "fork.knife",
                     action: { activeSheet = .meal }
                 )
-                .frame(maxWidth: .infinity)
-
-                if DirectConfig.bloodGlucoseInput {
-                    QuickActionButton(
-                        title: "BG",
-                        icon: "drop.fill",
-                        action: { activeSheet = .bloodGlucose }
-                    )
-                }
             }
             .padding(.horizontal, DOSSpacing.md)
             .padding(.vertical, DOSSpacing.xs)
