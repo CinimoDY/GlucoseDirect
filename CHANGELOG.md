@@ -7,8 +7,10 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 63] — 2026-04-24
+
 ### Changed
-- Overview screen is now a fixed no-scroll layout. Chart toolbar (GLUCOSE / TIME IN RANGE / STATISTICS and 3h / 6h / 12h / 24h) pinned above the chart with an underline-on-selected treatment; sensor connection status moved inline under the hero with tap-to-reveal disconnect; sticky actions trimmed to INSULIN + MEAL (BG entry moved to the Log tab with a one-shot relocation alert on first launch). Full sensor / transmitter detail surface moved into Settings → Sensor details — DMNC-793.
+- Overview screen is now a fixed no-scroll layout. Chart toolbar (GLUCOSE / TIME IN RANGE / STATISTICS and 3h / 6h / 12h / 24h) pinned above the chart with an underline-on-selected treatment; sensor connection status moved inline under the hero with tap-to-reveal disconnect; sticky actions trimmed to INSULIN + MEAL (BG entry moved to the Log tab with a one-shot relocation alert on first launch). Full sensor / transmitter detail surface moved into Settings → Sensor details — DMNC-793, PR #26.
 
 ## [Build 62] — 2026-04-22
 
