@@ -1,0 +1,13 @@
+{
+  "name": "post-build-61-cleanup",
+  "date": "2026-04-22",
+  "project": "dosbts",
+  "linearIssues": [
+    "DMNC-768",
+    "DMNC-769",
+    "DMNC-770",
+    "DMNC-776",
+    "DMNC-779",
+    "DMNC-780"
+  ]
+}

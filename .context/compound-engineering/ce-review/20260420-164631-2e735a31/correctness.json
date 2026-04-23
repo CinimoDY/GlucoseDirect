@@ -1,0 +1,90 @@
+{
+  "reviewer": "correctness",
+  "findings": [
+    {
+      "id": "COR-001",
+      "title": "Basal model constructed with bolus peak time instead of a basal-appropriate peak",
+      "file": "App/Modules/AppGroupSharing/AppGroupSharing.swift",
+      "lines": "171-174",
+      "severity": "high",
+      "confidence": 0.90,
+      "description": "ExponentialInsulinModel for basalModel is instantiated with peakActivityTime: bolusPreset.model.peakActivityTime. For rapidActing that is 75*60=4500s; for ultraRapid it is 55*60=3300s. These are bolus peak times, not basal peak times. With basalDIAMinutes up to 1440 min and a fixed 75-min bolus peak, the tau/a/S constants are computed against a grossly skewed curve, causing percentEffectRemaining to return near-zero values very early in the decay window. The widget IOB will systematically underestimate basal IOB. The in-app IOBMiddleware builds the basal model identically, so this is a shared architectural bug, but the widget replicates it independently rather than reusing the authoritative computation result."
+    },
+    {
+      "id": "COR-002",
+      "title": "IOB threshold check at call site creates an off-by-one exclusion at exactly 0.05U",
+      "file": "App/Modules/AppGroupSharing/AppGroupSharing.swift",
+      "lines": "180",
+      "severity": "low",
+      "confidence": 0.88,
+      "description": "computeIOB() already zeroes result.total when it is strictly less than 0.05 (IOBCalculator.swift line 131: total < threshold). The call site then writes nil when result.total > 0.05 — using strict greater-than. A result.total of exactly 0.05 is not zeroed by computeIOB (0.05 is not < 0.05), but is then nil'd here (0.05 is not > 0.05). An IOB of exactly 0.05U is silently absent in the widget while the in-app display shows it. Fix: use result.total > 0."
+    },
+    {
+      "id": "COR-003",
+      "title": "Force unwrap recentGlucose.first! violates project no-force-unwrap rule",
+      "file": "App/Modules/AppGroupSharing/AppGroupSharing.swift",
+      "lines": "198",
+      "severity": "low",
+      "confidence": 0.98,
+      "description": "The guard count >= 2 makes .first! safe in practice, but the project development rules in CLAUDE.md explicitly prohibit force unwrapping. Use guard let first = recentGlucose.first instead. Not a crash risk given the enclosing count guard, but any future refactor that weakens that guard will introduce a crash."
+    },
+    {
+      "id": "COR-004",
+      "title": "Sparkline last-point dedup compares glucoseValue integers by equality — can silently drop the most recent reading",
+      "file": "App/Modules/AppGroupSharing/AppGroupSharing.swift",
+      "lines": "207-209",
+      "severity": "medium",
+      "confidence": 0.85,
+      "description": "The guard `sampled.last != last.glucoseValue` appends the final reading only when its integer value differs from the last sampled value. If the most recent reading has the same mg/dL value as the prior sample (e.g., glucose is flat at 120) AND the loop did not capture it because its timestamp fell before nextSampleTime, it is silently dropped. Concrete trace: one reading at T-35m=120 is sampled (nextSampleTime advances to T-5m). Actual last reading at T-4m=120. Loop skips it (T-4m < nextSampleTime). Guard fires: sampled.last==120, last.glucoseValue==120 — condition is false so append is skipped. Sparkline ends 35 minutes short of the latest data. Fix: compare timestamps, not values."
+    },
+    {
+      "id": "COR-005",
+      "title": "state.mealEntryValues.last returns the last meal of the selected date window, not the most recent meal overall",
+      "file": "App/Modules/AppGroupSharing/AppGroupSharing.swift",
+      "lines": "88",
+      "severity": "medium",
+      "confidence": 0.88,
+      "description": "MealStore.getMealEntryValues queries with ascending timestamp order scoped to state.selectedDate. When the user navigates to a historical date in the Daily Digest tab, mealEntryValues contains that past day's meals and .last returns the last meal of the historical day, not the most recently logged meal. The widget data write fires on every .addSensorGlucose action, so if selectedDate is a past date at that moment the widget displays a historical meal as if it were recent. Fix: derive lastMeal from a separate all-time query, or always pass the unfiltered list and sort by timestamp in setWidgetData."
+    },
+    {
+      "id": "COR-006",
+      "title": "Live Activity sparkline read directly from UserDefaults at render time, bypassing ContentState — data may be stale",
+      "file": "Widgets/GlucoseActivityWidget.swift",
+      "lines": "207",
+      "severity": "medium",
+      "confidence": 0.85,
+      "description": "GlucoseActivityView.body reads UserDefaults.shared.sharedGlucoseSparkline directly from the App Group container. Live Activity views run in a separate extension process; the App Group UserDefaults may not be synchronized at render time — particularly on lock screen, Dynamic Island minimal form, or after system rehydration. All other Live Activity data (glucose, trend, IOB) flows correctly through ContentState via Activity.update(). The sparkline is outside this sync path and can show data that is one or more update cycles stale, or show nothing when the container has not yet been flushed from the main app process."
+    },
+    {
+      "id": "COR-007",
+      "title": "buildEntry() declares and immediately discards a GlucoseEntry() — dead code causes compiler warning",
+      "file": "Widgets/GlucoseWidget.swift",
+      "lines": "78",
+      "severity": "low",
+      "confidence": 1.0,
+      "description": "`var entry = GlucoseEntry()` is assigned and never read. The function returns a different GlucoseEntry on the next line built from the full initializer. Swift will emit an unused-variable warning. No behavioral impact; cleanup artifact from refactoring."
+    }
+  ],
+  "residual_risks": [
+    {
+      "area": "ActivityKit ContentState size if sparkline moved in",
+      "description": "ActivityKit enforces an 8kb ContentState limit. A 6h sparkline at 30-min intervals is ~12 Int values (~96 bytes encoded), well within limits. Moving sparkline into ContentState (the correct fix for COR-006) is feasible."
+    },
+    {
+      "area": "ContentState backward compatibility after adding iob field",
+      "description": "iob: Double? is optional. Prior ContentState instances stored on-device will decode with iob=nil. No migration issue."
+    },
+    {
+      "area": "sharedLastMealTimestamp stored as NSDate via set(_:forKey:)",
+      "description": "Date stored via standard UserDefaults set(_:forKey:) and read back via object(forKey:) as? Date. This round-trips correctly across app versions. Differs from the TimeInterval pattern used by treatmentLoggedAt etc. but is not incorrect."
+    }
+  ],
+  "testing_gaps": [
+    "No test for sparkline last-point dedup when the final reading has the same glucoseValue as the previous sampled point but a newer timestamp (the flat-glucose drop case).",
+    "No test verifies that mealEntryValues.last reflects the most recent meal overall when selectedDate is a historical date.",
+    "No test compares widget-path IOB (setWidgetData) to in-app IOB (IOBMiddleware) for identical delivery sets to detect numerical drift.",
+    "No test for Live Activity sparkline freshness — whether UserDefaults.shared.sharedGlucoseSparkline matches ContentState-provided data at render time.",
+    "SparklineBuilder not tested with empty array or single-element array to confirm guard path returns empty Path without crash.",
+    "DataStaleness boundary conditions (exactly 5.0 and exactly 15.0 minutes) are not tested."
+  ]
+}

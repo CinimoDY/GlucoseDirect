@@ -1,0 +1,104 @@
+{
+  "reviewer": "project-standards",
+  "findings": [
+    {
+      "id": "ps-1",
+      "severity": "low",
+      "confidence": 0.70,
+      "category": "standards_drift",
+      "title": "CLAUDE.md TestFlight deploy rule does not cross-reference the new CHANGELOG convention",
+      "file": "/Users/doke/extracode/DOSBTS/CLAUDE.md",
+      "lines": "44, 224-230",
+      "rule_cited": "This PR adds a new '## CHANGELOG' section to CLAUDE.md (lines 224-230). CLAUDE.md already has a TestFlight-deploy rule at line 44: 'Deploy to TestFlight: ./deploy.sh ... Bump CURRENT_PROJECT_VERSION in pbxproj before each deploy.' The deploy rule is the natural entry point for a release-time operator and is where a reader first encounters the build-bump step.",
+      "violation": "The deploy rule at line 44 lists the version bump and signing caveats but does not mention that the [Unreleased] block must be promoted at the same moment. A future deployer reading only the 'Architecture gotchas' bullet could bump CURRENT_PROJECT_VERSION and ship without promoting the CHANGELOG, because the new CHANGELOG section is 180 lines later under a separate heading.",
+      "recommendation": "Append to the deploy rule (line 44): '... and promote [Unreleased] → [Build N] in CHANGELOG.md (see CHANGELOG section).' One sentence closes the drift.",
+      "pre_existing": false
+    },
+    {
+      "id": "ps-2",
+      "severity": "low",
+      "confidence": 0.75,
+      "category": "convention_underspecified",
+      "title": "CHANGELOG convention missing edge-case guidance (yanked builds, slipped features, PR attribution format)",
+      "file": "/Users/doke/extracode/DOSBTS/CLAUDE.md",
+      "lines": "224-230",
+      "rule_cited": "The new '## CHANGELOG' section (lines 224-230) states the convention in 5 bullets but defines only the happy path.",
+      "violation": "Three real edge cases are unspecified: (a) how to represent a yanked/rolled-back build (strike-through, REMOVED, or delete?); (b) what date to use when a feature merges on build N but the TestFlight build held for N+1 (merge date vs. upload date — the rule says 'TestFlight upload date' but does not say what to do when the build containing the feature was not the one uploaded); (c) PR attribution format is used inconsistently in the existing file (Build 61 uses '— PR #22' suffix on every bullet, Build 60 mixes 'PR #18' with no-ref bullets) and the new convention does not pick a rule. Future authors will re-litigate these.",
+      "recommendation": "Add 2-3 bullets: (a) yanked/rolled-back builds — move entries to a later build or strike through with a note; (b) PR attribution suffix format ' — PR #N' (or ' — DMNC-NNN, PR #N') is required when the change landed via PR; (c) if a merged feature does not ship in the build it was merged to, leave it in [Unreleased] until the build that actually ships it is cut.",
+      "pre_existing": false
+    },
+    {
+      "id": "ps-3",
+      "severity": "low",
+      "confidence": 0.80,
+      "category": "convention_ambiguous",
+      "title": "'User-visible' term is undefined — convention example already violates its own rule",
+      "file": "/Users/doke/extracode/DOSBTS/CLAUDE.md",
+      "lines": "226, 230",
+      "rule_cited": "The convention says 'Every user-visible change goes under [Unreleased]' (line 226) and 'Internal-only changes (refactors, tooling, CI) don't need a CHANGELOG entry unless a user can feel the effect' (line 230).",
+      "violation": "CHANGELOG.md line 28 under Build 60 Added lists 'Compound learning doc on Redux middleware async Task pitfalls' — a developer-facing doc a user cannot feel. Under the new rule this is a violation. It is pre-existing in the file (this PR did not write that line), but the new rule retroactively contradicts the file's own example. A reader comparing the rule to the file will be unsure which to follow.",
+      "recommendation": "Either drop the Redux-async-Task doc bullet from Build 60 (internal-only) or define 'user-visible' concretely: e.g. 'user-visible' = ships in the app binary or affects runtime behavior the end user can observe; commit logs, docs/, and CLAUDE.md edits are NOT user-visible.",
+      "pre_existing": true
+    },
+    {
+      "id": "ps-4",
+      "severity": "medium",
+      "confidence": 0.85,
+      "category": "asset_size",
+      "title": "Two screenshot PNGs exceed the reviewer-provided 500 KB target (digest ~998 KB, overview ~637 KB)",
+      "file": "/Users/doke/extracode/DOSBTS/Screenshots/dosbts-digest.png, /Users/doke/extracode/DOSBTS/Screenshots/dosbts-overview.png",
+      "lines": "N/A (binary)",
+      "rule_cited": "Review-context target: 'PNG sizes: are they reasonable for a README (under ~500KB each ideally)?'",
+      "violation": "dosbts-digest.png is 1,021,833 bytes (998 KB, 16-bit-per-channel RGB at 1179x2556) and dosbts-overview.png is 652,600 bytes (637 KB, also 16-bit). Both exceed the 500 KB target. The 16-bit depth is the cause — the other two screenshots (meal-entry, settings) are 8-bit and come in at 223 KB / 315 KB. GitHub README renders at 280 px wide, so 16-bit source fidelity is wasted bytes in every clone.",
+      "recommendation": "Re-export digest and overview at 8-bit depth (or run through pngcrush/oxipng). Expected result: each drops below 500 KB with zero visible quality change at the README's 280 px display width. Total repo weight drop ~1.1 MB.",
+      "pre_existing": false
+    },
+    {
+      "id": "ps-5",
+      "severity": "low",
+      "confidence": 0.65,
+      "category": "asset_metadata",
+      "title": "Screenshot EXIF 'description: Screenshot' and creation timestamps embedded in 3 of 4 PNGs",
+      "file": "/Users/doke/extracode/DOSBTS/Screenshots/dosbts-*.png",
+      "lines": "N/A (binary metadata)",
+      "rule_cited": "CLAUDE.md Development Rules line 219: 'Privacy by design — no PII in logs/metadata'. Though written for runtime logs, the same principle reasonably extends to committed binary assets.",
+      "violation": "dosbts-overview.png, dosbts-digest.png, and dosbts-meal-entry.png each carry an embedded 'description: Screenshot' string and a precise 'creation: 2026:04:22 15:2x:xx' timestamp (verified via sips). No device make/model is embedded, so no device-fingerprint PII — but the creation timestamps do pin down exactly when the author took the shot. Low-severity since README caption already says 'Build 61 on TestFlight' and the user's phone is unambiguously their own device anyway.",
+      "recommendation": "Optional: strip metadata via 'oxipng --strip all Screenshots/dosbts-*.png' or 'exiftool -all= Screenshots/dosbts-*.png'. Doubles as the size-reduction fix for ps-4.",
+      "pre_existing": false
+    },
+    {
+      "id": "ps-6",
+      "severity": "low",
+      "confidence": 0.70,
+      "category": "readme_markdown",
+      "title": "Screenshots table uses bold-cell pseudo-headers for row 2 — renders as regular text rows on GitHub",
+      "file": "/Users/doke/extracode/DOSBTS/README.md",
+      "lines": "13-17",
+      "rule_cited": "Review-context question: 'Screenshots section markdown ... Renders on GitHub?'",
+      "violation": "The table uses a real header row (Overview | Daily digest) then an image row, then a cell row '**Meal entry** | **Settings**' styled to look like a sub-header, then another image row. GitHub's GFM renders this as four body rows + the header — the bold cells render as bold text inside a regular table row, visually offset from the first pair of captions. The alignment `|:---:|:---:|` is only declared once, so caption/image alignment is consistent, but the visual hierarchy differs between row 1 (header-styled caption) and row 2 (bold body-styled caption).",
+      "recommendation": "Either (a) accept the minor inconsistency since it still renders legibly, or (b) replace with two stacked 2-col tables each with their own header, or (c) drop the table and use four `<figure>` elements with `<figcaption>`. Option (a) is fine for a personal-fork README.",
+      "pre_existing": false
+    },
+    {
+      "id": "ps-7",
+      "severity": "low",
+      "confidence": 0.75,
+      "category": "readme_accuracy",
+      "title": "Meal-entry alt text lists 5 options; screenshot visibly shows MANUAL / SCAN / PHOTO / ASK AI (4) with QUICK as a scrolled-off header",
+      "file": "/Users/doke/extracode/DOSBTS/README.md",
+      "lines": "17",
+      "rule_cited": "Alt text should describe the image accurately for accessibility (implicit industry norm, and Review-context flagged 'Alt text accessibility').",
+      "violation": "Alt text says 'Unified meal entry with quick, manual, scan, photo, and Ask AI'. The rendered screenshot shows '> QUICK' as a collapsed/scrolled section header at top, then MANUAL / SCAN / PHOTO / ASK AI as the visible rows. A screen reader user hearing the alt text will expect five parallel options; the image has one header + four rows. Minor, but the mismatch is real.",
+      "recommendation": "Rephrase to 'Unified meal entry screen with Quick section collapsed and manual, scan, photo, and Ask AI options visible'. Or drop the enumeration and say 'Unified meal entry with multiple input paths (manual, scan, photo, AI)'.",
+      "pre_existing": false
+    }
+  ],
+  "residual_risks": [
+    "The CHANGELOG convention as written does not define cadence for the [Unreleased] block when a build is in flight but not yet uploaded. A PR merged between a build bump and the TestFlight upload completing has ambiguous placement.",
+    "The Screenshots/ directory already contains ~116 MB of legacy upstream mp4s (llup_connect.mp4 57 MB, llup_dd_connect.mp4 49 MB, sensor_change pointed.mp4 6 MB). This PR does not make that worse, but every clone pays the cost. Out of scope for this PR, worth a future cleanup ticket."
+  ],
+  "testing_gaps": [
+    "No automated check enforces the CHANGELOG convention. A CI job could assert that every non-internal PR touches CHANGELOG.md, or that a build-bump commit also promotes [Unreleased]. Not required, but the convention will drift without enforcement.",
+    "No link-check runs on README.md. The 4 new Screenshots/*.png relative paths are correct today but will silently break if someone renames or moves the files."
+  ]
+}

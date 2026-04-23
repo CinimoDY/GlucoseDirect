@@ -86,3 +86,10 @@ GlucoseDirectOverride.xcconfig
 
 # Superpowers brainstorm sessions
 .superpowers/
+
+# Ephemeral session data
+.playwright-mcp/
+
+# Local Claude-Code config (account-specific)
+.claude.local.md
+.claude/*.local.*

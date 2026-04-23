@@ -1,0 +1,30 @@
+{
+  "reviewer": "project-standards",
+  "findings": [
+    {
+      "id": "PSR-001",
+      "severity": "low",
+      "confidence": 0.82,
+      "category": "force-unwrap",
+      "file": "App/Views/Settings/AboutView.swift",
+      "line_range": "69",
+      "title": "Force-unwrap on new sponsorURL Link — pre-existing pattern but newly introduced instance",
+      "description": "The PR introduces `Link(\"Sponsors\", destination: URL(string: DirectConfig.sponsorURL)!)` at line 69. This force-unwraps `URL(string:)`, which returns an optional. The development rules file prohibits this unconditionally.",
+      "rule_citation": "docs/development-rules.md, 'The Ten Commandments' #5: 'Type Safety: No force unwrapping, handle all optionals properly'; also 'Never Do This': '❌ Force unwrap optionals (!)'; also 'Optionals & Safety' section: '// ❌ NEVER force unwrap — let name = food!.name  // Don\\'t do this!'",
+      "diff_lines": [
+        "+                    Link(\"Sponsors\", destination: URL(string: DirectConfig.sponsorURL)!)"
+      ],
+      "pre_existing_context": "The surrounding lines in AboutView.swift at the base commit (519e0589) already contain identical force-unwrap patterns on facebookURL (removed), donateURL, crowdinURL (removed), githubURL, faqURL, and the mailto URL. These are all pre-existing. The sponsorURL force-unwrap is newly added by this PR and follows the pre-existing pattern rather than cleaning it up.",
+      "disposition": "The violation is real and newly introduced by this diff. However, because 5 other identical force-unwraps were already present in the same file at the base commit and the PR does not otherwise touch safety hygiene, this is classified as a low-severity carry-forward rather than a regression."
+    }
+  ],
+  "residual_risks": [
+    {
+      "id": "RR-001",
+      "description": "The five remaining force-unwraps on URL(string:) literals in AboutView.swift (lines 36, 45, 53, 61, 69 in the current file) are technically violations of the no-force-unwrap rule in docs/development-rules.md. They are all pre-existing and untouched by this PR, so they are not flagged as primary findings, but they represent lingering technical debt against a documented project rule.",
+      "rule_citation": "docs/development-rules.md, 'Never Do This': '❌ Force unwrap optionals (!)'",
+      "files_affected": ["App/Views/Settings/AboutView.swift"]
+    }
+  ],
+  "testing_gaps": []
+}

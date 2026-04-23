@@ -1,0 +1,105 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 4735d892..0a1678b1 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -5,19 +5,24 @@ All notable changes to DOSBTS since forking from [GlucoseDirect](https://github.
+ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers), since DOSBTS has not cut a semver release yet.
+ 
+ ## [Unreleased]
+ 
++## [Build 61] — 2026-04-22
++
+ ### Added
+-- Changelog, README rewrite, and LICENSE fork attribution
+-- GitHub Sponsors link for DOSBTS-specific support, alongside the upstream donate link
++- Changelog, README rewrite, and LICENSE fork attribution — PR #22
++- GitHub Sponsors link for DOSBTS-specific support, alongside the upstream donate link — PR #22
+ 
+ ### Changed
+ - Xcode project migrated to `fileSystemSynchronized` groups — new Swift files under `App/`, `Library/`, `Widgets/` are auto-picked up (`pbxproj` went from 2,055 → 750 lines) — DMNC-768, PR #21
+ - iOS deployment target bumped from 15.0/16.0 → 26.0 across all targets — DMNC-769, PR #19
+ - SettingsView: inter-group breathing room between setting groups — DMNC-770, PR #20
+ 
++### Removed
++- Facebook group and Crowdin rows from Settings → About — PR #22
++
+ ## [Build 60] — 2026-04-20
+ 
+ ### Added
+ - Widget phosphor display rework (expanded data: sparkline, IOB, TIR, last meal) — PR #18
+ - Compound learning doc on Redux middleware async Task pitfalls
+diff --git a/CLAUDE.md b/CLAUDE.md
+index fbdf62a8..2d1ffa04 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -219,10 +219,18 @@ Key constraints from `docs/development-rules.md`:
+ - **Privacy by design** — no PII in logs/metadata
+ - **Offline-first** — core functionality works without network
+ - **No secrets in Redux actions** — never put API keys or tokens in action associated values; use Keychain as a side channel
+ - Conventional commits: `type(scope): subject` (feat, fix, docs, style, refactor, test, chore)
+ 
++## CHANGELOG
++
++- Every user-visible change goes under `## [Unreleased]` in `CHANGELOG.md` as part of the same PR that ships the change.
++- When bumping `CURRENT_PROJECT_VERSION` for TestFlight, promote the `[Unreleased]` block to `## [Build N] — YYYY-MM-DD` and add a new empty `[Unreleased]` above it.
++- Date is the TestFlight upload date, not the commit date. Use `git log` or App Store Connect to verify if in doubt.
++- Group entries under `Added` / `Changed` / `Fixed` / `Removed` per [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
++- Internal-only changes (refactors, tooling, CI) don't need a CHANGELOG entry unless a user can feel the effect.
++
+ ## Docs
+ 
+ Additional documentation in `docs/`:
+ - `architecture.md` — System architecture
+ - `design-system.md` — Full design system spec
+diff --git a/README.md b/README.md
+index febd094c..fbff1140 100644
+--- a/README.md
++++ b/README.md
+@@ -6,10 +6,20 @@
+ 
+ ![iOS 26](https://img.shields.io/badge/iOS-26+-FFB000?style=flat-square)
+ ![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-FFB000?style=flat-square)
+ ![License](https://img.shields.io/badge/License-MIT-FFB000?style=flat-square)
+ 
++## Screenshots
++
++| Overview | Daily digest |
++|:---:|:---:|
++| <img src="Screenshots/dosbts-overview.png" alt="Overview with glucose chart, event marker lane, and IOB overlay" width="280"> | <img src="Screenshots/dosbts-digest.png" alt="Daily digest stats grid and AI insight narrative" width="280"> |
++| **Meal entry** | **Settings** |
++| <img src="Screenshots/dosbts-meal-entry.png" alt="Unified meal entry with quick, manual, scan, photo, and Ask AI" width="280"> | <img src="Screenshots/dosbts-settings.png" alt="Glucose settings panel" width="280"> |
++
++<sub>Build 61 on TestFlight. Overview, digest, and meal entry are on-device with real data; settings is a simulator capture.</sub>
++
+ ## What it is
+ 
+ DOSBTS is a personal fork of Reimar Metzen's excellent [GlucoseDirect](https://github.com/creepymonster/GlucoseDirectApp) — a SwiftUI CGM app for Libre sensors — re-skinned as a 1985-style amber phosphor DOS terminal and then extended with food logging, insulin-on-board, AI-assisted meal analysis, and a guided hypo treatment workflow.
+ 
+ The idea: make diabetes UX feel like a dedicated instrument you own, not a service you rent. CRT glow, monospace type, sharp corners, and exactly the right amount of DOS nostalgia.
+@@ -64,11 +74,11 @@ A TestFlight link will be posted here when it's stable enough for external teste
+ xcodebuild -project DOSBTS.xcodeproj -scheme DOSBTSApp -sdk iphonesimulator -configuration Debug build
+ 
+ # Build widget
+ xcodebuild -project DOSBTS.xcodeproj -scheme DOSBTSWidget -sdk iphonesimulator -configuration Debug build
+ 
+-# Tests (138 passing as of build 60)
++# Tests (138 passing as of build 61)
+ xcodebuild -project DOSBTS.xcodeproj -scheme DOSBTSApp -sdk iphonesimulator \
+   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
+ ```
+ 
+ The Xcode project uses `fileSystemSynchronized` groups — new `.swift` files under `App/`, `Library/`, or `Widgets/` are auto-picked up. See `CLAUDE.md` for the full architecture notes.
+@@ -90,11 +100,11 @@ Most of the sensor / connection / LibreLinkUp content in upstream's [FAQ](https:
+ 
+ [MIT](LICENSE.md). Original copyright © 2023 Reimar Metzen. DOSBTS fork additions © 2026 Dominic Kennedy.
+ 
+ ## Changelog
+ 
+-See [CHANGELOG.md](CHANGELOG.md) for the release history since forking (2026-02-28 → present, TestFlight builds 2–60).
++See [CHANGELOG.md](CHANGELOG.md) for the release history since forking (2026-02-28 → present, TestFlight builds 2–61).
+ 
+ ## Sound credits
+ 
+ Inherited from upstream GlucoseDirect. All sounds used under CC0 1.0 Universal or CC Attribution 3.0 Unported:
+ 

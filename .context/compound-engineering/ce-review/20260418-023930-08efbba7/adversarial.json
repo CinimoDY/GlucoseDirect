@@ -1,0 +1,162 @@
+{
+  "reviewer": "adversarial",
+  "findings": [
+    {
+      "id": "ADV-001",
+      "title": "IOB silently understated: long basal infusion excluded from query when starts before DIA window",
+      "severity": "critical",
+      "confidence": 0.92,
+      "autofix_class": "advisory",
+      "owner": "human",
+      "evidence": [
+        "getIOBDeliveries filters ONLY on starts: 'starts >= datetime(now, -diaMinutes minutes)' (InsulinDeliveryStore.swift:213)",
+        "A basal entry with starts=8h ago and ends=2h ago would have starts OUTSIDE a 360-min (6h) DIA window — it is excluded from the query entirely",
+        "computeBasalIOB would never be called for this delivery; its residual IOB (potentially 0.3–0.8U depending on when it ended) is never added to the total",
+        "User's displayed IOB is lower than true IOB; they dose a correction bolus on top; the stacking insulin causes hypoglycemia",
+        "The fix requires filtering on ends >= datetime(now, -diaMinutes minutes) OR starts >= ..., mirroring the pattern already used in getInsulinDeliveryValues (InsulinDeliveryStore.swift:186)"
+      ]
+    },
+    {
+      "id": "ADV-002",
+      "title": "IOB stale for up to 60 seconds while GlucoseView timer is the sole refresh mechanism",
+      "severity": "high",
+      "confidence": 0.88,
+      "autofix_class": "advisory",
+      "owner": "human",
+      "evidence": [
+        "GlucoseView.onChange(of: store.state.iobDeliveries.count) triggers refreshIOB only when COUNT changes (line 147)",
+        "iobDeliveries is replaced wholesale by setIOBDeliveries each time loadIOBDeliveries fires; if the new array has the same count as the old (e.g., a bolus was added and another expired and was dropped in the same DB query), onChange does not fire",
+        "The only time-based refresh is a 60-second Timer in onAppear (line 152); between ticks the displayed IOB can be up to 60s stale",
+        "Scenario: user sees IOB=0.5U at :00, takes 0.5U correction; at :30 the actual IOB is 0.9U but the display still shows 0.5U because count did not change and timer has not ticked; user decides to take another 0.2U 'just to be safe'",
+        "The onChange on count rather than on the array itself means any same-size replacement (deletion + concurrent add of a new glucose-triggered reload) is invisible to the view"
+      ]
+    },
+    {
+      "id": "ADV-003",
+      "title": "IOB stacking warning suppressed for mealBolus and snackBolus types — stacking blind spot",
+      "severity": "high",
+      "confidence": 0.95,
+      "autofix_class": "advisory",
+      "owner": "human",
+      "evidence": [
+        "AddInsulinView renders the IOB warning only when insulinType == .correctionBolus (line 71)",
+        "If a user selects mealBolus or snackBolus, the 'ACTIVE IOB' warning is hidden even when currentIOB > 0.05U",
+        "A user who took a correction bolus 45 minutes ago (high IOB) and now logs a meal bolus for an overestimated carb count sees no warning; the combined IOB can drive a severe hypo",
+        "The intent of insulin stacking prevention is to alert whenever significant IOB exists; gating it on correctionBolus only creates a false sense of safety for other bolus types",
+        "currentIOB is passed in as a one-shot closure result captured at sheet presentation time (OverviewView.swift:104-116), so even if the warning were shown for all types it could be already stale by the time the user reads it — but the type-gate is the primary failure here"
+      ]
+    },
+    {
+      "id": "ADV-004",
+      "title": "IOB shown in AddInsulinView is frozen at sheet-open time, not live",
+      "severity": "high",
+      "confidence": 0.91,
+      "autofix_class": "advisory",
+      "owner": "human",
+      "evidence": [
+        "OverviewView passes currentIOB as a computed value captured at call time: 'currentIOB: { ... computeIOB(...) }()' (OverviewView.swift:104-116)",
+        "This is a let-bound Double, not a binding or observable; once the sheet is presented the value is frozen",
+        "A user opens the insulin sheet, spends 3 minutes choosing units and type (common on first use due to the type picker and basal start/end pickers), then reads the IOB warning — the value shown was computed 3 minutes ago and has not decayed",
+        "In the worst case the user opened the sheet immediately after their last bolus; the warning shows the full dose as IOB; they dismiss and dose anyway after the warning decays — but the stored warning was accurate. Conversely, if IOB was near 0 at sheet open but they took another bolus between sheet open and the correction being logged, the stale IOB=0 gives false safety",
+        "TreatmentBannerView recomputes currentIOB inline as a computed var (TreatmentBannerView.swift:16-28) and re-evaluates on every view render, but AddInsulinView does not have this property and receives a frozen Double from outside"
+      ]
+    },
+    {
+      "id": "ADV-005",
+      "title": "Cascade: basalDIAMinutes=0 or very small causes tau computation to divide by zero or produce NaN IOB",
+      "severity": "high",
+      "confidence": 0.82,
+      "autofix_class": "advisory",
+      "owner": "human",
+      "evidence": [
+        "GlucoseView.refreshIOB and TreatmentBannerView.currentIOB both construct a basalModel with 'actionDuration: Double(store.state.basalDIAMinutes) * 60' using the raw UserDefaults integer",
+        "UserDefaults.basalDIAMinutes returns 0 (integer default) if the key exists but was written as 0 — UserDefaults.integer(forKey:) returns 0 for a missing key AND for an explicitly stored 0; the guard 'if object(forKey:) != nil' only protects the missing-key case, not a stored 0",
+        "ExponentialInsulinModel.init with actionDuration=0: tau = tp*(1-tp/0)/(1-2*tp/0) = tp*(1-inf)/(1-inf) = NaN; S = 1/(1-a+(1+a)*exp(-0/NaN)) = NaN; percentEffectRemaining returns max(0,min(1,NaN)) = NaN on most platforms (NaN comparisons return false, so min/max with NaN is implementation-defined)",
+        "NaN IOB propagates to the label formatter which produces 'IOB nanU' displayed on the hero, and also to the stacking warning comparison 'currentIOB > 0.05' which evaluates to false (NaN > 0.05 == false) — warning disappears silently rather than erroring",
+        "An adversarial settings migration or a corrupted UserDefaults (e.g., from a previous beta that stored 0 as a placeholder) can trigger this on upgrade"
+      ]
+    },
+    {
+      "id": "ADV-006",
+      "title": "iobMiddleware not triggered on setBasalDIAMinutes — IOB deliveries not re-fetched after DIA change widens window",
+      "severity": "high",
+      "confidence": 0.87,
+      "autofix_class": "advisory",
+      "owner": "human",
+      "evidence": [
+        "iobMiddleware handles '.setBolusInsulinPreset, .setBasalDIAMinutes' and emits loadIOBDeliveries (IOBMiddleware.swift:27-30)",
+        "This causes a re-fetch from DB with the new diaMinutes — correct in principle",
+        "However, the DB query uses 'datetime(now, -diaMinutes minutes)' which is a snapshot in time; if the user INCREASES basalDIAMinutes (e.g., from 180 to 360), the new query will pick up older deliveries that were previously excluded",
+        "The loadIOBDeliveries path is correct for this direction",
+        "The problem is the opposite direction: if the user DECREASES basalDIAMinutes (e.g., from 360 to 60), older deliveries that are now outside the new window are dropped from iobDeliveries; but those same old deliveries still have non-zero IOB under the shorter DIA model (the model says insulin finishes faster, but it does not retroactively make past doses zero)",
+        "The IOB computed from the new shorter model on the re-fetched (smaller) delivery list will be lower than reality — the user thinks they have less active insulin than they do immediately after changing the DIA setting, until the old deliveries naturally age out of the new window"
+      ]
+    },
+    {
+      "id": "ADV-007",
+      "title": "GlucoseView timer orphaned when view reappears after backgrounding",
+      "severity": "medium",
+      "confidence": 0.83,
+      "autofix_class": "advisory",
+      "owner": "human",
+      "evidence": [
+        "GlucoseView.onAppear creates a new Timer and assigns it to @State iobTimer (line 152)",
+        "GlucoseView.onDisappear invalidates and nils the timer (lines 157-159)",
+        "On iOS, a List row view (GlucoseView is a List row in OverviewView) can receive onAppear/onDisappear cycles during scroll events, not just on navigation push/pop",
+        "If the glucose hero row scrolls off-screen (short device, user scrolls down past chart) then back on-screen: onDisappear fires (timer invalidated), onAppear fires (new timer created)",
+        "This is expected behavior for scroll-driven visibility. However, if the system calls onDisappear during an app background transition but does NOT call onAppear on foreground restore (which can occur when the view was never fully removed from the hierarchy), the timer remains nil and IOB becomes permanently stale until the user navigates away and back",
+        "The iobMiddleware refreshes deliveries on addSensorGlucose, but GlucoseView only recomputes IOB from those deliveries on onChange(of: count) — the time-decay computation between glucose readings relies entirely on the timer that may be nil"
+      ]
+    },
+    {
+      "id": "ADV-008",
+      "title": "IOB warning threshold inconsistency: 0.05U in view vs computed IOBResult zeroing threshold",
+      "severity": "medium",
+      "confidence": 0.78,
+      "autofix_class": "advisory",
+      "owner": "human",
+      "evidence": [
+        "computeIOB applies a 0.05U threshold to zero out the total: 'if total < threshold { return IOBResult(total: 0, ...) }' (IOBCalculator.swift:124-127)",
+        "GlucoseView shows iobLabel only 'if iobResult.total > 0' (line 78), so the label disappears when total < 0.05U — this is correct",
+        "TreatmentBannerView uses 'if currentIOB > 0.05' (line 111) to show the IOB sub-line; but currentIOB recomputes inline via computeIOB which already applies the 0.05 threshold, so currentIOB will be exactly 0.0 (not 0.049); the check 'currentIOB > 0.05' should be '> 0' or the threshold should be documented as the canonical gate",
+        "AddInsulinView warning condition is 'currentIOB ?? 0) > 0.05' (line 71); since currentIOB is passed as a pre-computed Double that went through computeIOB's threshold, a value between 0 and 0.05 is already zeroed before reaching this view, so the view-level 0.05 check is redundant but harmless",
+        "The real risk: if computeIOB threshold is ever removed or changed independently, the view-level thresholds become the gatekeeping layer with inconsistent values across three call sites"
+      ]
+    }
+  ],
+  "residual_risks": [
+    {
+      "id": "RR-001",
+      "description": "No upper bound validation on units entered in AddInsulinView. A user can log 999U. This inflates IOB dramatically, causing the stacking warning to appear permanently and potentially causing the user to distrust and ignore it (cry-wolf effect). The IOB decay calculation would work arithmetically but the displayed value would be clinically meaningless.",
+      "confidence": 0.75
+    },
+    {
+      "id": "RR-002",
+      "description": "Future basal entries (ends > now) are included in computeBasalIOB with 'iob += segmentDose // Future segment: full dose remains' (IOBCalculator.swift:164). If a user enters a basal infusion that ends 4 hours in the future (scheduled pump delivery), the full undelivered dose is counted as IOB. This artificially inflates IOB and could suppress a legitimate correction bolus via the warning.",
+      "confidence": 0.70
+    },
+    {
+      "id": "RR-003",
+      "description": "The peakActivityTime for the basalModel is hardcoded to 75*60 (75 minutes) in both GlucoseView.refreshIOB and TreatmentBannerView.currentIOB, regardless of insulin type. For ultra-rapid basal (Fiasp infused via pump) the peak is closer to 55 min. This inconsistency between bolus model (preset-driven peak) and basal model (hardcoded peak) means basal IOB decay curve may be miscalibrated for users who use ultra-rapid insulin in a pump.",
+      "confidence": 0.72
+    }
+  ],
+  "testing_gaps": [
+    {
+      "id": "TG-001",
+      "description": "No test covers getIOBDeliveries with a basal entry whose starts is before diaMinutes ago but ends is within the window — the missing ends filter in the SQL query would be caught by such a test"
+    },
+    {
+      "id": "TG-002",
+      "description": "No test exercises computeIOB with actionDuration=0 or with a basalDIAMinutes of 0 to verify NaN is not returned and displayed"
+    },
+    {
+      "id": "TG-003",
+      "description": "No test verifies that IOB displayed in AddInsulinView for a mealBolus type includes a stacking warning when currentIOB > 0.05U (the correctionBolus-only gate would be caught by such a test)"
+    },
+    {
+      "id": "TG-004",
+      "description": "No snapshot or unit test covers the IOB label disappearing and reappearing correctly as time passes through the 0.05U threshold, particularly when iobDeliveries.count does not change between loadIOBDeliveries cycles"
+    }
+  ]
+}
