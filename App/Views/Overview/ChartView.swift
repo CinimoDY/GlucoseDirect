@@ -8,14 +8,6 @@ import SwiftUI
 
 // MARK: - ChartView
 
-// MARK: - ReportType
-
-private enum ReportType: String, CaseIterable {
-    case glucose = "GLUCOSE"
-    case timeInRange = "TIME IN RANGE"
-    case statistics = "STATISTICS"
-}
-
 struct ChartView: View {
     // MARK: Internal
 
