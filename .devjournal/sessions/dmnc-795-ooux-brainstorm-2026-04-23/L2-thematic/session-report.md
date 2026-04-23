@@ -81,3 +81,32 @@ After the initial commit, a 6-persona document review (coherence, feasibility, p
 - **All three follow-up Linear issues (DMNC-798/799/800) rescoped** to match.
 
 The revision is not a re-brainstorm — it's the outcome of a single review pass where consensus was clear enough that the remediation was mechanical. See the Linear comment on DMNC-795 for the full summary.
+
+## Second-pass review (same day)
+
+After committing the first revision, a second 6-persona review was run against the revised spec. It surfaced additional gaps and one genuine API contradiction the first pass missed:
+
+**Consensus findings resolved:**
+- **`AmberChip` ownership was contradictory** — spec listed it as both a DMNC-799 prerequisite and a DMNC-798 deliverable. Fixed: DMNC-798 delivers it; DMNC-799 consumes it.
+- **`AmberChip` consumer claim was inflated** — "three consumers" rested on treating the existing two-line conditional-colour favourites chip at `UnifiedFoodEntryView.swift:95-116` as adoptable, which it isn't without a variant-carrying API redesign. Fixed: AmberChip has two consumers in DMNC-799's PR (InsulinType row + QuickTimeChips presets); favourites chip stays inline, migration deferred to DMNC-796.
+- **Catalog vs. mapping table disagreed on batch-review commitment level** ("provisional and extracted only if" vs. "deferred"). Fixed: normalised to the conditional wording across all four surfaces.
+- **Pattern 1 provisional struct sketch was load-bearing by accident** — anchored DMNC-800's author to a pre-refactor shape despite the "provisional" framing. Fixed: deleted the sketch; kept the open-questions list as the actual value.
+
+**Substantive API decisions locked:**
+- **`StepperField` type-first behaviour** — added `autofocus: Bool` parameter. AddInsulinView sets `autofocus: true` to preserve today's behaviour (user lands with decimal pad up and types the dose). Addresses the "stepper-first for insulin dosing is medically questionable" concern — stepper remains available as fine-adjust for ≤2U corrections, but typing is the default path.
+- **`QuickTimeChips` presets required** — no default array. Insulin-shaped defaults invited timestamp-reconstruction bugs for meal adopters. Each caller passes its own presets.
+- **`TimeOffset` enum** — `case now` + `case minutesAgo(Int)` (non-negative). Removes the `.minus(15)` vs `.minutes(-15)` inconsistency from the first revision.
+- **`InsulinType` chip order** — committed to frequency-based: `mealBolus → snackBolus → correctionBolus → basal`. Differs from today's Picker order.
+- **`shortLabel` not localised** — DOS terminal tokens are stable across locales; `localizedDescription` remains the localised full-name form.
+- **Identity bet named explicitly** — adopts consumer-iOS interaction conventions re-skinned in amber. DOS identity at visual/typographic layer, not interaction-grammar layer. Stated deliberately so a later pivot can be argued.
+
+**Additional fixes:**
+- `StepperField` revert-on-blur mechanics specified (FocusState + previousValue mirror + amber-border pulse).
+- `QuickTimeChips` `.now` selected-state tracked via internal `lastTappedPreset` (cannot derive from date comparison — drifts).
+- Pattern 1 extraction gate ("≥3 of 5 open questions resolve to shared mechanism") replaces vague "if shape is obvious."
+- Accessibility deferral mechanically honoured via Success criterion #6 (DMNC-798 PR must reference a DMNC-797 ticket).
+- Commit failure pattern: fire-and-forget documented as intentional (matches existing entry-object pattern).
+- Object catalog positioned as durable reference (likely migration target: `docs/architecture.md` or `docs/object-catalog.md`); DMNC-791 "unblock" claim tightened to "primitives + chip visual treatment" only.
+- DMNC-798/799 merge rejected (with rationale noted in spec's § Follow-ups) — primitives are separable work; solo-dev PR review benefits from smaller stacked changes.
+
+Linear issues DMNC-798/799/800 re-updated to match the pass-2 spec. Spec file replaced in full (rather than edited) for clarity.
