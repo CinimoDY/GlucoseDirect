@@ -9,28 +9,65 @@ import SwiftUI
 
 struct ListsView: View {
     @EnvironmentObject var store: DirectStore
+    @State private var showingAddBG: Bool = false
+    @State private var showingMigrationHint: Bool = false
 
     var body: some View {
-        List {
-            SensorGlucoseListView()
+        NavigationStack {
+            List {
+                SensorGlucoseListView()
 
-            if DirectConfig.bloodGlucoseInput {
-                BloodGlucoseListView()
+                if DirectConfig.bloodGlucoseInput {
+                    BloodGlucoseListView()
+                }
+
+                MealEntryListView()
+
+                if DirectConfig.showInsulinInput, store.state.showInsulinInput {
+                    InsulinDeliveryListView()
+                }
+
+                if DirectConfig.glucoseErrors {
+                    SensorErrorListView()
+                }
+
+                if DirectConfig.glucoseStatistics {
+                    StatisticsView()
+                }
             }
-
-            MealEntryListView()
-
-            if DirectConfig.showInsulinInput, store.state.showInsulinInput {
-                InsulinDeliveryListView()
+            .listStyle(.grouped)
+            .navigationTitle("Log")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                if DirectConfig.bloodGlucoseInput {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button {
+                            showingAddBG = true
+                        } label: {
+                            Image(systemName: "plus")
+                                .accessibilityLabel("Add blood glucose")
+                        }
+                    }
+                }
             }
-
-            if DirectConfig.glucoseErrors {
-                SensorErrorListView()
+            .sheet(isPresented: $showingAddBG) {
+                AddBloodGlucoseView(glucoseUnit: store.state.glucoseUnit) { time, value in
+                    let glucose = BloodGlucose(id: UUID(), timestamp: time, glucoseValue: value)
+                    store.dispatch(.addBloodGlucose(glucoseValues: [glucose]))
+                }
             }
-
-            if DirectConfig.glucoseStatistics {
-                StatisticsView()
+            .alert("Blood glucose moved", isPresented: $showingMigrationHint) {
+                Button("Got it") {
+                    store.dispatch(.setHasSeenBGRelocationHint(seen: true))
+                }
+            } message: {
+                Text("BG entry is now in the Log tab. Tap the + button above to log a new reading.")
             }
-        }.listStyle(.grouped)
+            .onAppear {
+                if !store.state.hasSeenBGRelocationHint && DirectConfig.bloodGlucoseInput {
+                    showingMigrationHint = true
+                }
+            }
+        }
     }
 }
