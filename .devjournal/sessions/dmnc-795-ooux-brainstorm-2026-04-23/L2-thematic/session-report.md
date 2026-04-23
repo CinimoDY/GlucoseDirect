@@ -62,8 +62,22 @@ No build. Build 62 is the current TestFlight release from 2026-04-22.
 
 ## Session Artifacts
 
-- `L2-thematic/object-map.svg` — standalone SVG extracted from the brainstorm companion
+- `L2-thematic/object-map.svg` — standalone SVG extracted from the brainstorm companion (note: map labels show the pre-review draft's Pattern names; see the spec for the revised approach)
 - `L2-thematic/decisions.md` — scope-decisions table + catalog content
 - `L2-thematic/themes.md` — retrieval tags
 - `L3-raw/` — original brainstorm HTML screens (pattern2-semantics, pattern2-v2, insulin-input-controls, meal-mapping, object-map) served live via the visual companion during the session
 - Plan file (pre-exit): `/Users/doke/.claude/plans/what-should-we-work-mossy-widget.md` (reference only; canonical content moved into `decisions.md` + the spec)
+
+## Post-review revision (same day)
+
+After the initial commit, a 6-persona document review (coherence, feasibility, product-lens, design-lens, scope-guardian, adversarial) surfaced consensus findings that triggered a substantial revision:
+
+- **`CategoryPanel` wrapper dropped** — three reviewers identified it as renaming plain SwiftUI idioms (`Picker(.segmented)` + `switch`) with one consumer. Spec now commits only to primitives: `StepperField`, `QuickTimeChips`, `AmberChip`.
+- **`StagingPlate` downgraded to provisional** — five concerns tangled with generic staging in the 882-LOC `FoodPhotoAnalysisView` mean the reusable API cannot be responsibly designed before the first in-place refactor. DMNC-800 does the refactor; extraction is a stretch goal.
+- **Favourite long-press dropped** — hidden-affordance risk in a medical app, no user evidence cited. Post-log edit via chart-marker tap remains the supported path.
+- **Premise reframed** — from "interactions feel inconsistent (user pain)" to "maintenance surface on 882-LOC God View + forward-looking code reuse (author pain, honestly)."
+- **Missing interaction states added** — category-switch field retention, `QuickTimeChips` NOW semantics, chip visual treatment.
+- **Success criterion #5 revised** — allows both typed references and documented UUID/factory conventions; Meal↔PersonalFood and Meal↔FavoriteFood are correctly the latter.
+- **All three follow-up Linear issues (DMNC-798/799/800) rescoped** to match.
+
+The revision is not a re-brainstorm — it's the outcome of a single review pass where consensus was clear enough that the remediation was mechanical. See the Linear comment on DMNC-795 for the full summary.
