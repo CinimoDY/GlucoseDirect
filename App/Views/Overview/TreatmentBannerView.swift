@@ -100,7 +100,7 @@ struct TreatmentBannerView: View {
     private var bannerContent: some View {
         switch bannerState {
         case .countdown:
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: DOSSpacing.xs) {
                     Image(systemName: "timer")
                         .foregroundColor(AmberTheme.cgaGreen)
@@ -111,6 +111,7 @@ struct TreatmentBannerView: View {
                         .font(DOSTypography.caption)
                         .foregroundColor(AmberTheme.amber)
                 }
+                countdownProgressBar
                 if currentIOB > 0.05 {
                     Text("IOB \(String(format: "%.1fU", currentIOB))")
                         .font(DOSTypography.caption)
@@ -165,6 +166,32 @@ struct TreatmentBannerView: View {
                 autoDismissTask = nil
             }
         }
+    }
+
+    // MARK: - Countdown progress
+
+    /// Thin horizontal progress bar filling left-to-right as the recheck
+    /// countdown elapses. Gives a continuous visual cue under the M:SS
+    /// text so the user doesn't have to read the timer to tell how much
+    /// longer until recheck.
+    private var countdownProgressBar: some View {
+        GeometryReader { geo in
+            let total = Double(store.state.hypoTreatmentWaitMinutes * 60)
+            let elapsed = max(total - Double(remainingSeconds), 0)
+            let progress = total > 0 ? min(elapsed / total, 1) : 0
+
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(AmberTheme.amberDark.opacity(0.3))
+                    .frame(width: geo.size.width, height: 4)
+
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(AmberTheme.cgaGreen)
+                    .frame(width: max(0, geo.size.width * progress), height: 4)
+            }
+        }
+        .frame(height: 4)
+        .accessibilityHidden(true)
     }
 
     // MARK: - Timer

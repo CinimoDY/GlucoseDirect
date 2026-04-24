@@ -7,6 +7,9 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+### Added
+- Thin 4px horizontal progress bar under the M:SS countdown text on the hypo-treatment banner, filling left-to-right over the configured wait duration. Gives a continuous visual cue of remaining recheck time without making you read the timer — DMNC-771.
+
 ### Changed
 - Settings → About gains a **Disclaimer** section clarifying DOSBTS is a community reader app, not a medical device, and that treatment decisions must be verified with the CGM manufacturer's reader and a clinician. Adds a **Build date** row (read from the binary's modification time) and a **Forked from** row linking to upstream GlucoseDirect.
 
