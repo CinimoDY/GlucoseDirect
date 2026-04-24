@@ -7,6 +7,11 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 68] — 2026-04-24
+
+### Changed
+- App icon is now a CGM-sensor take on the eiDotter yolk: concentric amber disc / active-scan ring / central filament dome mirroring the brand's three-stop amber palette, with cardinal tick marks and symmetric transmission arcs reading as wireless emissions. Replaces the insulin-pen-and-drop placeholder. Source in `scripts/app-icon.svg` and `scripts/render-app-icon.py`; derived sizes via `scripts/resize-icon.sh`.
+
 ## [Build 67] — 2026-04-24
 
 ### Fixed
