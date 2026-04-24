@@ -239,7 +239,7 @@ struct FoodPhotoAnalysisView: View {
         ), matching: .images) {
             Label("Choose from Library", systemImage: "photo")
         }
-        .onChange(of: selectedItem as? PhotosPickerItem) { item in
+        .onChange(of: selectedItem as? PhotosPickerItem) { _, item in
             guard let item = item else { return }
             handlePhotoSelection(item)
         }
@@ -312,18 +312,18 @@ struct FoodPhotoAnalysisView: View {
             .onAppear {
                 populateStagedItems(from: result)
             }
-            .onChange(of: store.state.foodAnalysisResult?.totalCarbsG) { _ in
+            .onChange(of: store.state.foodAnalysisResult?.totalCarbsG) {
                 // Detect follow-up result: replace staged items if we're in a follow-up
                 if isFollowingUp, let newResult = store.state.foodAnalysisResult {
                     replaceWithFollowUpResult(newResult)
                 }
             }
-            .onChange(of: store.state.foodAnalysisResult?.description) { _ in
+            .onChange(of: store.state.foodAnalysisResult?.description) {
                 if isFollowingUp, let newResult = store.state.foodAnalysisResult {
                     replaceWithFollowUpResult(newResult)
                 }
             }
-            .onChange(of: store.state.foodAnalysisError) { _ in
+            .onChange(of: store.state.foodAnalysisError) {
                 // Reset follow-up spinner on error
                 if isFollowingUp && store.state.foodAnalysisError != nil {
                     isFollowingUp = false
@@ -480,7 +480,7 @@ struct FoodPhotoAnalysisView: View {
                                                 .keyboardType(.decimalPad)
                                                 .multilineTextAlignment(.trailing)
                                                 .frame(width: 80)
-                                                .onChange(of: item.currentAmountG) { newAmount in
+                                                .onChange(of: item.currentAmountG) { _, newAmount in
                                                     // Auto-scale carbs proportionally when ratio exists
                                                     if let ratio = item.carbsPerG,
                                                        let amt = newAmount, amt > 0 {
@@ -505,7 +505,7 @@ struct FoodPhotoAnalysisView: View {
                                             .keyboardType(.decimalPad)
                                             .multilineTextAlignment(.trailing)
                                             .frame(width: 80)
-                                            .onChange(of: item.carbsG) { _ in
+                                            .onChange(of: item.carbsG) {
                                                 // Manual carb edit breaks proportional link
                                                 if item.carbsPerG != nil && item.currentAmountG != nil {
                                                     // Only break if user actually typed (not auto-scaled)

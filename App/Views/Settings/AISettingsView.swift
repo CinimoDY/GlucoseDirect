@@ -90,7 +90,7 @@ struct AISettingsView: View {
             .onAppear {
                 thumbWidthInput = store.state.thumbCalibrationMM
             }
-            .onChange(of: thumbWidthInput) { newValue in
+            .onChange(of: thumbWidthInput) { _, newValue in
                 if let mm = newValue, mm > 0, mm < 50 {
                     store.dispatch(.setThumbCalibration(widthMM: mm))
                 }

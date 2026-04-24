@@ -27,7 +27,7 @@ struct ChartToolbarView: View {
         .padding(.vertical, DOSSpacing.xs)
         .background(AmberTheme.dosBlack)
         .onAppear(perform: normaliseDaysIfNeeded)
-        .onChange(of: selectedReportType) { _ in normaliseDaysIfNeeded() }
+        .onChange(of: selectedReportType) { normaliseDaysIfNeeded() }
     }
 
     /// When the user switches to TIR or STATISTICS and the persisted `statisticsDays`

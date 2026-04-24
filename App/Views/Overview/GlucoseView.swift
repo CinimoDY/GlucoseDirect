@@ -152,10 +152,10 @@ struct GlucoseView: View {
             .disabled(store.state.latestSensorGlucose == nil)
             .buttonStyle(.plain)
         }
-        .onChange(of: store.state.iobDeliveries.count) { _ in refreshIOB() }
-        .onChange(of: store.state.latestSensorGlucose?.timestamp) { _ in refreshIOB() }
-        .onChange(of: store.state.bolusInsulinPreset) { _ in refreshIOB() }
-        .onChange(of: store.state.basalDIAMinutes) { _ in refreshIOB() }
+        .onChange(of: store.state.iobDeliveries.count) { refreshIOB() }
+        .onChange(of: store.state.latestSensorGlucose?.timestamp) { refreshIOB() }
+        .onChange(of: store.state.bolusInsulinPreset) { refreshIOB() }
+        .onChange(of: store.state.basalDIAMinutes) { refreshIOB() }
         .confirmationDialog("Reconnect sensor?", isPresented: $showingConnectDialog, titleVisibility: .visible) {
             Button("Connect (BLE)") {
                 DirectNotifications.shared.hapticFeedback()

@@ -109,16 +109,16 @@ struct ChartView: View {
 
                                     ChartView
                                         .frame(width: max(0, screenWidth, seriesWidth), height: min(screenHeight, Config.chartHeight))
-                                    .onChange(of: store.state.sensorGlucoseValues) { _ in
+                                    .onChange(of: store.state.sensorGlucoseValues) {
                                         scrollToEnd(scrollViewProxy: scrollViewProxy)
 
-                                    }.onChange(of: store.state.bloodGlucoseValues) { _ in
+                                    }.onChange(of: store.state.bloodGlucoseValues) {
                                         scrollToEnd(scrollViewProxy: scrollViewProxy)
 
-                                    }.onChange(of: store.state.insulinDeliveryValues) { _ in
+                                    }.onChange(of: store.state.insulinDeliveryValues) {
                                         scrollToEnd(scrollViewProxy: scrollViewProxy)
 
-                                    }.onChange(of: store.state.chartZoomLevel) { _ in
+                                    }.onChange(of: store.state.chartZoomLevel) {
                                         scrollToEnd(scrollViewProxy: scrollViewProxy, force: true)
 
                                     }.onAppear {
@@ -785,7 +785,7 @@ struct ChartView: View {
         }
         .chartLegend(.hidden)
         .id(Config.chartID)
-        .onChange(of: store.state.showSmoothedGlucose) { _ in
+        .onChange(of: store.state.showSmoothedGlucose) {
             if shouldRefresh {
                 DirectLog.info("onChange: sensorGlucoseValues")
 
@@ -793,7 +793,7 @@ struct ChartView: View {
                 updateSensorSeries()
             }
 
-        }.onChange(of: store.state.sensorGlucoseValues) { _ in
+        }.onChange(of: store.state.sensorGlucoseValues) {
             if shouldRefresh {
                 DirectLog.info("onChange: sensorGlucoseValues")
 
@@ -802,7 +802,7 @@ struct ChartView: View {
                 updateSmoothedMinuteChange()
             }
 
-        }.onChange(of: store.state.bloodGlucoseValues) { _ in
+        }.onChange(of: store.state.bloodGlucoseValues) {
             if shouldRefresh {
                 DirectLog.info("onChange: bloodGlucoseValues")
 
@@ -810,7 +810,7 @@ struct ChartView: View {
                 updateBloodSeries()
             }
 
-        }.onChange(of: store.state.insulinDeliveryValues) { _ in
+        }.onChange(of: store.state.insulinDeliveryValues) {
             if shouldRefresh {
                 DirectLog.info("onChange: insulinDeliveryValues")
 
@@ -819,25 +819,25 @@ struct ChartView: View {
                 updateMarkerGroups()
             }
 
-        }.onChange(of: store.state.iobDeliveries.count) { _ in
+        }.onChange(of: store.state.iobDeliveries.count) {
             if shouldRefresh {
                 DirectLog.info("onChange: iobDeliveries")
                 updateInsulinSeries()
             }
 
-        }.onChange(of: store.state.bolusInsulinPreset) { _ in
+        }.onChange(of: store.state.bolusInsulinPreset) {
             if shouldRefresh {
                 DirectLog.info("onChange: bolusInsulinPreset")
                 updateInsulinSeries()
             }
 
-        }.onChange(of: store.state.basalDIAMinutes) { _ in
+        }.onChange(of: store.state.basalDIAMinutes) {
             if shouldRefresh {
                 DirectLog.info("onChange: basalDIAMinutes")
                 updateInsulinSeries()
             }
 
-        }.onChange(of: store.state.mealEntryValues) { _ in
+        }.onChange(of: store.state.mealEntryValues) {
             if shouldRefresh {
                 DirectLog.info("onChange: mealEntryValues")
 
@@ -846,7 +846,7 @@ struct ChartView: View {
                 updateMarkerGroups()
             }
 
-        }.onChange(of: store.state.exerciseEntryValues) { _ in
+        }.onChange(of: store.state.exerciseEntryValues) {
             if shouldRefresh {
                 DirectLog.info("onChange: exerciseEntryValues")
 
@@ -855,7 +855,7 @@ struct ChartView: View {
                 updateMarkerGroups()
             }
 
-        }.onChange(of: store.state.chartZoomLevel) { _ in
+        }.onChange(of: store.state.chartZoomLevel) {
             if shouldRefresh {
                 DirectLog.info("onChange: chartZoomLevel")
 
@@ -863,10 +863,10 @@ struct ChartView: View {
                 updateMarkerGroups()
             }
 
-        }.onChange(of: store.state.showSmoothedGlucose) { _ in
+        }.onChange(of: store.state.showSmoothedGlucose) {
             showUnsmoothedValues = false
 
-        }.onChange(of: store.state.selectedDate) { _ in
+        }.onChange(of: store.state.selectedDate) {
             selectedSmoothSensorPoint = nil
             selectedRawSensorPoint = nil
             selectedBloodPoint = nil
