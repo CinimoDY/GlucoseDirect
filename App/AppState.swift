@@ -83,6 +83,8 @@ struct AppState: DirectState {
         self.showScanlines = UserDefaults.standard.showScanlines
         self.aiConsentFoodPhoto = UserDefaults.standard.aiConsentFoodPhoto
         self.hasSeenBGRelocationHint = UserDefaults.standard.hasSeenBGRelocationHint
+        self.appOpenCount = UserDefaults.standard.appOpenCount
+        self.appOpenCountFirstRecordedAt = UserDefaults.standard.appOpenCountFirstRecordedAt
         self.aiConsentDailyDigest = UserDefaults.standard.aiConsentDailyDigest
         self.claudeAPIKeyValid = UserDefaults.standard.claudeAPIKeyValid
         self.thumbCalibrationMM = UserDefaults.standard.thumbCalibrationMM
@@ -182,6 +184,8 @@ struct AppState: DirectState {
     var showScanlines: Bool { didSet { UserDefaults.standard.showScanlines = showScanlines } }
     var aiConsentFoodPhoto: Bool { didSet { UserDefaults.standard.aiConsentFoodPhoto = aiConsentFoodPhoto } }
     var hasSeenBGRelocationHint: Bool { didSet { UserDefaults.standard.hasSeenBGRelocationHint = hasSeenBGRelocationHint } }
+    var appOpenCount: Int { didSet { UserDefaults.standard.appOpenCount = appOpenCount } }
+    var appOpenCountFirstRecordedAt: Date? { didSet { UserDefaults.standard.appOpenCountFirstRecordedAt = appOpenCountFirstRecordedAt } }
     var claudeAPIKeyValid: Bool { didSet { UserDefaults.standard.claudeAPIKeyValid = claudeAPIKeyValid } }
     var thumbCalibrationMM: Double? { didSet { UserDefaults.standard.thumbCalibrationMM = thumbCalibrationMM } }
     var servingPresets: [ServingPreset] { didSet { UserDefaults.standard.servingPresets = servingPresets } }

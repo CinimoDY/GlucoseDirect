@@ -39,7 +39,7 @@ struct ContentView: View {
                         .allowsHitTesting(false)
                 }
             }
-            .onChange(of: scenePhase) { _, newPhase in
+            .onChange(of: scenePhase) { oldPhase, newPhase in
                 if store.state.appState != newPhase {
                     store.dispatch(.setAppState(appState: newPhase))
                 }
@@ -47,9 +47,12 @@ struct ContentView: View {
                 if newPhase == .background, store.state.preventScreenLock {
                     store.dispatch(.setPreventScreenLock(enabled: false))
                 }
-                
+
                 if newPhase == .active {
                     WidgetCenter.shared.reloadAllTimelines()
+                    if oldPhase != .active {
+                        store.dispatch(.incrementAppOpenCount)
+                    }
                 }
             }
             .onChange(of: store.state.latestSensorGlucose) { _, _ in

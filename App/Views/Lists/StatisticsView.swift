@@ -206,6 +206,8 @@ struct StatisticsView: View {
                     Label("Statistics (\(glucoseStatistics.days.description) days)", systemImage: "lightbulb")
                 }
             )
+
+            UsageSection(stats: glucoseStatistics)
         }
     }
 
@@ -238,4 +240,59 @@ struct StatisticsView: View {
 private struct ChartLevel {
     let days: Int
     let name: String
+}
+
+// MARK: - UsageSection
+
+struct UsageSection: View {
+    @EnvironmentObject var store: DirectStore
+
+    let stats: GlucoseStatistics
+
+    var body: some View {
+        Section {
+            if let viewsPerDay = viewsPerDay {
+                row(label: "Views / day", value: "\(viewsPerDay)")
+            }
+            row(label: "Total views", value: "\(store.state.appOpenCount)")
+            row(label: "Sensor uptime", value: sensorUptimeLabel)
+        } header: {
+            Label("Usage", systemImage: "waveform.path.ecg.rectangle")
+        }
+    }
+
+    private func row(label: String, value: String) -> some View {
+        HStack {
+            Text(label)
+            Spacer()
+            Text(value)
+                .monospacedDigit()
+        }
+    }
+
+    /// Views-per-day averaged from `appOpenCount` over the days since first
+    /// tracking began. Returns nil if tracking hasn't started yet (first
+    /// launch before this build).
+    private var viewsPerDay: Int? {
+        guard let firstRecordedAt = store.state.appOpenCountFirstRecordedAt else { return nil }
+        let elapsed = Date().timeIntervalSince(firstRecordedAt)
+        let days = max(elapsed / 86_400, 1)
+        return Int((Double(store.state.appOpenCount) / days).rounded())
+    }
+
+    /// Sensor uptime over the current `statisticsDays` window — the ratio of
+    /// actual readings to the expected count for that window, assuming the
+    /// sensor emits one reading per minute (standard Libre cadence).
+    ///
+    /// Clamped to 0-100%. If there's effectively zero expected data (fresh
+    /// install, tiny window) we return "—" rather than a divide-by-zero.
+    private var sensorUptimeLabel: String {
+        let actual = Double(stats.readings)
+        let windowDays = max(Double(store.state.statisticsDays), 1)
+        let interval = max(Double(store.state.sensorInterval), 1)
+        let expected = windowDays * 24.0 * 60.0 / interval
+        guard expected > 0 else { return "—" }
+        let pct = min(max(actual / expected * 100.0, 0), 100)
+        return "\(Int(pct.rounded()))%"
+    }
 }

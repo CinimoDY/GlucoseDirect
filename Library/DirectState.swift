@@ -79,6 +79,8 @@ protocol DirectState {
     var showScanlines: Bool { get set }
     var aiConsentFoodPhoto: Bool { get set }
     var hasSeenBGRelocationHint: Bool { get set }
+    var appOpenCount: Int { get set }
+    var appOpenCountFirstRecordedAt: Date? { get set }
     var claudeAPIKeyValid: Bool { get set }
     var foodAnalysisResult: NutritionEstimate? { get set }
     var foodAnalysisError: String? { get set }

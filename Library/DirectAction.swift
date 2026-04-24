@@ -123,6 +123,7 @@ enum DirectAction {
     case deleteClaudeAPIKey
     case setAIConsentFoodPhoto(enabled: Bool)
     case setHasSeenBGRelocationHint(seen: Bool)
+    case incrementAppOpenCount
     case setClaudeAPIKeyValid(isValid: Bool)
     case setFoodAnalysisResult(result: NutritionEstimate?)
     case setFoodAnalysisError(error: String)
