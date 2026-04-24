@@ -7,9 +7,11 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 65] — 2026-04-24
+
 ### Added
-- Settings → **Connections** screen consolidates Nightscout, Apple Health & Calendar export, AI Features, and Health Import Sources into one indexed view with per-integration status dots (green = active / grey = inactive / red = needs configuration). Each row drills into the existing settings surface for that integration. Individual rows remain available in the main Settings list — DMNC-810.
-- **Usage** section on the Statistics screen (Lists tab) — views-per-day average, total views since tracking began, and sensor uptime % over the currently-selected window. Lets you spot over/undercheck patterns and data-quality gaps at a glance — DMNC-811.
+- Settings → **Connections** screen consolidates Nightscout, Apple Health & Calendar export, AI Features, and Health Import Sources into one indexed view with per-integration status dots (green = active / grey = inactive / red = needs configuration). Each row drills into the existing settings surface for that integration. Individual rows remain available in the main Settings list — DMNC-810, PR #35.
+- **Usage** section on the Statistics screen (Lists tab) — views-per-day average, total views since tracking began, and sensor uptime % over the currently-selected window. Lets you spot over/undercheck patterns and data-quality gaps at a glance — DMNC-811, PR #36.
 
 ## [Build 64] — 2026-04-24
 
