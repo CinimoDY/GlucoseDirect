@@ -168,6 +168,14 @@ private extension DataStore {
                 """)
             }
 
+            migrator.registerMigration("Add FavoriteFood.shortLabel column") { db in
+                if try !db.columns(in: FavoriteFood.Table).contains(where: { $0.name == FavoriteFood.Columns.shortLabel.name }) {
+                    try db.alter(table: FavoriteFood.Table) { t in
+                        t.add(column: FavoriteFood.Columns.shortLabel.name, .text)
+                    }
+                }
+            }
+
             // Seed hypo treatment favorites for existing users who already had
             // non-hypo favorites (the initial seed above only runs when count == 0).
             migrator.registerMigration("Seed hypo treatment favorites for existing users") { db in

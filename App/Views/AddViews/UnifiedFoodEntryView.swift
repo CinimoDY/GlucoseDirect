@@ -94,9 +94,10 @@ struct UnifiedFoodEntryView: View {
                             logFavorite(favorite)
                         } label: {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(favorite.mealDescription)
+                                Text(favorite.chipLabel)
                                     .font(DOSTypography.caption)
                                     .lineLimit(1)
+                                    .truncationMode(.tail)
 
                                 if let carbs = favorite.carbsGrams {
                                     Text("\(Int(carbs))g")
@@ -104,6 +105,7 @@ struct UnifiedFoodEntryView: View {
                                         .foregroundColor(favorite.isHypoTreatment ? AmberTheme.cgaGreen : AmberTheme.amber)
                                 }
                             }
+                            .frame(maxWidth: 120, alignment: .leading)
                             .padding(.horizontal, DOSSpacing.sm)
                             .padding(.vertical, DOSSpacing.xs)
                             .background(Color.black)
@@ -465,6 +467,7 @@ struct EditFavoriteView: View {
     let favorite: FavoriteFood
 
     @State private var mealDescription: String = ""
+    @State private var shortLabel: String = ""
     @State private var carbsGrams: Double?
     @State private var proteinGrams: Double?
     @State private var fatGrams: Double?
@@ -479,6 +482,11 @@ struct EditFavoriteView: View {
                     HStack {
                         Text("Description")
                         TextField("", text: $mealDescription)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    HStack {
+                        Text("Short label")
+                        TextField("Optional — e.g. \"milk\"", text: $shortLabel)
                             .multilineTextAlignment(.trailing)
                     }
                     HStack {
@@ -540,7 +548,8 @@ struct EditFavoriteView: View {
                             fiberGrams: clampedFiber,
                             sortOrder: favorite.sortOrder,
                             isHypoTreatment: isHypoTreatment,
-                            lastUsed: favorite.lastUsed
+                            lastUsed: favorite.lastUsed,
+                            shortLabel: shortLabel
                         )
                         store.dispatch(.updateFavoriteFood(favoriteFood: updated))
                         dismiss()
@@ -554,6 +563,7 @@ struct EditFavoriteView: View {
             }
             .onAppear {
                 mealDescription = favorite.mealDescription
+                shortLabel = favorite.shortLabel ?? ""
                 carbsGrams = favorite.carbsGrams
                 proteinGrams = favorite.proteinGrams
                 fatGrams = favorite.fatGrams

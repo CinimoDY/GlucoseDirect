@@ -210,6 +210,7 @@ extension FavoriteFood: FetchableRecord, PersistableRecord {
         case sortOrder
         case isHypoTreatment
         case lastUsed
+        case shortLabel
     }
 }
 
