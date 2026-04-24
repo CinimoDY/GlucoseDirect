@@ -39,7 +39,7 @@ struct ContentView: View {
                         .allowsHitTesting(false)
                 }
             }
-            .onChange(of: scenePhase) { newPhase in
+            .onChange(of: scenePhase) { _, newPhase in
                 if store.state.appState != newPhase {
                     store.dispatch(.setAppState(appState: newPhase))
                 }

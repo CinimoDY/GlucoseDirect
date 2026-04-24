@@ -100,7 +100,7 @@ struct MealEntryListView: View {
             DirectLog.info("onAppear")
             self.mealEntryValues = store.state.mealEntryValues.reversed()
         }
-        .onChange(of: store.state.mealEntryValues) { mealEntryValues in
+        .onChange(of: store.state.mealEntryValues) { _, mealEntryValues in
             DirectLog.info("onChange")
             self.mealEntryValues = mealEntryValues.reversed()
         }

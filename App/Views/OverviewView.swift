@@ -73,13 +73,13 @@ struct OverviewView: View {
                 store.dispatch(.setShowTreatmentPrompt(show: false))
             }
         }
-        .onChange(of: store.state.showTreatmentPrompt) { newValue in
+        .onChange(of: store.state.showTreatmentPrompt) { _, newValue in
             if newValue, let alarmFiredAt = store.state.alarmFiredAt {
                 activeSheet = .treatmentModal(alarmFiredAt: alarmFiredAt)
                 store.dispatch(.setShowTreatmentPrompt(show: false))
             }
         }
-        .onChange(of: store.state.recheckDispatched) { newValue in
+        .onChange(of: store.state.recheckDispatched) { _, newValue in
             guard newValue, store.state.treatmentCycleActive else { return }
             // Check if still low — show recheck modal
             if let glucose = store.state.latestSensorGlucose,

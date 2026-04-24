@@ -91,7 +91,7 @@ struct TreatmentBannerView: View {
         .onDisappear {
             timer?.cancel()
         }
-        .onChange(of: store.state.iobDeliveries.count) { _ in refreshBannerIOB() }
+        .onChange(of: store.state.iobDeliveries.count) { refreshBannerIOB() }
     }
 
     // MARK: - Banner Content
