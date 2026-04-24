@@ -7,6 +7,9 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+### Changed
+- Settings → About gains a **Disclaimer** section clarifying DOSBTS is a community reader app, not a medical device, and that treatment decisions must be verified with the CGM manufacturer's reader and a clinician. Adds a **Build date** row (read from the binary's modification time) and a **Forked from** row linking to upstream GlucoseDirect.
+
 ## [Build 65] — 2026-04-24
 
 ### Added

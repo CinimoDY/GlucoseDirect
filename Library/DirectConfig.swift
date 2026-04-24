@@ -54,6 +54,20 @@ enum DirectConfig {
         Bundle.main.infoDictionary?["AppAuthor"] as? String
     }()
 
+    /// Date the app binary was built. Read from the executable's modification
+    /// time — set by the Xcode build system when the binary is produced.
+    /// Close enough to "build date" for a TestFlight build ring.
+    static var appBuildDate: Date? = {
+        guard let executableURL = Bundle.main.executableURL,
+              let attributes = try? FileManager.default.attributesOfItem(atPath: executableURL.path),
+              let modificationDate = attributes[.modificationDate] as? Date else {
+            return nil
+        }
+        return modificationDate
+    }()
+
+    static let upstreamGlucoseDirectURL = URL(staticString: "https://github.com/creepymonster/GlucoseDirectApp")
+
     static var appSupportMail: String? = {
         Bundle.main.infoDictionary?["AppSupportMail"] as? String
     }()
