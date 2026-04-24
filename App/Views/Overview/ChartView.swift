@@ -1075,10 +1075,10 @@ struct ChartView: View {
     private var endMarker: Date? {
         if let lastTimestamp = lastTimestamp, store.state.selectedDate == nil {
             if let zoomLevel = zoomLevel, zoomLevel.level == 1 {
-                return Calendar.current.date(byAdding: .minute, value: 15, to: lastTimestamp)!
+                return Calendar.current.date(byAdding: .minute, value: 15, to: lastTimestamp)
             }
 
-            return Calendar.current.date(byAdding: .hour, value: 1, to: lastTimestamp)!
+            return Calendar.current.date(byAdding: .hour, value: 1, to: lastTimestamp)
         }
 
         return lastTimestamp
@@ -1394,11 +1394,14 @@ struct ChartView: View {
     /// Search within +/- 2 minutes for nearest heart rate sample
     private func nearestHeartRate(at date: Date) -> Int? {
         for offset in 0...2 {
-            let forward = Calendar.current.date(byAdding: .minute, value: offset, to: date)!.toRounded(on: 1, .minute)
-            if let hr = heartRatePointInfos[forward] { return hr }
-            if offset > 0 {
-                let backward = Calendar.current.date(byAdding: .minute, value: -offset, to: date)!.toRounded(on: 1, .minute)
-                if let hr = heartRatePointInfos[backward] { return hr }
+            if let forward = Calendar.current.date(byAdding: .minute, value: offset, to: date)?.toRounded(on: 1, .minute),
+               let hr = heartRatePointInfos[forward] {
+                return hr
+            }
+            if offset > 0,
+               let backward = Calendar.current.date(byAdding: .minute, value: -offset, to: date)?.toRounded(on: 1, .minute),
+               let hr = heartRatePointInfos[backward] {
+                return hr
             }
         }
         return nil
