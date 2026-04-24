@@ -14,6 +14,7 @@ struct GlucoseView: View {
     @State private var lowPulse = false
     @State private var iobResult = IOBResult(total: 0, mealSnackIOB: 0, correctionBasalIOB: 0)
     @State private var iobTimer: Timer?
+    @State private var showingConnectDialog = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -69,6 +70,13 @@ struct GlucoseView: View {
                         .padding(.vertical, 3)
                         .background(AmberTheme.cgaRed)
                         .foregroundColor(AmberTheme.dosBlack)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            DirectNotifications.shared.hapticFeedback()
+                            showingConnectDialog = true
+                        }
+                        .accessibilityLabel("\(warning), tap to reconnect")
+                        .accessibilityHint("Opens reconnect options")
                 } else {
                     Text(verbatim: store.state.glucoseUnit.localizedDescription)
                         .font(DOSTypography.caption)
@@ -148,6 +156,19 @@ struct GlucoseView: View {
         .onChange(of: store.state.latestSensorGlucose?.timestamp) { _ in refreshIOB() }
         .onChange(of: store.state.bolusInsulinPreset) { _ in refreshIOB() }
         .onChange(of: store.state.basalDIAMinutes) { _ in refreshIOB() }
+        .confirmationDialog("Reconnect sensor?", isPresented: $showingConnectDialog, titleVisibility: .visible) {
+            Button("Connect (BLE)") {
+                DirectNotifications.shared.hapticFeedback()
+                store.dispatch(.connectConnection)
+            }
+            Button("Scan Sensor (NFC)") {
+                DirectNotifications.shared.hapticFeedback()
+                store.dispatch(.pairConnection)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Connect: fast reconnect to the existing session. Scan: full NFC re-scan for a new or expired sensor.")
+        }
         .onAppear {
             refreshIOB()
             iobTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { _ in

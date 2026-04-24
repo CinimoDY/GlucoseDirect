@@ -9,6 +9,7 @@ struct SensorLineView: View {
     @EnvironmentObject var store: DirectStore
     @State private var disconnectChipRevealed: Bool = false
     @State private var showingDisconnectAlert: Bool = false
+    @State private var showingConnectDialog: Bool = false
 
     var body: some View {
         HStack(spacing: DOSSpacing.sm) {
@@ -33,6 +34,19 @@ struct SensorLineView: View {
             }
         } message: {
             Text("You'll need to reconnect the sensor to resume glucose readings.")
+        }
+        .confirmationDialog("Reconnect sensor?", isPresented: $showingConnectDialog, titleVisibility: .visible) {
+            Button("Connect (BLE)") {
+                DirectNotifications.shared.hapticFeedback()
+                store.dispatch(.connectConnection)
+            }
+            Button("Scan Sensor (NFC)") {
+                DirectNotifications.shared.hapticFeedback()
+                store.dispatch(.pairConnection)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Connect: fast reconnect to the existing session. Scan: full NFC re-scan for a new or expired sensor.")
         }
     }
 
@@ -72,7 +86,8 @@ struct SensorLineView: View {
             }
         case .disconnected:
             Button {
-                store.dispatch(.connectConnection)
+                DirectNotifications.shared.hapticFeedback()
+                showingConnectDialog = true
             } label: {
                 Text("CONNECT")
                     .font(DOSTypography.caption)
@@ -216,6 +231,7 @@ struct SensorLineView: View {
         switch currentState {
         case .connected:
             return disconnectChipRevealed ? "Double-tap the disconnect chip to disconnect" : "Double-tap to reveal disconnect"
+        case .disconnected: return "Double-tap the connect chip for reconnect options"
         case .bluetoothOff: return "Double-tap to open iOS Bluetooth settings"
         default: return ""
         }
