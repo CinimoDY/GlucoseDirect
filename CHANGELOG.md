@@ -9,6 +9,7 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ### Changed
 - Red "Disconnected" warning chip under the hero glucose value and the sensor-line CONNECT chip now open a confirmation dialog with two reconnect options — Connect (BLE) for a fast reconnect to the paired session, or Scan Sensor (NFC) for a full re-scan (new sensor, expired session, transmitter reset) — DMNC-808.
+- Overview chart zoom picker is now tab-aware. GLUCOSE tab keeps `3h / 6h / 12h / 24h`; TIME IN RANGE and STATISTICS tabs show `7d / 30d / 90d / ALL`. The stats aggregation window updates on selection so TIR / AVG / SD / GMI reflect the picked range. Persisted per-tab via the existing state — DMNC-806.
 
 ## [Build 63] — 2026-04-24
 

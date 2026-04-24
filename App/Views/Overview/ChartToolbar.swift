@@ -26,6 +26,19 @@ struct ChartToolbarView: View {
         }
         .padding(.vertical, DOSSpacing.xs)
         .background(AmberTheme.dosBlack)
+        .onAppear(perform: normaliseDaysIfNeeded)
+        .onChange(of: selectedReportType) { _ in normaliseDaysIfNeeded() }
+    }
+
+    /// When the user switches to TIR or STATISTICS and the persisted `statisticsDays`
+    /// is not one of the day chips exposed here (e.g. user previously picked `3d`
+    /// in the Lists → Statistics picker), bump it to `30d` so a chip always
+    /// reflects the active aggregation window.
+    private func normaliseDaysIfNeeded() {
+        guard selectedReportType != .glucose else { return }
+        let validDays: Set<Int> = Set(DaysZoom.allCases.map(\.days))
+        guard !validDays.contains(store.state.statisticsDays) else { return }
+        store.dispatch(.setStatisticsDays(days: 30))
     }
 
     private var reportTypeRow: some View {
@@ -52,39 +65,72 @@ struct ChartToolbarView: View {
         }
     }
 
+    @ViewBuilder
     private var zoomRow: some View {
+        switch selectedReportType {
+        case .glucose:
+            hoursZoomRow
+        case .timeInRange, .statistics:
+            daysZoomRow
+        }
+    }
+
+    private var hoursZoomRow: some View {
         HStack(spacing: DOSSpacing.md) {
-            ForEach(ZoomLevel.allCases, id: \.self) { zoom in
+            ForEach(HoursZoom.allCases, id: \.self) { zoom in
                 Button {
                     store.dispatch(.setChartZoomLevel(level: zoom.level))
                 } label: {
-                    Text(zoom.label)
-                        .font(isSelectedZoom(zoom) ? DOSTypography.caption.weight(.bold) : DOSTypography.caption)
-                        .foregroundColor(isSelectedZoom(zoom) ? AmberTheme.amber : AmberTheme.amberDark)
-                        .padding(.vertical, DOSSpacing.sm)
-                        .padding(.horizontal, DOSSpacing.xs)
-                        .overlay(alignment: .bottom) {
-                            Rectangle()
-                                .fill(AmberTheme.amber)
-                                .frame(height: 2)
-                                .opacity(isSelectedZoom(zoom) ? 1 : 0)
-                        }
+                    zoomLabel(text: zoom.label, selected: isSelectedHours(zoom))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(zoom.label)
-                .accessibilityAddTraits(isSelectedZoom(zoom) ? [.isSelected, .isButton] : .isButton)
+                .accessibilityAddTraits(isSelectedHours(zoom) ? [.isSelected, .isButton] : .isButton)
             }
         }
     }
 
-    private func isSelectedZoom(_ zoom: ZoomLevel) -> Bool {
+    private var daysZoomRow: some View {
+        HStack(spacing: DOSSpacing.md) {
+            ForEach(DaysZoom.allCases, id: \.self) { zoom in
+                Button {
+                    store.dispatch(.setStatisticsDays(days: zoom.days))
+                } label: {
+                    zoomLabel(text: zoom.label, selected: isSelectedDays(zoom))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(zoom.label)
+                .accessibilityAddTraits(isSelectedDays(zoom) ? [.isSelected, .isButton] : .isButton)
+            }
+        }
+    }
+
+    private func zoomLabel(text: String, selected: Bool) -> some View {
+        Text(text)
+            .font(selected ? DOSTypography.caption.weight(.bold) : DOSTypography.caption)
+            .foregroundColor(selected ? AmberTheme.amber : AmberTheme.amberDark)
+            .padding(.vertical, DOSSpacing.sm)
+            .padding(.horizontal, DOSSpacing.xs)
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .fill(AmberTheme.amber)
+                    .frame(height: 2)
+                    .opacity(selected ? 1 : 0)
+            }
+    }
+
+    private func isSelectedHours(_ zoom: HoursZoom) -> Bool {
         store.state.chartZoomLevel == zoom.level
+    }
+
+    private func isSelectedDays(_ zoom: DaysZoom) -> Bool {
+        store.state.statisticsDays == zoom.days
     }
 }
 
-// MARK: - ZoomLevel
+// MARK: - HoursZoom
 
-private enum ZoomLevel: CaseIterable {
+private enum HoursZoom: CaseIterable {
     case three, six, twelve, twentyFour
 
     var level: Int {
@@ -96,8 +142,34 @@ private enum ZoomLevel: CaseIterable {
         }
     }
 
+    var label: String { "\(level)h" }
+}
+
+// MARK: - DaysZoom
+
+private enum DaysZoom: CaseIterable {
+    case seven, thirty, ninety, all
+
+    /// Sentinel for "All" — large enough that the stats SQL window covers every available reading.
+    /// `getSensorGlucoseStatistics` clamps naturally via `MIN/MAX(timestamp)` against the actual table range.
+    static let allDays = 9999
+
+    var days: Int {
+        switch self {
+        case .seven: return 7
+        case .thirty: return 30
+        case .ninety: return 90
+        case .all: return DaysZoom.allDays
+        }
+    }
+
     var label: String {
-        "\(level)h"
+        switch self {
+        case .seven: return "7d"
+        case .thirty: return "30d"
+        case .ninety: return "90d"
+        case .all: return "ALL"
+        }
     }
 }
 
