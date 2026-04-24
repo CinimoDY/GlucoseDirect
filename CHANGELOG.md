@@ -7,6 +7,9 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+### Changed
+- Red "Disconnected" warning chip under the hero glucose value and the sensor-line CONNECT chip now open a confirmation dialog with two reconnect options — Connect (BLE) for a fast reconnect to the paired session, or Scan Sensor (NFC) for a full re-scan (new sensor, expired session, transmitter reset) — DMNC-808.
+
 ## [Build 63] — 2026-04-24
 
 ### Changed
