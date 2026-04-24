@@ -337,3 +337,21 @@ The spec is "done enough" to hand to follow-up implementation planning when all 
 4. Out-of-scope items have stated reasons + named follow-up Linear issues (DMNC-798/799/800) so nothing is left hanging.
 5. Every relationship in the object map is traceable to specific code — **either** as a typed reference (grep the target type's name in the source type's file) **or** as a documented UUID / factory-method convention (the convention is named in the catalog entry itself). Meal↔PersonalFood is the latter (via `analysisSessionId: UUID`, runtime join at `ChartView.swift:735-736`); Meal↔FavoriteFood is the latter (via `FavoriteFood.from(mealEntry:)` + `.toMealEntry()` factories). Explicitly naming the relationship kind prevents aspirational-spec drift without requiring every link to be strictly typed.
 6. **Accessibility deferral is mechanically honoured.** DMNC-798's PR description must reference a DMNC-797 ticket (existing or new) scoped to VoiceOver labels, Dynamic Type, and tap-target sizing for the new primitives — otherwise accessibility work silently falls off.
+
+## Decision reversal log
+
+The body of this spec is preserved as-written on 2026-04-23. Reversals surfaced by real-device testing are logged here rather than edited inline, so the original reasoning stays legible alongside what replaced it.
+
+### 2026-04-24 — Favourite tap routing
+
+**Original (spec body, Per-feature mapping, Meal row):** *Favourite tap = 1-tap direct log (unchanged). Long-press edit dropped.*
+
+**Reversed to (DMNC-805, refined on DMNC-805 comment thread):** *Favourite tap → staging plate (pre-populated); press-and-hold → insta-log with a visible countdown / loader that makes the commitment obvious.*
+
+**Why.** TestFlight build 63 testing surfaced that barcode-scanned favourites need a review-before-commit moment (wrong label, wrong carbs, wrong portion) that 1-tap-direct-log bypassed. The hybrid restores a single interaction vocabulary across all Meal paths (tap = staging, everywhere) while preserving a muscle-memory insta-log path via press-and-hold. The loader is the confirmation — no hidden affordance, no accidental commit.
+
+**Implications for follow-up issues.**
+
+- **DMNC-796** — the "Model A vs Model B vs hybrid" tap / long-press semantics question is now resolved in favour of the hybrid. Model B's loading-bar idiom is adopted specifically for the favourite insta-log path; other paths use tap-to-staging.
+- **DMNC-800** — scope grows to include (a) routing favourite tap through the decomposed staging surface and (b) a shared `HoldToCommitProgress` sub-component for the insta-log path. The extraction gate for the staging plate itself is unchanged — hold-to-commit is its own primitive.
+- **Hypo treatment path (`filterToHypoTreatments`)** — stays 1-tap direct log. Staging during a hypo event is wrong (shaky-hands, urgency, treatment safety floor). Explicitly documented exception.
