@@ -7,10 +7,12 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 64] — 2026-04-24
+
 ### Changed
-- Red "Disconnected" warning chip under the hero glucose value and the sensor-line CONNECT chip now open a confirmation dialog with two reconnect options — Connect (BLE) for a fast reconnect to the paired session, or Scan Sensor (NFC) for a full re-scan (new sensor, expired session, transmitter reset) — DMNC-808.
-- Overview chart zoom picker is now tab-aware. GLUCOSE tab keeps `3h / 6h / 12h / 24h`; TIME IN RANGE and STATISTICS tabs show `7d / 30d / 90d / ALL`. The stats aggregation window updates on selection so TIR / AVG / SD / GMI reflect the picked range. Persisted per-tab via the existing state — DMNC-806.
-- Favourite chips in the `> QUICK` row now have a bounded width (~120pt) so a long barcode-scanned name can't dominate the row and short labels no longer get clipped by horizontal scroll. Long text truncates with `…`. Favourites gain an optional **Short label** field (editable from the favourite edit sheet) that renders on the chip in place of the full description when set. Existing favourites without a short label keep rendering as today — DMNC-804.
+- Red "Disconnected" warning chip under the hero glucose value and the sensor-line CONNECT chip now open a confirmation dialog with two reconnect options — Connect (BLE) for a fast reconnect to the paired session, or Scan Sensor (NFC) for a full re-scan (new sensor, expired session, transmitter reset) — DMNC-808, PR #27.
+- Overview chart zoom picker is now tab-aware. GLUCOSE tab keeps `3h / 6h / 12h / 24h`; TIME IN RANGE and STATISTICS tabs show `7d / 30d / 90d / ALL`. The stats aggregation window updates on selection so TIR / AVG / SD / GMI reflect the picked range. Persisted per-tab via the existing state — DMNC-806, PR #28.
+- Favourite chips in the `> QUICK` row now have a bounded width (~120pt) so a long barcode-scanned name can't dominate the row and short labels no longer get clipped by horizontal scroll. Long text truncates with `…`. Favourites gain an optional **Short label** field (editable from the favourite edit sheet) that renders on the chip in place of the full description when set. Existing favourites without a short label keep rendering as today — DMNC-804, PR #29.
 
 ## [Build 63] — 2026-04-24
 
