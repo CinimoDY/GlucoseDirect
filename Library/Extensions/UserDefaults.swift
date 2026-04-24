@@ -60,6 +60,8 @@ private enum Keys: String {
     case showScanlines = "libre-direct.settings.show-scanlines"
     case aiConsentFoodPhoto = "libre-direct.settings.ai-consent-food-photo"
     case hasSeenBGRelocationHint = "libre-direct.settings.has-seen-bg-relocation-hint"
+    case appOpenCount = "libre-direct.settings.app-open-count"
+    case appOpenCountFirstRecordedAt = "libre-direct.settings.app-open-count-first-recorded-at"
     case aiConsentDailyDigest = "libre-direct.settings.ai-consent-daily-digest"
     case claudeAPIKeyValid = "libre-direct.settings.claude-api-key-valid"
     case thumbCalibrationMM = "libre-direct.settings.thumb-calibration-mm"
@@ -820,6 +822,24 @@ extension UserDefaults {
         }
         set {
             set(newValue, forKey: Keys.hasSeenBGRelocationHint.rawValue)
+        }
+    }
+
+    var appOpenCount: Int {
+        get {
+            return integer(forKey: Keys.appOpenCount.rawValue)
+        }
+        set {
+            set(newValue, forKey: Keys.appOpenCount.rawValue)
+        }
+    }
+
+    var appOpenCountFirstRecordedAt: Date? {
+        get {
+            return object(forKey: Keys.appOpenCountFirstRecordedAt.rawValue) as? Date
+        }
+        set {
+            set(newValue, forKey: Keys.appOpenCountFirstRecordedAt.rawValue)
         }
     }
 

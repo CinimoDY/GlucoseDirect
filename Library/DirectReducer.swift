@@ -341,6 +341,12 @@ func directReducer(state: inout DirectState, action: DirectAction) {
     case .setHasSeenBGRelocationHint(seen: let seen):
         state.hasSeenBGRelocationHint = seen
 
+    case .incrementAppOpenCount:
+        state.appOpenCount += 1
+        if state.appOpenCountFirstRecordedAt == nil {
+            state.appOpenCountFirstRecordedAt = Date()
+        }
+
     case .setClaudeAPIKeyValid(isValid: let isValid):
         state.claudeAPIKeyValid = isValid
 

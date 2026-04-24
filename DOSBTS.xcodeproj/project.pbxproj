@@ -25,6 +25,7 @@
 		TE01000100000009000A0009 /* SensorTrendTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TE01000200000009000A0009 /* SensorTrendTests.swift */; };
 		TE0100010000000A000A000A /* HasSeenBGRelocationHintReducerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TE0100020000000A000A000A /* HasSeenBGRelocationHintReducerTests.swift */; };
 		TE0100010000000B000A000B /* FavoriteFoodTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TE0100020000000B000A000B /* FavoriteFoodTests.swift */; };
+		TE0100010000000C000A000C /* AppOpenCountReducerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TE0100020000000C000A000C /* AppOpenCountReducerTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -78,6 +79,7 @@
 		TE01000200000009000A0009 /* SensorTrendTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorTrendTests.swift; sourceTree = "<group>"; };
 		TE0100020000000A000A000A /* HasSeenBGRelocationHintReducerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HasSeenBGRelocationHintReducerTests.swift; sourceTree = "<group>"; };
 		TE0100020000000B000A000B /* FavoriteFoodTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteFoodTests.swift; sourceTree = "<group>"; };
+		TE0100020000000C000A000C /* AppOpenCountReducerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppOpenCountReducerTests.swift; sourceTree = "<group>"; };
 		TE01000400000001000A0001 /* DOSBTSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DOSBTSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -207,6 +209,7 @@
 				TE01000200000009000A0009 /* SensorTrendTests.swift */,
 				TE0100020000000A000A000A /* HasSeenBGRelocationHintReducerTests.swift */,
 				TE0100020000000B000A000B /* FavoriteFoodTests.swift */,
+				TE0100020000000C000A000C /* AppOpenCountReducerTests.swift */,
 			);
 			path = DOSBTSTests;
 			sourceTree = "<group>";
@@ -389,6 +392,7 @@
 				TE01000100000009000A0009 /* SensorTrendTests.swift in Sources */,
 				TE0100010000000A000A000A /* HasSeenBGRelocationHintReducerTests.swift in Sources */,
 				TE0100010000000B000A000B /* FavoriteFoodTests.swift in Sources */,
+				TE0100010000000C000A000C /* AppOpenCountReducerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
