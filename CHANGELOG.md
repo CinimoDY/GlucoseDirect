@@ -7,6 +7,9 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+### Added
+- Settings → **Connections** screen consolidates Nightscout, Apple Health & Calendar export, AI Features, and Health Import Sources into one indexed view with per-integration status dots (green = active / grey = inactive / red = needs configuration). Each row drills into the existing settings surface for that integration. Individual rows remain available in the main Settings list — DMNC-810.
+
 ## [Build 64] — 2026-04-24
 
 ### Changed

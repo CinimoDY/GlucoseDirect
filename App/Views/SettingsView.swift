@@ -18,6 +18,13 @@ struct SettingsView: View {
                     Label("Sensor details", systemImage: "sensor.tag.radiowaves.forward.fill")
                 }
 
+                // Connections — consolidated data-sharing index
+                NavigationLink {
+                    SettingsConnectionsView()
+                } label: {
+                    Label("Connections", systemImage: "antenna.radiowaves.left.and.right")
+                }
+
                 // Sensor
                 SensorConnectorSettingsView()
                 SensorConnectionConfigurationView()
