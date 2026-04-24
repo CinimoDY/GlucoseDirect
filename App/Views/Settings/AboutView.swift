@@ -13,12 +13,37 @@ struct AboutView: View {
     @EnvironmentObject var store: DirectStore
 
     var body: some View {
+        Section {
+            Text("DOSBTS is a community-maintained reader app that displays data from Libre sensors. It is **not a medical device**. Treatment decisions must be verified with your CGM manufacturer's reader and your healthcare provider.")
+                .font(DOSTypography.caption)
+                .foregroundColor(AmberTheme.amberDark)
+        } header: {
+            Label("Disclaimer", systemImage: "exclamationmark.shield")
+        }
+
         Section(
             content: {
                 HStack {
                     Text("App version")
                     Spacer()
                     Text(verbatim: "\(DirectConfig.appVersion) (\(DirectConfig.appBuild))")
+                }
+
+                if let buildDate = DirectConfig.appBuildDate {
+                    HStack {
+                        Text("Build date")
+                        Spacer()
+                        Text(verbatim: Self.buildDateFormatter.string(from: buildDate))
+                            .monospacedDigit()
+                    }
+                }
+
+                HStack {
+                    Text("Forked from")
+                    Spacer()
+                    Link("GlucoseDirect", destination: DirectConfig.upstreamGlucoseDirectURL)
+                        .lineLimit(1)
+                        .truncationMode(.head)
                 }
 
                 if let appAuthor = DirectConfig.appAuthor, !appAuthor.isEmpty {
@@ -126,4 +151,11 @@ struct AboutView: View {
     // MARK: Private
 
     @State private var showingDeleteLogsAlert = false
+
+    private static let buildDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter
+    }()
 }
