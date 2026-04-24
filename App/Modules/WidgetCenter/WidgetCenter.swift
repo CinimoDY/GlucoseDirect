@@ -93,6 +93,13 @@ private func widgetCenterMiddleware(service: LazyService<ActivityGlucoseService>
             }
 
         case .addSensorGlucose(glucoseValues: _):
+            // Home-screen widget reload. Critical that this fires from the
+            // middleware (not the view layer) because SwiftUI .onChange
+            // handlers don't run when the app is backgrounded, and new
+            // sensor readings must refresh the widget on the home screen
+            // regardless of scene state.
+            WidgetCenter.shared.reloadAllTimelines()
+
             guard state.glucoseLiveActivity else {
                 break
             }

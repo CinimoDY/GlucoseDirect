@@ -7,6 +7,11 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 67] — 2026-04-24
+
+### Fixed
+- Home-screen glucose widget stayed stale when the app was backgrounded. `WidgetCenter.reloadAllTimelines()` was only wired into `.setAppState(.active)` (scene-becomes-foreground) and `ContentView.onChange(of: latestSensorGlucose)` (which doesn't fire while the scene is backgrounded). New sensor readings arriving via the background BLE path never refreshed the widget until the widget's own 15-minute scheduled tick or the user reopened the app. Widget now reloads on every `.addSensorGlucose` from the middleware so it refreshes regardless of scene state.
+
 ## [Build 66] — 2026-04-24
 
 ### Added
