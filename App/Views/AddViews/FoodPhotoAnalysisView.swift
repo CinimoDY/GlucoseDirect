@@ -223,7 +223,7 @@ struct FoodPhotoAnalysisView: View {
                 }
             },
             header: {
-                Label("Food photo", systemImage: "fork.knife")
+                Label("Food photo", systemImage: "apple.logo")
             },
             footer: {
                 VStack(alignment: .leading, spacing: 4) {
@@ -414,7 +414,7 @@ struct FoodPhotoAnalysisView: View {
                     }
                 },
                 header: {
-                    Label("Meal", systemImage: "fork.knife")
+                    Label("Meal", systemImage: "apple.logo")
                 }
             )
 

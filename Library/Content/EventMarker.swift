@@ -17,7 +17,7 @@ enum EventMarkerType: Hashable {
 
     var icon: String {
         switch self {
-        case .meal: return "fork.knife"
+        case .meal: return "apple.logo"
         case .bolus: return "syringe.fill"
         case .exercise: return "figure.run"
         }

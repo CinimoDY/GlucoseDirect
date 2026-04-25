@@ -7,6 +7,14 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 70] — 2026-04-25
+
+### Changed
+- `AddInsulinView` rebuilt to match the original brainstorm mockup. Drops iOS `Form`/`Section` (which was rendering gray rounded card backgrounds that broke the CGA aesthetic). New layout: flat black background, custom nav bar (Cancel · ADD INSULIN · Add), all-caps amber-dim form labels, full-width chips, big 56pt-tall stepper with separated value/unit display, IOB warning gets its own bordered amber-tint card.
+- `AmberChip` selected state is now solid amber background + black semibold text (was: barely-visible 8%-opacity tint that disappeared against the dark background). Type chips are 44pt tall, preset chips 40pt; both fill available width.
+- `StepperField` redesigned: 56pt tall body, 60pt-wide tinted +/- buttons, 24pt amber value with separate dimmed unit suffix (e.g. `4.5` + `U`). Optional caption underneath ("tap value to type · ±0.5U steps"). Tap-to-type still works.
+- Meal/carbs icon swapped from `fork.knife` to `apple.logo` everywhere: chart markers, sticky [MEAL] action button, food-photo / meal-entry section headers, meals list tab, home-screen widget last-meal row.
+
 ## [Build 69] — 2026-04-25
 
 ### Added

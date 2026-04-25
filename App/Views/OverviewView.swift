@@ -274,7 +274,7 @@ struct OverviewView: View {
 
                 QuickActionButton(
                     title: "MEAL",
-                    icon: "fork.knife",
+                    icon: "apple.logo",
                     action: { activeSheet = .meal }
                 )
             }
