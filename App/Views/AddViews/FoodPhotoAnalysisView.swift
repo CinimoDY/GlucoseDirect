@@ -223,7 +223,11 @@ struct FoodPhotoAnalysisView: View {
                 }
             },
             header: {
-                Label("Food photo", systemImage: "apple.logo")
+                Label {
+                    Text("Food photo")
+                } icon: {
+                    AppleIcon().frame(width: 16, height: 16)
+                }
             },
             footer: {
                 VStack(alignment: .leading, spacing: 4) {
@@ -414,7 +418,11 @@ struct FoodPhotoAnalysisView: View {
                     }
                 },
                 header: {
-                    Label("Meal", systemImage: "apple.logo")
+                    Label {
+                        Text("Meal")
+                    } icon: {
+                        AppleIcon().frame(width: 16, height: 16)
+                    }
                 }
             )
 

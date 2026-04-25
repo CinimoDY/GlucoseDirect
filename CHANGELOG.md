@@ -7,6 +7,11 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 74] — 2026-04-25
+
+### Changed
+- Custom `AppleIcon` now used everywhere previously rendered Apple Inc.'s `apple.logo` SF Symbol: sticky [MEAL] action button, Lists tab → Meals header, Food photo analysis section header, Meal-from-photo result-edit section header, and the home-screen widget's last-meal row. `QuickActionButton` was generalised to accept a `@ViewBuilder icon` closure so callers can pass any icon view (SF Symbol, custom shape, composite). No more Apple Inc. logo anywhere user-facing.
+
 ## [Build 73] — 2026-04-25
 
 ### Added
