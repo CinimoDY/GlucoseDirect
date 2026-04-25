@@ -11,11 +11,13 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 - Unified marker → read overlay → edit flow (DMNC-848). Tapping any chart marker opens a Libre-style list overlay with chronological rows showing IN PROGRESS state, post-meal delta (mg/dL or mmol/L per user setting), confounder icons, PersonalFood glycemic average + observation count, and IOB-at-dose-time. Edit opens a single combined modal with shared time and edit-only semantics; both meal and insulin updates use id-preserving constructors and route through GRDB load-after-write so the chart re-renders cleanly.
 - `AmberChip`, `StepperField`, `QuickTimeChips` design-system primitives for chip rows, numeric steppers, and quick-time selectors used in the redesigned insulin entry surface and combined edit modal.
 - `StagingPlateRowView` extraction shared between `FoodPhotoAnalysisView` and the new `CombinedEntryEditView` — single ratio-link auto-scale + manual override implementation.
+- End-of-line numeric BPM readout on the heart-rate chart overlay (when enabled and HR data is fresh within the last 10 minutes). DMNC-848 D6.
 
 ### Changed
 - `AddInsulinView` replaces the type `Picker` with an `AmberChip` row, the units `TextField` with a `StepperField`, and the time `DatePicker` with `QuickTimeChips` (NOW / −15m / −30m / −1h plus a `⋯` chip opening a custom DatePicker popover). Basal entries still show an `Ends` `DatePicker`. The IOB stacking warning for correction boluses is preserved.
 - Chart marker visual: bare type-coloured icons (22pt) replace the bordered chips with text labels. Cross-type clusters consolidate with stacked icons (max 3) and a count badge in the dominant type's colour. Marker lane height bumped from 32pt to 48pt to honour the larger touch target.
 - Insulin marker tap no longer shows a bare `confirmationDialog` with a Delete option. Delete now requires opening Edit; the read-overlay surface keeps the action gesture light.
+- Heart-rate overlay on the glucose chart is now toggleable (Settings → Apple Health import → "HR overlay on chart"). Default is **off** to give users explicit control. Builds ≤ 62 rendered the magenta HR line whenever HealthKit import was active; users who want that back must enable the toggle. DMNC-848 D6.
 
 ## [Build 68] — 2026-04-24
 
