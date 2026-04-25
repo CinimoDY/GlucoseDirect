@@ -63,19 +63,20 @@ struct ChartView: View {
                     }
                     .buttonStyle(.plain)
 
-                    HStack(spacing: 10) {
+                    HStack {
                         Text(store.state.glucoseUnit.localizedDescription)
                             .font(.system(size: 9, weight: .medium, design: .monospaced))
                             .foregroundColor(AmberTheme.amberMuted)
                         Spacer()
-                        if store.state.showSplitIOB && !iobSeries.isEmpty {
-                            iobLegendChip(color: AmberTheme.cgaCyan, label: "MEAL/SNACK")
-                            iobLegendChip(color: AmberTheme.amberDark, label: "BASAL/CORR")
-                        } else if !iobSeries.isEmpty {
-                            iobLegendChip(color: AmberTheme.cgaCyan, label: "IOB")
-                        }
                         if store.state.showHeartRateOverlay && !store.state.heartRateSeries.isEmpty {
-                            iobLegendChip(color: AmberTheme.cgaMagenta, label: "HR")
+                            HStack(spacing: 3) {
+                                RoundedRectangle(cornerRadius: 1)
+                                    .fill(AmberTheme.cgaMagenta.opacity(0.4))
+                                    .frame(width: 12, height: 2)
+                                Text("HR")
+                                    .font(.system(size: 9, weight: .medium, design: .monospaced))
+                                    .foregroundColor(AmberTheme.cgaMagenta.opacity(0.5))
+                            }
                         }
                     }
 
@@ -404,25 +405,25 @@ struct ChartView: View {
                 let iobCeiling = max(maxIOB, 1.0)
 
                 if store.state.showSplitIOB {
-                    // Bottom layer: meal/snack IOB (cyan)
+                    // Bottom layer: meal/snack bolus IOB — warm green (yellow-leaning)
                     ForEach(Array(iobSeries.enumerated()), id: \.offset) { _, point in
                         AreaMark(
                             x: .value("Time", point.date),
                             yStart: .value("Bottom", 0),
                             yEnd: .value("Meal+Snack IOB", point.mealSnack.map(from: 0...iobCeiling, to: 0...Double(alarmLow)))
                         )
-                        .foregroundStyle(AmberTheme.cgaCyan.opacity(0.4))
+                        .foregroundStyle(AmberTheme.iobBolus.opacity(0.45))
                         .interpolationMethod(.monotone)
                     }
 
-                    // Top layer: basal+correction IOB stacked above meal/snack (amber-dark)
+                    // Top layer: basal+correction IOB stacked above bolus — cool green (blue-leaning)
                     ForEach(Array(iobSeries.enumerated()), id: \.offset) { _, point in
                         AreaMark(
                             x: .value("Time", point.date),
                             yStart: .value("Meal+Snack IOB", point.mealSnack.map(from: 0...iobCeiling, to: 0...Double(alarmLow))),
                             yEnd: .value("Total IOB", point.total.map(from: 0...iobCeiling, to: 0...Double(alarmLow)))
                         )
-                        .foregroundStyle(AmberTheme.amberDark.opacity(0.55))
+                        .foregroundStyle(AmberTheme.iobBasal.opacity(0.5))
                         .interpolationMethod(.monotone)
                     }
                 } else {
@@ -431,7 +432,7 @@ struct ChartView: View {
                             x: .value("Time", point.date),
                             y: .value("IOB", point.total.map(from: 0...iobCeiling, to: 0...Double(alarmLow)))
                         )
-                        .foregroundStyle(AmberTheme.cgaCyan.opacity(0.3))
+                        .foregroundStyle(AmberTheme.iobBolus.opacity(0.4))
                         .interpolationMethod(.monotone)
                     }
                 }
@@ -829,18 +830,7 @@ struct ChartView: View {
         ((bpm - 40) / (200 - 40)) * (chartMinimum - alarmHigh) + alarmHigh
     }
 
-    private func iobLegendChip(color: Color, label: String) -> some View {
-        HStack(spacing: 3) {
-            RoundedRectangle(cornerRadius: 1)
-                .fill(color.opacity(0.55))
-                .frame(width: 10, height: 6)
-            Text(label)
-                .font(.system(size: 9, weight: .medium, design: .monospaced))
-                .foregroundColor(color.opacity(0.7))
-        }
-    }
-
-    private var startMarker: Date? {
+private var startMarker: Date? {
         return firstTimestamp
     }
 

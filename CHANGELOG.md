@@ -7,6 +7,12 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 72] — 2026-04-25
+
+### Changed
+- Split-IOB colors changed: bolus (meal/snack) is now warm green (#8CBF40, yellow-leaning), basal+correction is cool green (#40B38C, blue-leaning). Both clearly green so they read as "two flavours of IOB" but distinguishable at a glance. Replaces the previous brown amber-dark for basal which was nearly invisible against the dark chart background.
+- Removed the IOB legend chips from the chart header — the warm/cool green split is self-explanatory and the labels added clutter for nothing. HR legend chip kept since magenta-on-amber-chart isn't obvious without it.
+
 ## [Build 71] — 2026-04-25
 
 ### Changed
