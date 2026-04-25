@@ -203,37 +203,18 @@ struct ChartView: View {
     private var TimeInRangeContent: some View {
         VStack(spacing: DOSSpacing.lg) {
             if let stats = store.state.glucoseStatistics {
-                // Hero: TIR percentage
-                VStack(spacing: 2) {
-                    HStack(alignment: .firstTextBaseline, spacing: 4) {
-                        Text("\(Int(stats.tir))")
-                            .font(.system(size: 72, weight: .bold, design: .monospaced))
-                            .foregroundStyle(tirColor(stats.tir))
-                        Text("%")
-                            .font(.system(size: 28, weight: .medium, design: .monospaced))
-                            .foregroundStyle(tirColor(stats.tir).opacity(0.6))
-                    }
-                    Text("TIME IN RANGE")
-                        .font(.system(size: 11, weight: .medium, design: .monospaced))
-                        .tracking(0.6)
-                        .foregroundStyle(AmberTheme.amberDark)
-                }
+                HeroStatView(
+                    value: "\(Int(stats.tir))%",
+                    label: "TIME IN RANGE",
+                    valueColor: tirColor(stats.tir)
+                )
 
-                // Stacked distribution bar (TBR | TIR | TAR)
-                stackedTIRBar(tbr: stats.tbr, tir: stats.tir, tar: stats.tar)
+                StackedTIRBar(tbr: stats.tbr, tir: stats.tir, tar: stats.tar)
                     .padding(.horizontal, DOSSpacing.md)
 
-                // Three-up numeric breakdown
-                HStack(alignment: .top, spacing: 0) {
-                    tirStat(label: "BELOW", value: stats.tbr, color: AmberTheme.cgaRed)
-                    Spacer()
-                    tirStat(label: "IN RANGE", value: stats.tir, color: AmberTheme.cgaGreen)
-                    Spacer()
-                    tirStat(label: "ABOVE", value: stats.tar, color: AmberTheme.amber)
-                }
-                .padding(.horizontal, DOSSpacing.md)
+                TIRBreakdownRow(tbr: stats.tbr, tir: stats.tir, tar: stats.tar)
+                    .padding(.horizontal, DOSSpacing.md)
 
-                // Target range + days footer
                 VStack(spacing: 4) {
                     Text("TARGET \(store.state.alarmLow)–\(store.state.alarmHigh) \(store.state.glucoseUnit.localizedDescription.uppercased())")
                         .font(.system(size: 10, design: .monospaced))
@@ -251,77 +232,22 @@ struct ChartView: View {
         .padding(.vertical, DOSSpacing.md)
     }
 
-    private func tirColor(_ tir: Double) -> Color {
-        if tir >= 70 { return AmberTheme.cgaGreen }
-        if tir >= 50 { return AmberTheme.amber }
-        return AmberTheme.cgaRed
-    }
-
-    private func stackedTIRBar(tbr: Double, tir: Double, tar: Double) -> some View {
-        GeometryReader { geo in
-            HStack(spacing: 0) {
-                Rectangle()
-                    .fill(AmberTheme.cgaRed)
-                    .frame(width: max(0, geo.size.width * CGFloat(tbr / 100.0)))
-                Rectangle()
-                    .fill(AmberTheme.cgaGreen)
-                    .frame(width: max(0, geo.size.width * CGFloat(tir / 100.0)))
-                Rectangle()
-                    .fill(AmberTheme.amber)
-                    .frame(width: max(0, geo.size.width * CGFloat(tar / 100.0)))
-            }
-        }
-        .frame(height: 28)
-        .clipShape(RoundedRectangle(cornerRadius: 3))
-        .overlay(
-            RoundedRectangle(cornerRadius: 3)
-                .stroke(AmberTheme.amberDark.opacity(0.4), lineWidth: 0.5)
-        )
-    }
-
-    private func tirStat(label: String, value: Double, color: Color) -> some View {
-        VStack(spacing: 4) {
-            Text("\(Int(value))%")
-                .font(.system(size: 22, weight: .semibold, design: .monospaced))
-                .foregroundStyle(color)
-            Text(label)
-                .font(.system(size: 9, weight: .medium, design: .monospaced))
-                .tracking(0.5)
-                .foregroundStyle(AmberTheme.amberDark)
-        }
-    }
-
     // MARK: - Statistics Content
 
     private var StatisticsContent: some View {
         VStack(spacing: DOSSpacing.md) {
             if let stats = store.state.glucoseStatistics {
-                // Hero: AVG glucose
-                VStack(spacing: 2) {
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(String(format: "%.0f", stats.avg))
-                            .font(.system(size: 56, weight: .bold, design: .monospaced))
-                            .foregroundStyle(AmberTheme.amber)
-                        Text(store.state.glucoseUnit.localizedDescription)
-                            .font(.system(size: 14, weight: .medium, design: .monospaced))
-                            .foregroundStyle(AmberTheme.amberDark)
-                    }
-                    Text("AVERAGE")
-                        .font(.system(size: 11, weight: .medium, design: .monospaced))
-                        .tracking(0.6)
-                        .foregroundStyle(AmberTheme.amberDark)
-                }
+                HeroStatView(
+                    value: String(format: "%.0f", stats.avg),
+                    unit: store.state.glucoseUnit.localizedDescription,
+                    label: "AVERAGE"
+                )
                 .padding(.bottom, DOSSpacing.xs)
 
-                // 2x2 grid: GMI · TIR / SD · CV
                 VStack(spacing: DOSSpacing.sm) {
                     HStack(spacing: DOSSpacing.sm) {
-                        statCard(
-                            label: "GMI",
-                            value: String(format: "%.1f%%", stats.gmi),
-                            help: "≈ A1C"
-                        )
-                        statCard(
+                        StatCard(label: "GMI", value: String(format: "%.1f%%", stats.gmi), help: "≈ A1C")
+                        StatCard(
                             label: "TIR",
                             value: String(format: "%.0f%%", stats.tir),
                             valueColor: tirColor(stats.tir),
@@ -329,12 +255,12 @@ struct ChartView: View {
                         )
                     }
                     HStack(spacing: DOSSpacing.sm) {
-                        statCard(
+                        StatCard(
                             label: "SD",
                             value: String(format: "%.1f", stats.stdev),
                             help: store.state.glucoseUnit.localizedDescription
                         )
-                        statCard(
+                        StatCard(
                             label: "CV",
                             value: String(format: "%.1f%%", stats.cv),
                             valueColor: stats.cv <= 33 ? AmberTheme.cgaGreen : AmberTheme.amber,
@@ -344,7 +270,6 @@ struct ChartView: View {
                 }
                 .padding(.horizontal, DOSSpacing.md)
 
-                // Footer
                 HStack {
                     Text("\(stats.readings) readings")
                     Spacer()
@@ -360,40 +285,6 @@ struct ChartView: View {
             }
         }
         .padding(.vertical, DOSSpacing.md)
-    }
-
-    private func tirHelp(_ tir: Double) -> String {
-        if tir >= 70 { return "On target" }
-        if tir >= 50 { return "Close" }
-        return "Off target"
-    }
-
-    private func statCard(label: String, value: String, valueColor: Color = AmberTheme.amberLight, help: String? = nil) -> some View {
-        VStack(spacing: 6) {
-            Text(label)
-                .font(.system(size: 10, weight: .medium, design: .monospaced))
-                .tracking(0.6)
-                .foregroundStyle(AmberTheme.amberDark)
-            Text(value)
-                .font(.system(size: 24, weight: .semibold, design: .monospaced))
-                .foregroundStyle(valueColor)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-            if let help {
-                Text(help)
-                    .font(.system(size: 9, design: .monospaced))
-                    .foregroundStyle(AmberTheme.amberDark.opacity(0.7))
-                    .lineLimit(1)
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, DOSSpacing.sm)
-        .padding(.horizontal, DOSSpacing.xs)
-        .background(AmberTheme.amber.opacity(0.04))
-        .overlay(
-            RoundedRectangle(cornerRadius: 3)
-                .stroke(AmberTheme.amberDark.opacity(0.4), lineWidth: 1)
-        )
     }
 
     var ChartView: some View {

@@ -17,7 +17,7 @@ struct SelectedDatePager: View {
             }, label: {
                 Image(systemName: "arrowshape.turn.up.backward")
             }).opacity((store.state.selectedDate ?? Date()).startOfDay > store.state.minSelectedDate.startOfDay ? 0.5 : 0)
-            
+
             Group {
                 if let selectedDate = store.state.selectedDate {
                     Text(verbatim: selectedDate.toLocalDate())
@@ -30,7 +30,7 @@ struct SelectedDatePager: View {
             .onTapGesture {
                 store.dispatch(.setSelectedDate(selectedDate: nil))
             }
-            
+
             Button(action: {
                 setSelectedDate(addDays: +1)
             }, label: {
@@ -38,7 +38,7 @@ struct SelectedDatePager: View {
             }).opacity(store.state.selectedDate == nil ? 0 : 0.5)
         }
     }
-    
+
     private func setSelectedDate(addDays: Int) {
         store.dispatch(.setSelectedDate(selectedDate: Calendar.current.date(byAdding: .day, value: +addDays, to: store.state.selectedDate ?? Date())))
 
@@ -53,165 +53,164 @@ struct StatisticsView: View {
 
     var body: some View {
         if let glucoseStatistics = store.state.glucoseStatistics, glucoseStatistics.maxDays >= 3 {
-            Section(
-                content: {
-                    HStack {
-                        Text("StatisticsPeriod")
-                        Spacer()
+            Section {
+                VStack(alignment: .leading, spacing: DOSSpacing.md) {
+                    periodPicker(stats: glucoseStatistics)
 
-                        ForEach(Config.chartLevels, id: \.days) { level in
-                            Spacer()
-                            Button(
-                                action: {
-                                    DirectNotifications.shared.hapticFeedback()
-                                    store.dispatch(.setStatisticsDays(days: level.days))
-                                },
-                                label: {
-                                    Circle()
-                                        .if(isSelectedChartLevel(days: level.days)) {
-                                            $0.fill(AmberTheme.amberLight)
-                                        } else: {
-                                            $0.stroke(AmberTheme.amberLight)
-                                        }
-                                        .frame(width: 12, height: 12)
+                    // Hero AVG glucose, mirrors the Overview chart's Statistics tab.
+                    if let avg = glucoseStatistics.avg.toInteger() {
+                        HeroStatView(
+                            value: "\(avg)",
+                            unit: store.state.glucoseUnit.localizedDescription,
+                            label: "AVERAGE"
+                        )
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, DOSSpacing.xs)
+                    }
 
-                                    Text(verbatim: level.name)
-                                        .font(DOSTypography.bodySmall)
-                                        .foregroundColor(AmberTheme.amberLight)
-                                }
+                    // 2x2 stat grid: GMI · TIR / SD · CV.
+                    VStack(spacing: DOSSpacing.sm) {
+                        HStack(spacing: DOSSpacing.sm) {
+                            StatCard(
+                                label: "GMI",
+                                value: glucoseStatistics.gmi.asPercent(0.1),
+                                help: "≈ A1C"
                             )
-                            .disabled(level.days > glucoseStatistics.maxDays)
-                            .lineLimit(1)
-                            .buttonStyle(.plain)
+                            StatCard(
+                                label: "TIR",
+                                value: glucoseStatistics.tir.asPercent(),
+                                valueColor: tirColor(glucoseStatistics.tir),
+                                help: tirHelp(glucoseStatistics.tir)
+                            )
+                        }
+                        HStack(spacing: DOSSpacing.sm) {
+                            if let stdev = glucoseStatistics.stdev.toInteger() {
+                                StatCard(
+                                    label: "SD",
+                                    value: stdev.asGlucose(glucoseUnit: store.state.glucoseUnit),
+                                    help: store.state.glucoseUnit.localizedDescription
+                                )
+                            } else {
+                                StatCard(label: "SD", value: "—")
+                            }
+                            StatCard(
+                                label: "CV",
+                                value: glucoseStatistics.cv.asPercent(),
+                                valueColor: glucoseStatistics.cv <= 33 ? AmberTheme.cgaGreen : AmberTheme.amber,
+                                help: glucoseStatistics.cv <= 33 ? "Stable" : "Variable"
+                            )
                         }
                     }
 
-                    Group {
-                        if DirectConfig.isDebug {
-                            HStack {
-                                Text("StatisticsPeriod")
-                                Spacer()
-                                Text(verbatim: "\(glucoseStatistics.fromTimestamp.toLocalDate()) - \(glucoseStatistics.toTimestamp.toLocalDate())")
-                            }
-                        }
-                        
-                        if let avg = glucoseStatistics.avg.toInteger() {
-                            VStack(alignment: .leading, spacing: 10) {
-                                HStack {
-                                    Text(verbatim: "AVG")
-                                    Spacer()
-                                    Text(avg.asGlucose(glucoseUnit: store.state.glucoseUnit, withUnit: true))
-                                }
-                                
-                                if store.state.showAnnotations {
-                                    Text("Average (AVG) is an overall measure of blood sugars over a period of time, offering a single high-level view of where glucose has been.")
-                                        .font(DOSTypography.caption)
-                                        .foregroundColor(AmberTheme.amberMuted)
-                                }
-                            }
-                        }
-
-                        if let stdev = glucoseStatistics.stdev.toInteger() {
-                            VStack(alignment: .leading, spacing: 10) {
-                                HStack {
-                                    Text(verbatim: "SD")
-                                    Spacer()
-                                    Text(stdev.asGlucose(glucoseUnit: store.state.glucoseUnit, withUnit: true))
-                                }
-                                
-                                if store.state.showAnnotations {
-                                    Text("Standard Deviation (SD) is a measure of the spread in glucose readings around the average - bouncing between highs and lows results in a larger SD. The goal is the lowest SD possible, which would reflect a steady glucose level with minimal swings.")
-                                        .font(DOSTypography.caption)
-                                        .foregroundColor(AmberTheme.amberMuted)
-                                }
-                            }
-                        }
-
-                        if DirectConfig.isDebug {
-                            VStack(alignment: .leading, spacing: 10) {
-                                HStack {
-                                    Text(verbatim: "CV")
-                                    Spacer()
-                                    Text(glucoseStatistics.cv.asPercent())
-                                }
-
-                                if store.state.showAnnotations {
-                                    Text("Coefficient of variation (CV) is defined as the ratio of the standard deviation to the mean. Generally speaking, most experts like to see a CV of 33% or lower, which is considered a marker of “stable” glucose levels. But take note, very young patients with diabetes tend to have higher variability than adults.")
-                                        .font(DOSTypography.caption)
-                                        .foregroundColor(AmberTheme.amberMuted)
-                                }
-                            }
-                        }
-
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack {
-                                Text(verbatim: "GMI")
-                                Spacer()
-                                Text(glucoseStatistics.gmi.asPercent(0.1))
-                            }
-
-                            if store.state.showAnnotations {
-                                Text("Glucose Management Indicator (GMI) is an replacement for \"estimated HbA1c\" for patients using continuous glucose monitoring.")
-                                    .font(DOSTypography.caption)
-                                    .foregroundColor(AmberTheme.amberMuted)
-                            }
-                        }
-
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack {
-                                Text(verbatim: "TIR")
-                                Spacer()
-                                Text(glucoseStatistics.tir.asPercent())
-                            }
-
-                            if store.state.showAnnotations {
-                                Text("Time in Range (TIR) or the percentage of time spent in the target glucose range between \(store.state.alarmLow.asGlucose(glucoseUnit: store.state.glucoseUnit)) - \(store.state.alarmHigh.asGlucose(glucoseUnit: store.state.glucoseUnit, withUnit: true)).")
-                                    .font(DOSTypography.caption)
-                                    .foregroundColor(AmberTheme.amberMuted)
-                            }
-                        }
-
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack {
-                                Text(verbatim: "TBR")
-                                Spacer()
-                                Text(glucoseStatistics.tbr.asPercent())
-                            }
-
-                            if store.state.showAnnotations {
-                                Text("Time below Range (TBR) or the percentage of time spent below the target glucose of \(store.state.alarmLow.asGlucose(glucoseUnit: store.state.glucoseUnit, withUnit: true)).")
-                                    .font(DOSTypography.caption)
-                                    .foregroundColor(AmberTheme.amberMuted)
-                            }
-                        }
-
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack {
-                                Text(verbatim: "TAR")
-                                Spacer()
-                                Text(glucoseStatistics.tar.asPercent())
-                            }
-
-                            if store.state.showAnnotations {
-                                Text("Time above Range (TAR) or the percentage of time spent above the target glucose of \(store.state.alarmHigh.asGlucose(glucoseUnit: store.state.glucoseUnit, withUnit: true)).")
-                                    .font(DOSTypography.caption)
-                                    .foregroundColor(AmberTheme.amberMuted)
-                            }
-                        }
-                    }.onTapGesture(count: 2) {
-                        store.dispatch(.setShowAnnotations(showAnnotations: !store.state.showAnnotations))
+                    // Distribution row: stacked TBR/TIR/TAR bar + numeric breakdown.
+                    VStack(spacing: DOSSpacing.sm) {
+                        StackedTIRBar(
+                            tbr: glucoseStatistics.tbr,
+                            tir: glucoseStatistics.tir,
+                            tar: glucoseStatistics.tar
+                        )
+                        TIRBreakdownRow(
+                            tbr: glucoseStatistics.tbr,
+                            tir: glucoseStatistics.tir,
+                            tar: glucoseStatistics.tar
+                        )
                     }
-                },
-                header: {
-                    Label("Statistics (\(glucoseStatistics.days.description) days)", systemImage: "lightbulb")
+
+                    // Target range + period footer.
+                    VStack(spacing: 4) {
+                        Text("TARGET \(store.state.alarmLow)–\(store.state.alarmHigh) \(store.state.glucoseUnit.localizedDescription.uppercased())")
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundStyle(AmberTheme.amberDark.opacity(0.7))
+                        Text("\(glucoseStatistics.readings) readings · \(glucoseStatistics.days) of \(glucoseStatistics.maxDays) days")
+                            .font(DOSTypography.caption)
+                            .foregroundStyle(AmberTheme.amberDark)
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    if store.state.showAnnotations {
+                        annotationLegend(stats: glucoseStatistics)
+                    }
                 }
-            )
+                .padding(.vertical, DOSSpacing.xs)
+                .onTapGesture(count: 2) {
+                    store.dispatch(.setShowAnnotations(showAnnotations: !store.state.showAnnotations))
+                }
+            } header: {
+                Label("Statistics (\(glucoseStatistics.days.description) days)", systemImage: "lightbulb")
+            } footer: {
+                Text("Double-tap to toggle annotations.")
+                    .font(DOSTypography.caption)
+                    .foregroundStyle(AmberTheme.amberDark.opacity(0.6))
+            }
 
             UsageSection(stats: glucoseStatistics)
         }
     }
 
     // MARK: Private
+
+    /// Period chips (3d / 7d / 30d / 90d) — kept above the hero so users can change scope.
+    @ViewBuilder
+    private func periodPicker(stats: GlucoseStatistics) -> some View {
+        HStack(spacing: DOSSpacing.sm) {
+            Text("PERIOD")
+                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                .tracking(0.6)
+                .foregroundStyle(AmberTheme.amberDark)
+
+            Spacer()
+
+            ForEach(Config.chartLevels, id: \.days) { level in
+                Button(action: {
+                    DirectNotifications.shared.hapticFeedback()
+                    store.dispatch(.setStatisticsDays(days: level.days))
+                }) {
+                    Text(level.name)
+                        .font(.system(size: 11, weight: isSelectedChartLevel(days: level.days) ? .bold : .regular, design: .monospaced))
+                        .foregroundStyle(isSelectedChartLevel(days: level.days) ? Color.black : AmberTheme.amber)
+                        .padding(.horizontal, DOSSpacing.sm)
+                        .padding(.vertical, 6)
+                        .background(
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(isSelectedChartLevel(days: level.days) ? AmberTheme.amber : Color.clear)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 3)
+                                .stroke(AmberTheme.amberDark, lineWidth: 1)
+                        )
+                }
+                .disabled(level.days > stats.maxDays)
+                .opacity(level.days > stats.maxDays ? 0.4 : 1)
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    /// Annotation legend (visible only when `showAnnotations` is on). Plain
+    /// caption text; no separate cards. Mirrors the long-form descriptions
+    /// the previous version put inline against each row.
+    @ViewBuilder
+    private func annotationLegend(stats: GlucoseStatistics) -> some View {
+        VStack(alignment: .leading, spacing: DOSSpacing.sm) {
+            annotation(label: "GMI", text: "Glucose Management Indicator. Replaces \"estimated HbA1c\" for users on continuous glucose monitoring.")
+            annotation(label: "TIR", text: "Time in Range — % of time spent in the target glucose range \(store.state.alarmLow.asGlucose(glucoseUnit: store.state.glucoseUnit))–\(store.state.alarmHigh.asGlucose(glucoseUnit: store.state.glucoseUnit, withUnit: true)).")
+            annotation(label: "SD", text: "Standard Deviation — spread of readings around the average. Lower SD = steadier glucose.")
+            annotation(label: "CV", text: "Coefficient of Variation = SD ÷ mean. Most experts target ≤33% as \"stable\".")
+        }
+        .padding(.top, DOSSpacing.xs)
+    }
+
+    private func annotation(label: String, text: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                .tracking(0.6)
+                .foregroundStyle(AmberTheme.amber)
+            Text(text)
+                .font(DOSTypography.caption)
+                .foregroundStyle(AmberTheme.amberMuted)
+        }
+    }
 
     private enum Config {
         static let chartLevels: [ChartLevel] = [
@@ -230,7 +229,6 @@ struct StatisticsView: View {
         if let chartLevel = chartLevel, chartLevel.days == days {
             return true
         }
-
         return false
     }
 }
@@ -251,11 +249,18 @@ struct UsageSection: View {
 
     var body: some View {
         Section {
-            if let viewsPerDay = viewsPerDay {
-                row(label: "Views / day", value: "\(viewsPerDay)")
+            HStack(spacing: DOSSpacing.sm) {
+                if let viewsPerDay {
+                    StatCard(label: "VIEWS / DAY", value: "\(viewsPerDay)")
+                }
+                StatCard(label: "TOTAL VIEWS", value: "\(store.state.appOpenCount)")
+                StatCard(
+                    label: "SENSOR UPTIME",
+                    value: sensorUptimeLabel,
+                    valueColor: sensorUptimeColor
+                )
             }
-            row(label: "Total views", value: "\(store.state.appOpenCount)")
-            row(label: "Sensor uptime", value: sensorUptimeLabel)
+            .padding(.vertical, DOSSpacing.xs)
         } header: {
             Label("Usage", systemImage: "waveform.path.ecg.rectangle")
         }
@@ -265,14 +270,12 @@ struct UsageSection: View {
         HStack {
             Text(label)
             Spacer()
-            Text(value)
-                .monospacedDigit()
+            Text(value).monospacedDigit()
         }
     }
 
     /// Views-per-day averaged from `appOpenCount` over the days since first
-    /// tracking began. Returns nil if tracking hasn't started yet (first
-    /// launch before this build).
+    /// tracking began. Returns nil if tracking hasn't started yet.
     private var viewsPerDay: Int? {
         guard let firstRecordedAt = store.state.appOpenCountFirstRecordedAt else { return nil }
         let elapsed = Date().timeIntervalSince(firstRecordedAt)
@@ -280,12 +283,8 @@ struct UsageSection: View {
         return Int((Double(store.state.appOpenCount) / days).rounded())
     }
 
-    /// Sensor uptime over the current `statisticsDays` window — the ratio of
-    /// actual readings to the expected count for that window, assuming the
-    /// sensor emits one reading per minute (standard Libre cadence).
-    ///
-    /// Clamped to 0-100%. If there's effectively zero expected data (fresh
-    /// install, tiny window) we return "—" rather than a divide-by-zero.
+    /// Sensor uptime over the current `statisticsDays` window — actual readings
+    /// vs. expected at one-per-minute. Clamped to 0–100%.
     private var sensorUptimeLabel: String {
         let actual = Double(stats.readings)
         let windowDays = max(Double(store.state.statisticsDays), 1)
@@ -294,5 +293,13 @@ struct UsageSection: View {
         guard expected > 0 else { return "—" }
         let pct = min(max(actual / expected * 100.0, 0), 100)
         return "\(Int(pct.rounded()))%"
+    }
+
+    private var sensorUptimeColor: Color {
+        let raw = sensorUptimeLabel.replacingOccurrences(of: "%", with: "")
+        guard let pct = Int(raw) else { return AmberTheme.amberLight }
+        if pct >= 90 { return AmberTheme.cgaGreen }
+        if pct >= 70 { return AmberTheme.amber }
+        return AmberTheme.cgaRed
     }
 }

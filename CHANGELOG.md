@@ -7,6 +7,18 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 76] — 2026-04-25
+
+### Changed
+- Lists tab → Statistics section redesigned to match the Overview chart's STATISTICS tab vocabulary: hero AVG number with unit, 2×2 stat grid (GMI · TIR / SD · CV) with interpretive helpers ("Stable" / "Variable", "On target" / "Close" / "Off target"), stacked TBR/TIR/TAR distribution bar with three-up numeric breakdown, target range + readings/days footer, period chips (3d/7d/30d/90d) styled to match other AmberChip selections. Annotations toggle (double-tap) keeps the long-form GMI/TIR/SD/CV definitions for first-time readers.
+- Lists tab → Usage section: views/day, total views, sensor uptime now render as 3-up `StatCard` row matching the rest of the stats vocabulary. Sensor uptime is colour-coded by clinical thresholds (≥90% green, ≥70% amber, otherwise red).
+- Settings main list dropped iOS `.grouped` chrome: `.listStyle(.plain)`, hidden scroll background, dosBlack background, amber-dim row separators. Per-section sub-views still render their own iOS `Section` content; main-list visual is closer to a flat CGA list.
+- Daily Digest 3-column stat grid uses the same `StatCard` primitive (TIR/LOWS/HIGHS/AVG/CARBS/INSULIN). TIR card now shows on-target/close/off-target hint; HIGHS amber colour matches the chart palette instead of the previous one-off RGB literal.
+- Overview hero IOB label is bigger and easier to read: 14pt monospaced numeric values vs the old 12pt at 50% opacity, "BOLUS" / "BASAL" subscript labels (in the matching warm/cool green from the chart's split-IOB layers) replace the cryptic `M`/`B` suffixes. Color disambiguation matches the chart so the eye carries one mapping across both surfaces.
+
+### Added
+- `Library/DesignSystem/Components/StatsComponents.swift` extracts the shared stats primitives (`HeroStatView`, `StatCard`, `StackedTIRBar`, `TIRBreakdownRow`, `tirColor`, `tirHelp`) so the Overview chart, Lists tab, and Daily Digest all use the same vocabulary. Reduces drift if any one of these surfaces changes.
+
 ## [Build 75] — 2026-04-25
 
 ### Changed

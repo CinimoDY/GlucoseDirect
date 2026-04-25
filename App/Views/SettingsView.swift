@@ -11,49 +11,46 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
-                // Sensor details — pushes full sensor controls screen
-                NavigationLink {
-                    SensorDetailView()
-                } label: {
-                    Label("Sensor details", systemImage: "sensor.tag.radiowaves.forward.fill")
+                Group {
+                    NavigationLink {
+                        SensorDetailView()
+                    } label: {
+                        Label("Sensor details", systemImage: "sensor.tag.radiowaves.forward.fill")
+                    }
+
+                    NavigationLink {
+                        SettingsConnectionsView()
+                    } label: {
+                        Label("Connections", systemImage: "antenna.radiowaves.left.and.right")
+                    }
+
+                    SensorConnectorSettingsView()
+                    SensorConnectionConfigurationView()
+
+                    GlucoseSettingsView()
+                    AlarmSettingsView()
+                    InsulinSettingsView()
+
+                    NightscoutSettingsView()
+                    AppleExportSettingsView()
+
+                    AISettingsView()
+                    BellmanSettingsView()
+                    CalibrationSettingsView()
+                    AdditionalSettingsView()
+
+                    AboutView()
                 }
-
-                // Connections — consolidated data-sharing index
-                NavigationLink {
-                    SettingsConnectionsView()
-                } label: {
-                    Label("Connections", systemImage: "antenna.radiowaves.left.and.right")
-                }
-
-                // Sensor
-                SensorConnectorSettingsView()
-                SensorConnectionConfigurationView()
-
-                // Glucose & Alarms
-                Section {}.listRowBackground(Color.clear)
-                GlucoseSettingsView()
-                AlarmSettingsView()
-                InsulinSettingsView()
-
-                // Export
-                Section {}.listRowBackground(Color.clear)
-                NightscoutSettingsView()
-                AppleExportSettingsView()
-
-                // AI & Extras
-                Section {}.listRowBackground(Color.clear)
-                AISettingsView()
-                BellmanSettingsView()
-                CalibrationSettingsView()
-                AdditionalSettingsView()
-
-                // About
-                Section {}.listRowBackground(Color.clear)
-                AboutView()
+                .listRowBackground(AmberTheme.dosBlack)
+                .listRowSeparatorTint(AmberTheme.amberDark.opacity(0.3))
             }
-            .listStyle(.grouped)
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(AmberTheme.dosBlack)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(AmberTheme.dosBlack, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
         }
     }
 }
