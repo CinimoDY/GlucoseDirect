@@ -7,6 +7,16 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+### Added
+- Unified marker → read overlay → edit flow (DMNC-848). Tapping any chart marker opens a Libre-style list overlay with chronological rows showing IN PROGRESS state, post-meal delta (mg/dL or mmol/L per user setting), confounder icons, PersonalFood glycemic average + observation count, and IOB-at-dose-time. Edit opens a single combined modal with shared time and edit-only semantics; both meal and insulin updates use id-preserving constructors and route through GRDB load-after-write so the chart re-renders cleanly.
+- `AmberChip`, `StepperField`, `QuickTimeChips` design-system primitives for chip rows, numeric steppers, and quick-time selectors used in the redesigned insulin entry surface and combined edit modal.
+- `StagingPlateRowView` extraction shared between `FoodPhotoAnalysisView` and the new `CombinedEntryEditView` — single ratio-link auto-scale + manual override implementation.
+
+### Changed
+- `AddInsulinView` replaces the type `Picker` with an `AmberChip` row, the units `TextField` with a `StepperField`, and the time `DatePicker` with `QuickTimeChips` (NOW / −15m / −30m / −1h plus a `⋯` chip opening a custom DatePicker popover). Basal entries still show an `Ends` `DatePicker`. The IOB stacking warning for correction boluses is preserved.
+- Chart marker visual: bare type-coloured icons (22pt) replace the bordered chips with text labels. Cross-type clusters consolidate with stacked icons (max 3) and a count badge in the dominant type's colour. Marker lane height bumped from 32pt to 48pt to honour the larger touch target.
+- Insulin marker tap no longer shows a bare `confirmationDialog` with a Delete option. Delete now requires opening Edit; the read-overlay surface keeps the action gesture light.
+
 ## [Build 68] — 2026-04-24
 
 ### Changed
