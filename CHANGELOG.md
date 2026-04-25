@@ -7,6 +7,8 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 69] — 2026-04-25
+
 ### Added
 - Unified marker → read overlay → edit flow (DMNC-848). Tapping any chart marker opens a Libre-style list overlay with chronological rows showing IN PROGRESS state, post-meal delta (mg/dL or mmol/L per user setting), confounder icons, PersonalFood glycemic average + observation count, and IOB-at-dose-time. Edit opens a single combined modal with shared time and edit-only semantics; both meal and insulin updates use id-preserving constructors and route through GRDB load-after-write so the chart re-renders cleanly.
 - `AmberChip`, `StepperField`, `QuickTimeChips` design-system primitives for chip rows, numeric steppers, and quick-time selectors used in the redesigned insulin entry surface and combined edit modal.
