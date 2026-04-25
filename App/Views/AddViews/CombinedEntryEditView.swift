@@ -199,7 +199,9 @@ struct CombinedEntryEditView: View {
         if originalMealEntry != nil {
             VStack(alignment: .leading, spacing: DOSSpacing.sm) {
                 HStack {
-                    Image(systemName: "fork.knife").foregroundStyle(AmberTheme.cgaGreen)
+                    AppleIcon()
+                        .frame(width: 16, height: 16)
+                        .foregroundStyle(AmberTheme.cgaGreen)
                     Text("FOOD").font(DOSTypography.caption).foregroundStyle(AmberTheme.cgaGreen)
                     Spacer()
                     Text("\(stagedItems.count) item\(stagedItems.count == 1 ? "" : "s") · \(Int(stagedItems.reduce(0, { $0 + $1.carbsG })))g")

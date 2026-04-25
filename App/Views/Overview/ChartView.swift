@@ -412,7 +412,7 @@ struct ChartView: View {
                             yStart: .value("Bottom", 0),
                             yEnd: .value("Meal+Snack IOB", point.mealSnack.map(from: 0...iobCeiling, to: 0...Double(alarmLow)))
                         )
-                        .foregroundStyle(AmberTheme.iobBolus.opacity(0.45))
+                        .foregroundStyle(AmberTheme.iobBolus.opacity(0.7))
                         .interpolationMethod(.monotone)
                     }
 
@@ -423,7 +423,7 @@ struct ChartView: View {
                             yStart: .value("Meal+Snack IOB", point.mealSnack.map(from: 0...iobCeiling, to: 0...Double(alarmLow))),
                             yEnd: .value("Total IOB", point.total.map(from: 0...iobCeiling, to: 0...Double(alarmLow)))
                         )
-                        .foregroundStyle(AmberTheme.iobBasal.opacity(0.5))
+                        .foregroundStyle(AmberTheme.iobBasal.opacity(0.55))
                         .interpolationMethod(.monotone)
                     }
                 } else {

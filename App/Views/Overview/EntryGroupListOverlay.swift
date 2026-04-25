@@ -70,12 +70,11 @@ struct EntryGroupListOverlay: View {
                 .foregroundStyle(AmberTheme.amber)
             Spacer()
             Button(action: onEdit) {
-                HStack(spacing: 4) {
-                    Image(systemName: "pencil")
-                    Text("Edit").font(DOSTypography.caption)
-                }
-                .foregroundStyle(AmberTheme.amberLight)
-                .frame(minWidth: 44, minHeight: 44, alignment: .trailing)
+                Text("edit")
+                    .font(DOSTypography.caption)
+                    .tracking(0.6)
+                    .foregroundStyle(AmberTheme.amberLight)
+                    .frame(minWidth: 44, minHeight: 44, alignment: .trailing)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Edit this entry group")
@@ -110,10 +109,9 @@ struct EntryGroupListOverlay: View {
         let stub = entryStub(for: marker)
 
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: marker.type.icon)
+            rowIcon(for: marker)
                 .foregroundStyle(marker.type.color)
-                .font(.system(size: 20))
-                .frame(width: 28)
+                .frame(width: 28, height: 28)
             VStack(alignment: .leading, spacing: 2) {
                 Text(primaryText(for: stub))
                     .font(DOSTypography.body)
@@ -198,6 +196,17 @@ struct EntryGroupListOverlay: View {
             paired: paired,
             confounders: confs
         )
+    }
+
+    @ViewBuilder
+    private func rowIcon(for marker: EventMarker) -> some View {
+        switch marker.type {
+        case .meal:
+            AppleIcon().frame(width: 20, height: 20)
+        case .bolus, .exercise:
+            Image(systemName: marker.type.icon)
+                .font(.system(size: 20))
+        }
     }
 
     private func voiceOverLabel(for stub: MarkerEntryStub?) -> String {

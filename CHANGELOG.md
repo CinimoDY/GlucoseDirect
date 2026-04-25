@@ -7,6 +7,24 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 73] — 2026-04-25
+
+### Added
+- Custom `AppleIcon` (Path-based fruit silhouette with leaf) replaces Apple Inc.'s `apple.logo` SF Symbol for chart markers, the read-overlay row icon, and the combined-edit modal's FOOD section header. Distinct visual, no App Store identity-guidelines risk. Sticky [MEAL] action button + iOS Form `Label`s still use `apple.logo` for now (less prominent surfaces; harder to swap without a Label refactor).
+- `CombinedFoodInsulinIcon` — a single statically-composed visual (apple bottom-left + syringe top-right) used for chart-marker batches that mix food + insulin entries.
+
+### Changed
+- Chart marker batches now show **one icon per batch type** with a circular border indicating multi-entry, instead of stacked icons + count badge:
+  - 1 meal → bare apple icon
+  - 2+ meals → apple icon + green circle border
+  - 1 insulin → bare syringe icon
+  - 2+ insulin → syringe icon + amber circle border
+  - Mixed food + insulin (any count) → CombinedFoodInsulinIcon + amber border (or bare if both counts are 1)
+  88×48pt touch target preserved.
+- Bolus IOB area mark opacity bumped from 0.45 → 0.7. The warm-green bottom layer is now clearly readable underneath the cool-green basal+correction layer.
+- Read overlay opens as a half-screen sheet (`.presentationDetents([.medium, .large])` with a visible drag indicator) instead of a full-screen modal. Combined edit modal is also half-screen by default, can be dragged up to full.
+- Read overlay's "Edit" affordance is now lowercase text-only ("edit") — drops the pencil glyph.
+
 ## [Build 72] — 2026-04-25
 
 ### Changed

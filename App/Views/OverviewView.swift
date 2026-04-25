@@ -206,10 +206,14 @@ struct OverviewView: View {
                 },
                 onDismiss: { activeSheet = nil }
             )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
 
         case .combinedEntryEdit(let group):
             CombinedEntryEditView(originalGroup: group)
                 .environmentObject(store)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
         }
     }
 
