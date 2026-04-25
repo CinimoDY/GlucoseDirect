@@ -7,6 +7,12 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 80] — 2026-04-25
+
+### Changed
+- Split-IOB basal layer color swapped from cool green (#40B38C) to bright sky blue (#5DD0F3). The previous green was too close to the warm-green bolus layer in saturation and value, so on a 24h chart with substantial bolus IOB the basal contribution was visually swallowed. Sky blue at 0.85 opacity reads cleanly above the warm-green bolus area.
+- IOB area chart sampling resolution: 5-min → 1-min. The chart was showing visible step "cuts" when a new bolus delivery happened between two adjacent samples; finer sampling smooths the curve so deliveries integrate as a smooth ramp instead of a vertical step. Also makes DIA expirations fade gracefully.
+
 ## [Build 79] — 2026-04-25
 
 ### Changed

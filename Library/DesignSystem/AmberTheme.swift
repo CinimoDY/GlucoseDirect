@@ -63,9 +63,11 @@ public enum AmberTheme {
     /// without needing a legend.
     public static let iobBolus = Color(red: 140.0 / 255.0, green: 191.0 / 255.0, blue: 64.0 / 255.0)
 
-    /// Cool green (blue-leaning) for basal + correction IOB: ~#40B38C.
-    /// Pairs with `iobBolus` to form a warm/cool green split visible at low opacity over a black chart.
-    public static let iobBasal = Color(red: 64.0 / 255.0, green: 179.0 / 255.0, blue: 140.0 / 255.0)
+    /// Bright sky-blue for basal + correction IOB: ~#5DD0F3. Distinct from
+    /// the warm-green `iobBolus` so the two layers in the split-IOB stack
+    /// are unambiguous. Avoids cgaCyan (used by the dim exercise band) and
+    /// cgaMagenta (used by the HR overlay).
+    public static let iobBasal = Color(red: 93.0 / 255.0, green: 208.0 / 255.0, blue: 243.0 / 255.0)
 
     // MARK: - Glucose Color Functions
 

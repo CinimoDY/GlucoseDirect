@@ -401,7 +401,7 @@ struct ChartView: View {
                 let iobCeiling = max(maxIOB, 1.0)
 
                 if store.state.showSplitIOB {
-                    // Bottom layer: meal/snack bolus IOB — warm green (yellow-leaning)
+                    // Bottom layer: meal/snack bolus IOB — warm green
                     ForEach(Array(iobSeries.enumerated()), id: \.offset) { _, point in
                         AreaMark(
                             x: .value("Time", point.date),
@@ -412,14 +412,14 @@ struct ChartView: View {
                         .interpolationMethod(.monotone)
                     }
 
-                    // Top layer: basal+correction IOB stacked above bolus — cool green (blue-leaning)
+                    // Top layer: basal+correction IOB stacked above bolus — sky blue
                     ForEach(Array(iobSeries.enumerated()), id: \.offset) { _, point in
                         AreaMark(
                             x: .value("Time", point.date),
                             yStart: .value("Meal+Snack IOB", point.mealSnack.map(from: 0...iobCeiling, to: 0...Double(alarmLow))),
                             yEnd: .value("Total IOB", point.total.map(from: 0...iobCeiling, to: 0...Double(alarmLow)))
                         )
-                        .foregroundStyle(AmberTheme.iobBasal.opacity(0.55))
+                        .foregroundStyle(AmberTheme.iobBasal.opacity(0.85))
                         .interpolationMethod(.monotone)
                     }
                 } else {
@@ -992,7 +992,10 @@ private var startMarker: Date? {
             var iobPoints: [(date: Date, total: Double, mealSnack: Double, corrBasal: Double)] = []
 
             if !iobDeliveries.isEmpty, let first = firstTimestamp, let last = lastTimestamp {
-                let step: TimeInterval = 5 * 60 // 5-minute intervals
+                // 1-minute sampling smooths visible step transitions when a
+                // new bolus is delivered between two adjacent samples
+                // (5-min sampling produced visible "cuts" in the area chart).
+                let step: TimeInterval = 60
                 var current = first
                 while current <= last {
                     let result = computeIOB(
