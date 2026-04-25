@@ -969,7 +969,12 @@ extension UserDefaults {
     }
 
     var showHeartRateOverlay: Bool {
-        get { bool(forKey: Keys.showHeartRateOverlay.rawValue) }
+        get {
+            if object(forKey: Keys.showHeartRateOverlay.rawValue) != nil {
+                return bool(forKey: Keys.showHeartRateOverlay.rawValue)
+            }
+            return false
+        }
         set { set(newValue, forKey: Keys.showHeartRateOverlay.rawValue) }
     }
 

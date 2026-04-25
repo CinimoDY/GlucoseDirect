@@ -93,6 +93,7 @@ struct ChartView: View {
                                             onTapGroup: onTapMarkerGroup
                                         )
                                         .frame(width: max(0, screenWidth, seriesWidth), height: Config.markerLaneHeight)
+                                        .id("lane-\(store.state.markerLanePosition.rawValue)")
                                     }
 
                                     ChartView
@@ -125,6 +126,7 @@ struct ChartView: View {
                                             onTapGroup: onTapMarkerGroup
                                         )
                                         .frame(width: max(0, screenWidth, seriesWidth), height: Config.markerLaneHeight)
+                                        .id("lane-\(store.state.markerLanePosition.rawValue)")
                                     }
                                 } // VStack
                             }
@@ -674,8 +676,12 @@ struct ChartView: View {
                                 self.selectedRawSensorPoint = selectedRawSensorPoint
                                 self.selectedBloodPoint = selectedBloodPoint
 
-                                // Search nearby minutes for heart rate (HR samples may not align exactly)
-                                self.selectedHeartRate = nearestHeartRate(at: rounded)
+                                // Search nearby minutes for heart rate (HR samples may not align exactly).
+                                // Skip when the overlay is disabled — keeps the HR chip in the tooltip
+                                // hidden and avoids the lookup work on every drag tick.
+                                if store.state.showHeartRateOverlay {
+                                    self.selectedHeartRate = nearestHeartRate(at: rounded)
+                                }
                             }
                         }
                         .onEnded { dragValue in

@@ -13,7 +13,7 @@ enum MarkerLanePosition: String, CaseIterable, Identifiable {
 
     var displayLabel: String {
         switch self {
-        case .top: return "Above chart (default)"
+        case .top: return "Above chart"
         case .bottom: return "Below chart"
         }
     }
