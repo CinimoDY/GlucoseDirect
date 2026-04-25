@@ -49,7 +49,7 @@ struct OverviewView: View {
                 TreatmentBannerView()
             }
 
-            ChartToolbarView(selectedReportType: $selectedReportType)
+            ChartReportTypeRow(selectedReportType: $selectedReportType)
 
             if !store.state.sensorGlucoseValues.isEmpty || !store.state.bloodGlucoseValues.isEmpty {
                 ChartView(
@@ -59,6 +59,8 @@ struct OverviewView: View {
                     }
                 )
                 .frame(maxHeight: .infinity)
+
+                ChartZoomRow(selectedReportType: selectedReportType)
             } else {
                 Spacer()
             }

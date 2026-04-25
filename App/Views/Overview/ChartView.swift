@@ -63,20 +63,19 @@ struct ChartView: View {
                     }
                     .buttonStyle(.plain)
 
-                    HStack {
+                    HStack(spacing: 10) {
                         Text(store.state.glucoseUnit.localizedDescription)
                             .font(.system(size: 9, weight: .medium, design: .monospaced))
                             .foregroundColor(AmberTheme.amberMuted)
                         Spacer()
+                        if store.state.showSplitIOB && !iobSeries.isEmpty {
+                            iobLegendChip(color: AmberTheme.cgaCyan, label: "MEAL/SNACK")
+                            iobLegendChip(color: AmberTheme.amberDark, label: "BASAL/CORR")
+                        } else if !iobSeries.isEmpty {
+                            iobLegendChip(color: AmberTheme.cgaCyan, label: "IOB")
+                        }
                         if store.state.showHeartRateOverlay && !store.state.heartRateSeries.isEmpty {
-                            HStack(spacing: 3) {
-                                RoundedRectangle(cornerRadius: 1)
-                                    .fill(AmberTheme.cgaMagenta.opacity(0.4))
-                                    .frame(width: 12, height: 2)
-                                Text("HR")
-                                    .font(.system(size: 9, weight: .medium, design: .monospaced))
-                                    .foregroundColor(AmberTheme.cgaMagenta.opacity(0.5))
-                            }
+                            iobLegendChip(color: AmberTheme.cgaMagenta, label: "HR")
                         }
                     }
 
@@ -405,21 +404,25 @@ struct ChartView: View {
                 let iobCeiling = max(maxIOB, 1.0)
 
                 if store.state.showSplitIOB {
+                    // Bottom layer: meal/snack IOB (cyan)
                     ForEach(Array(iobSeries.enumerated()), id: \.offset) { _, point in
                         AreaMark(
                             x: .value("Time", point.date),
-                            y: .value("IOB", point.mealSnack.map(from: 0...iobCeiling, to: 0...Double(alarmLow)))
+                            yStart: .value("Bottom", 0),
+                            yEnd: .value("Meal+Snack IOB", point.mealSnack.map(from: 0...iobCeiling, to: 0...Double(alarmLow)))
                         )
-                        .foregroundStyle(AmberTheme.cgaCyan.opacity(0.3))
+                        .foregroundStyle(AmberTheme.cgaCyan.opacity(0.4))
                         .interpolationMethod(.monotone)
                     }
 
+                    // Top layer: basal+correction IOB stacked above meal/snack (amber-dark)
                     ForEach(Array(iobSeries.enumerated()), id: \.offset) { _, point in
                         AreaMark(
                             x: .value("Time", point.date),
-                            y: .value("IOB-corr", point.corrBasal.map(from: 0...iobCeiling, to: 0...Double(alarmLow)))
+                            yStart: .value("Meal+Snack IOB", point.mealSnack.map(from: 0...iobCeiling, to: 0...Double(alarmLow))),
+                            yEnd: .value("Total IOB", point.total.map(from: 0...iobCeiling, to: 0...Double(alarmLow)))
                         )
-                        .foregroundStyle(AmberTheme.amberDark.opacity(0.3))
+                        .foregroundStyle(AmberTheme.amberDark.opacity(0.55))
                         .interpolationMethod(.monotone)
                     }
                 } else {
@@ -824,6 +827,17 @@ struct ChartView: View {
 
     private func scaledHR(_ bpm: Double) -> Double {
         ((bpm - 40) / (200 - 40)) * (chartMinimum - alarmHigh) + alarmHigh
+    }
+
+    private func iobLegendChip(color: Color, label: String) -> some View {
+        HStack(spacing: 3) {
+            RoundedRectangle(cornerRadius: 1)
+                .fill(color.opacity(0.55))
+                .frame(width: 10, height: 6)
+            Text(label)
+                .font(.system(size: 9, weight: .medium, design: .monospaced))
+                .foregroundColor(color.opacity(0.7))
+        }
     }
 
     private var startMarker: Date? {

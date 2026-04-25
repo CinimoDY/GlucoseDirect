@@ -7,6 +7,14 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 71] — 2026-04-25
+
+### Changed
+- Split IOB area marks now stack instead of overlapping. Meal/snack IOB (cyan) sits at the bottom, basal/correction IOB (amber-dark) stacks above it, so total area at any point equals the running total IOB and you can read both components at a glance.
+- Chart legend chips for IOB and HR overlay components — small swatch + label pairs in the chart header row (e.g. `MEAL/SNACK` cyan + `BASAL/CORR` amber when split IOB is on). Color-to-component mapping is now visible without remembering which is which.
+- Chart toolbar split into two consistent strips with matching font + underline treatment: report-type tabs (GLUCOSE / TIME IN RANGE / STATISTICS) above the chart, time-range / day-window tabs (3h…24h or 7d…ALL) **below** the chart. Both rows are now the same visual size — previously the zoom row was a notch smaller than the report-type row.
+- Marker-lane position picker in Settings → Additional gets a label and a one-line description ("Where the meal/insulin/exercise icons sit relative to the glucose chart") so it's clear what the segmented control does.
+
 ## [Build 70] — 2026-04-25
 
 ### Changed

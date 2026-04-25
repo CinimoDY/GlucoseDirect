@@ -23,12 +23,19 @@ struct AdditionalSettingsView: View {
 
                 Toggle("CRT scanline overlay", isOn: showScanlines).toggleStyle(SwitchToggleStyle(tint: AmberTheme.amber))
 
-                Picker("Marker lane", selection: markerLanePosition) {
-                    ForEach(MarkerLanePosition.allCases) { position in
-                        Text(position.displayLabel).tag(position)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Chart event markers")
+                    Picker("Chart event markers", selection: markerLanePosition) {
+                        ForEach(MarkerLanePosition.allCases) { position in
+                            Text(position.displayLabel).tag(position)
+                        }
                     }
+                    .pickerStyle(.segmented)
+                    Text("Where the meal/insulin/exercise icons sit relative to the glucose chart.")
+                        .font(DOSTypography.caption)
+                        .foregroundStyle(AmberTheme.amberDark)
                 }
-                .pickerStyle(.segmented)
+                .padding(.vertical, 4)
             },
             header: {
                 Label("Additional settings", systemImage: "gearshape")
