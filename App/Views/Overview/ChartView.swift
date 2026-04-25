@@ -88,22 +88,40 @@ struct ChartView: View {
                                         totalWidth: max(0, screenWidth, seriesWidth),
                                         timeRange: (startMarker ?? Date())...(endMarker ?? Date()),
                                         scoredMealEntryIds: store.state.scoredMealEntryIds,
-                                        onTapMeal: { mealID in
-                                            if let meal = store.state.mealEntryValues.first(where: { $0.id == mealID }) {
-                                                if activeMealOverlay?.id == meal.id {
-                                                    activeMealOverlay = nil
-                                                } else {
+                                        onTapGroup: { group in
+                                            // Transitional: fan out to existing per-type behavior
+                                            // until Task 13 routes through OverviewView's list-overlay sheet
+                                            if group.isSingle, let marker = group.markers.first {
+                                                switch marker.type {
+                                                case .meal:
+                                                    if let meal = store.state.mealEntryValues.first(where: { $0.id == marker.sourceID }) {
+                                                        if activeMealOverlay?.id == meal.id {
+                                                            activeMealOverlay = nil
+                                                        } else {
+                                                            activeMealOverlay = meal
+                                                        }
+                                                    }
+                                                case .bolus:
+                                                    if let insulin = store.state.insulinDeliveryValues.first(where: { $0.id == marker.sourceID }) {
+                                                        tappedInsulinEntry = insulin
+                                                        showInsulinDetail = true
+                                                    }
+                                                case .exercise:
+                                                    break
+                                                }
+                                            } else {
+                                                // Cross-type cluster: show the first meal in the group as a transitional fallback
+                                                // (Task 13 will replace this with the list overlay)
+                                                if let firstMeal = group.markers.first(where: { $0.type == .meal }),
+                                                   let meal = store.state.mealEntryValues.first(where: { $0.id == firstMeal.sourceID }) {
                                                     activeMealOverlay = meal
+                                                } else if let firstInsulin = group.markers.first(where: { $0.type == .bolus }),
+                                                          let insulin = store.state.insulinDeliveryValues.first(where: { $0.id == firstInsulin.sourceID }) {
+                                                    tappedInsulinEntry = insulin
+                                                    showInsulinDetail = true
                                                 }
                                             }
-                                        },
-                                        onTapInsulin: { insulinID in
-                                            if let insulin = store.state.insulinDeliveryValues.first(where: { $0.id == insulinID }) {
-                                                tappedInsulinEntry = insulin
-                                                showInsulinDetail = true
-                                            }
-                                        },
-                                        expandedGroupID: $expandedGroupID
+                                        }
                                     )
                                     .frame(width: max(0, screenWidth, seriesWidth), height: Config.markerLaneHeight)
 
@@ -926,9 +944,8 @@ struct ChartView: View {
 
                             guard wasTap else { return }
 
-                            // Dismiss meal overlay and expanded marker group on any chart tap
+                            // Dismiss meal overlay on any chart tap
                             activeMealOverlay = nil
-                            expandedGroupID = nil
                         }
                     )
             }
@@ -962,7 +979,7 @@ struct ChartView: View {
             ZoomLevel(level: 12, name: LocalizedString("12h"), visibleHours: 12, labelEvery: 3),
             ZoomLevel(level: 24, name: LocalizedString("24h"), visibleHours: 24, labelEvery: 4)
         ]
-        static let markerLaneHeight: CGFloat = 32
+        static let markerLaneHeight: CGFloat = 48
         static let consolidationWindows: [Int: TimeInterval] = [
             3: 0,
             6: 10 * 60,
@@ -1003,7 +1020,6 @@ struct ChartView: View {
     @State private var activeMealOverlay: MealEntry? = nil
 
     @State private var markerGroups: [ConsolidatedMarkerGroup] = []
-    @State private var expandedGroupID: String? = nil
 
     @State private var smoothedMinuteChange: Double? = nil
 

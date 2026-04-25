@@ -10,27 +10,22 @@ struct EventMarkerLaneView: View {
     let totalWidth: CGFloat
     let timeRange: ClosedRange<Date>
     let scoredMealEntryIds: Set<UUID>
-    let onTapMeal: (UUID) -> Void
-    let onTapInsulin: (UUID) -> Void
-    @Binding var expandedGroupID: String?
+    let onTapGroup: (ConsolidatedMarkerGroup) -> Void
 
-    private let laneHeight: CGFloat = 32
+    private let laneHeight: CGFloat = 48
+    private let iconSize: CGFloat = 22
     private let yAxisPadding: CGFloat = 30
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            // Marker icons
             ForEach(markerGroups) { group in
                 markerView(for: group)
                     .position(x: xPosition(for: group.time), y: laneHeight / 2)
-            }
-
-            // Expanded detail overlay
-            if let expandedID = expandedGroupID,
-               let group = markerGroups.first(where: { $0.id == expandedID }) {
-                expandedPanel(for: group)
-                    .position(x: clampedPanelX(for: group.time), y: laneHeight + 4)
-                    .zIndex(10)
+                    .frame(width: 88, height: 48)
+                    .contentShape(Rectangle())
+                    .onTapGesture { onTapGroup(group) }
+                    .accessibilityLabel(accessibilityLabel(for: group))
+                    .accessibilityAddTraits(.isButton)
             }
         }
         .frame(height: laneHeight)
@@ -38,108 +33,61 @@ struct EventMarkerLaneView: View {
         .clipped()
     }
 
-    // MARK: - Marker View
-
     @ViewBuilder
     private func markerView(for group: ConsolidatedMarkerGroup) -> some View {
-        let isExpanded = expandedGroupID == group.id
-
-        Button {
-            withAnimation(.easeInOut(duration: 0.15)) {
-                if group.isSingle {
-                    tapSingleMarker(group.markers[0])
-                } else {
-                    expandedGroupID = isExpanded ? nil : group.id
-                }
-            }
-        } label: {
-            HStack(spacing: 2) {
-                if group.isSingle {
-                    let marker = group.markers[0]
+        if group.isSingle, let marker = group.markers.first {
+            Image(systemName: marker.type.icon)
+                .font(.system(size: iconSize))
+                .foregroundStyle(marker.type.color)
+                .overlay(scoredMealCue(for: group), alignment: .bottomTrailing)
+        } else {
+            ZStack {
+                ForEach(Array(group.markers.sorted(by: stackOrder).prefix(3).enumerated()), id: \.offset) { idx, marker in
                     Image(systemName: marker.type.icon)
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(marker.type.color)
-                    Text(marker.label)
-                        .font(DOSTypography.caption)
-                        .foregroundColor(marker.type.color)
-                        .bold()
-                } else {
-                    // Consolidated: show dominant icon + summary
-                    Image(systemName: group.dominantType.icon)
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(group.dominantType.color)
-                    Text(group.summaryLabel)
-                        .font(DOSTypography.caption)
-                        .foregroundColor(group.dominantType.color)
-                        .bold()
-                    // Badge count
-                    Text("\(group.markers.count)")
-                        .font(.system(size: 8, weight: .heavy))
-                        .foregroundColor(.black)
-                        .frame(width: 14, height: 14)
-                        .background(group.dominantType.color)
-                        .clipShape(Circle())
+                        .font(.system(size: iconSize))
+                        .foregroundStyle(marker.type.color)
+                        .offset(y: CGFloat(idx) * -3)
                 }
+                Text("\(group.markers.count)")
+                    .font(.system(size: 9, weight: .heavy))
+                    .foregroundStyle(.black)
+                    .padding(.horizontal, 4)
+                    .background(Capsule().fill(group.dominantType.color))
+                    .offset(x: 14, y: 12)
             }
-            .padding(.horizontal, 4)
-            .padding(.vertical, 2)
-            .background(Color.black.opacity(0.6))
-            .cornerRadius(3)
-            .overlay(
-                // Scored meal visual cue: subtle amber border
-                Group {
-                    if group.isSingle,
-                       group.markers[0].type == .meal,
-                       scoredMealEntryIds.contains(group.markers[0].sourceID) {
-                        RoundedRectangle(cornerRadius: 3)
-                            .stroke(AmberTheme.amber.opacity(0.5), lineWidth: 1)
-                    }
-                }
-            )
         }
-        .buttonStyle(.plain)
     }
 
-    // MARK: - Expanded Panel
+    private func stackOrder(_ a: EventMarker, _ b: EventMarker) -> Bool {
+        priority(a.type) < priority(b.type)
+    }
+
+    private func priority(_ t: EventMarkerType) -> Int {
+        switch t {
+        case .bolus: return 0
+        case .meal: return 1
+        case .exercise: return 2
+        }
+    }
 
     @ViewBuilder
-    private func expandedPanel(for group: ConsolidatedMarkerGroup) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            ForEach(group.markers) { marker in
-                Button {
-                    tapSingleMarker(marker)
-                    withAnimation(.easeInOut(duration: 0.15)) {
-                        expandedGroupID = nil
-                    }
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: marker.type.icon)
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundColor(marker.type.color)
-                            .frame(width: 14)
-                        Text(marker.label)
-                            .font(DOSTypography.caption)
-                            .foregroundColor(marker.type.color)
-                            .bold()
-                        Text(marker.time.toLocalTime())
-                            .font(.system(size: 9))
-                            .foregroundColor(AmberTheme.amberDark)
-                    }
-                }
-                .buttonStyle(.plain)
-            }
+    private func scoredMealCue(for group: ConsolidatedMarkerGroup) -> some View {
+        if group.isSingle, group.markers[0].type == .meal,
+           scoredMealEntryIds.contains(group.markers[0].sourceID) {
+            Circle().fill(AmberTheme.amber).frame(width: 4, height: 4)
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
-        .background(AmberTheme.dosBlack.opacity(0.9))
-        .overlay(
-            RoundedRectangle(cornerRadius: 4)
-                .stroke(AmberTheme.amberDark.opacity(0.4), lineWidth: 0.5)
-        )
-        .cornerRadius(4)
     }
 
-    // MARK: - Positioning
+    private func accessibilityLabel(for group: ConsolidatedMarkerGroup) -> String {
+        if group.isSingle, let m = group.markers.first {
+            switch m.type {
+            case .meal: return "Meal at \(m.time.toLocalTime())"
+            case .bolus: return "Insulin at \(m.time.toLocalTime())"
+            case .exercise: return "Exercise at \(m.time.toLocalTime())"
+            }
+        }
+        return "\(group.markers.count) entries at \(group.time.toLocalTime())"
+    }
 
     private func xPosition(for time: Date) -> CGFloat {
         let totalDuration = timeRange.upperBound.timeIntervalSince(timeRange.lowerBound)
@@ -147,25 +95,5 @@ struct EventMarkerLaneView: View {
         let offset = time.timeIntervalSince(timeRange.lowerBound)
         let adjustedWidth = totalWidth - yAxisPadding
         return (offset / totalDuration) * adjustedWidth
-    }
-
-    private func clampedPanelX(for time: Date) -> CGFloat {
-        let x = xPosition(for: time)
-        let panelHalfWidth: CGFloat = 60
-        let adjustedWidth = totalWidth - yAxisPadding
-        return max(panelHalfWidth, min(x, adjustedWidth - panelHalfWidth))
-    }
-
-    // MARK: - Tap Handling
-
-    private func tapSingleMarker(_ marker: EventMarker) {
-        switch marker.type {
-        case .meal:
-            onTapMeal(marker.sourceID)
-        case .bolus:
-            onTapInsulin(marker.sourceID)
-        case .exercise:
-            break
-        }
     }
 }
