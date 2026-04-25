@@ -181,54 +181,6 @@ struct ChartView: View {
                         }
                     }
         }
-        .sheet(item: $tappedInsulinGroup) { group in
-            NavigationView {
-                List {
-                    Section {
-                        HStack {
-                            Text("Total")
-                                .font(DOSTypography.body)
-                                .foregroundColor(AmberTheme.amber)
-                            Spacer()
-                            Text(group.totalUnits.asInsulin())
-                                .font(DOSTypography.body)
-                                .foregroundColor(AmberTheme.amberDark)
-                        }
-                    }
-
-                    Section(header: Text("\(group.count) doses")) {
-                        ForEach(group.entries) { entry in
-                            HStack {
-                                Text(entry.type.localizedDescription)
-                                    .font(DOSTypography.bodySmall)
-                                    .foregroundColor(AmberTheme.amberLight)
-                                Spacer()
-                                Text(entry.units.asInsulin())
-                                    .font(DOSTypography.caption)
-                                    .foregroundColor(AmberTheme.amberDark)
-                                Text(entry.starts.toLocalTime())
-                                    .font(DOSTypography.caption)
-                                    .foregroundColor(AmberTheme.amberDark)
-                            }
-                            .swipeActions(edge: .trailing) {
-                                Button("Delete", role: .destructive) {
-                                    store.dispatch(.deleteInsulinDelivery(insulinDelivery: entry))
-                                }
-                            }
-                        }
-                    }
-                }
-                .listStyle(.grouped)
-                .navigationTitle("\(group.count) Insulin Doses")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("Done") { tappedInsulinGroup = nil }
-                            .font(DOSTypography.caption)
-                    }
-                }
-            }
-        }
     }
 
     // MARK: - Time In Range Content
@@ -757,8 +709,6 @@ struct ChartView: View {
     @State private var bloodGlucoseSeries: [GlucoseDatapoint] = []
     @State private var insulinSeries: [InsulinDatapoint] = []
     @State private var mealSeries: [MealDatapoint] = []
-    @State private var mealGroups: [MealGroup] = []
-    @State private var insulinGroups: [InsulinGroup] = []
     @State private var exerciseSeries: [ExerciseDatapoint] = []
     @State private var iobSeries: [(date: Date, total: Double, mealSnack: Double, corrBasal: Double)] = []
 
@@ -771,8 +721,6 @@ struct ChartView: View {
     @State private var selectedBloodPoint: GlucoseDatapoint? = nil
     @State private var selectedHeartRate: Int? = nil
     @State private var heartRatePointInfos: [Date: Int] = [:]
-
-    @State private var tappedInsulinGroup: InsulinGroup? = nil
 
     @State private var markerGroups: [ConsolidatedMarkerGroup] = []
 
@@ -1022,13 +970,6 @@ struct ChartView: View {
             DispatchQueue.main.async {
                 self.insulinSeries = insulinSeries
                 self.iobSeries = iobPoints
-
-                // Group non-basal insulin by timegroup for chart display
-                let bolusEntries = store.state.insulinDeliveryValues.filter { $0.type != .basal }
-                let grouped = Dictionary(grouping: bolusEntries, by: \.timegroup)
-                self.insulinGroups = grouped.map { timegroup, entries in
-                    InsulinGroup(id: timegroup, entries: entries, time: timegroup)
-                }.sorted { $0.time < $1.time }
             }
         }
     }
@@ -1036,12 +977,6 @@ struct ChartView: View {
     private func updateMealSeries() {
         DirectLog.info("updateMealSeries()")
         self.mealSeries = store.state.mealEntryValues.map { $0.toDatapoint() }
-
-        // Group meals by timegroup (15-min window) for chart display
-        let grouped = Dictionary(grouping: store.state.mealEntryValues, by: \.timegroup)
-        self.mealGroups = grouped.map { timegroup, entries in
-            MealGroup(id: timegroup, entries: entries, time: timegroup)
-        }.sorted { $0.time < $1.time }
     }
 
     private func updateExerciseSeries() {
@@ -1300,32 +1235,6 @@ private struct MealDatapoint: Identifiable {
     let time: Date
     let label: String
     let carbs: Double?
-}
-
-private struct MealGroup: Identifiable {
-    let id: Date // the timegroup
-    let entries: [MealEntry]
-    let time: Date
-
-    var totalCarbs: Double? {
-        let values = entries.compactMap(\.carbsGrams)
-        return values.isEmpty ? nil : values.reduce(0, +)
-    }
-
-    var totalCalories: Double? {
-        let values = entries.compactMap(\.calories)
-        return values.isEmpty ? nil : values.reduce(0, +)
-    }
-
-    var count: Int { entries.count }
-}
-
-private struct InsulinGroup: Identifiable {
-    let id: Date // the timegroup
-    let entries: [InsulinDelivery]
-    let time: Date
-    var totalUnits: Double { entries.reduce(0) { $0 + $1.units } }
-    var count: Int { entries.count }
 }
 
 private extension MealEntry {
