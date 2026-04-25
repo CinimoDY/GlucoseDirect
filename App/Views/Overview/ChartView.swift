@@ -401,31 +401,32 @@ struct ChartView: View {
                 let iobCeiling = max(maxIOB, 1.0)
 
                 if store.state.showSplitIOB {
-                    // Bottom layer: meal/snack bolus IOB — warm green.
-                    // `series:` is required so Charts treats this and the basal
-                    // layer below as two independent series; without it, the two
-                    // ForEach loops auto-group into one stack and the second
-                    // layer stops rendering.
+                    // Bottom layer: basal + correction IOB — sky blue. Basal
+                    // is the constant background baseline, so it sits at the
+                    // floor of the chart. `series:` is required so Charts
+                    // treats this and the bolus layer above as two independent
+                    // series; without it the two ForEach loops auto-group into
+                    // one stack and only one renders.
                     ForEach(Array(iobSeries.enumerated()), id: \.offset) { _, point in
                         AreaMark(
                             x: .value("Time", point.date),
                             yStart: .value("Bottom", 0),
-                            yEnd: .value("IOB", point.mealSnack.map(from: 0...iobCeiling, to: 0...Double(alarmLow))),
-                            series: .value("IOB Layer", "Bolus")
-                        )
-                        .foregroundStyle(AmberTheme.iobBolus.opacity(0.7))
-                        .interpolationMethod(.monotone)
-                    }
-
-                    // Top layer: basal+correction IOB stacked above bolus — sky blue
-                    ForEach(Array(iobSeries.enumerated()), id: \.offset) { _, point in
-                        AreaMark(
-                            x: .value("Time", point.date),
-                            yStart: .value("Bottom", point.mealSnack.map(from: 0...iobCeiling, to: 0...Double(alarmLow))),
-                            yEnd: .value("IOB", point.total.map(from: 0...iobCeiling, to: 0...Double(alarmLow))),
+                            yEnd: .value("IOB", point.corrBasal.map(from: 0...iobCeiling, to: 0...Double(alarmLow))),
                             series: .value("IOB Layer", "Basal")
                         )
                         .foregroundStyle(AmberTheme.iobBasal.opacity(0.85))
+                        .interpolationMethod(.monotone)
+                    }
+
+                    // Top layer: meal/snack bolus IOB stacked above basal — warm green.
+                    ForEach(Array(iobSeries.enumerated()), id: \.offset) { _, point in
+                        AreaMark(
+                            x: .value("Time", point.date),
+                            yStart: .value("Bottom", point.corrBasal.map(from: 0...iobCeiling, to: 0...Double(alarmLow))),
+                            yEnd: .value("IOB", point.total.map(from: 0...iobCeiling, to: 0...Double(alarmLow))),
+                            series: .value("IOB Layer", "Bolus")
+                        )
+                        .foregroundStyle(AmberTheme.iobBolus.opacity(0.7))
                         .interpolationMethod(.monotone)
                     }
                 } else {

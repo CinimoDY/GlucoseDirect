@@ -7,6 +7,11 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 82] — 2026-04-25
+
+### Changed
+- Split-IOB stacking order flipped: basal+correction now sits at the floor (sky blue baseline) and bolus stacks on top (warm green peaks). Matches the semantic — basal is the constant background insulin, bolus is the variable on-top dose. Visually you can see the basal "floor" stay roughly steady while bolus spikes ride above it.
+
 ## [Build 81] — 2026-04-25
 
 ### Fixed
