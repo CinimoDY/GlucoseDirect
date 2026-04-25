@@ -13,6 +13,7 @@ struct ChartView: View {
 
     @EnvironmentObject var store: DirectStore
     let selectedReportType: ReportType
+    let onTapMarkerGroup: (ConsolidatedMarkerGroup) -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -88,40 +89,7 @@ struct ChartView: View {
                                         totalWidth: max(0, screenWidth, seriesWidth),
                                         timeRange: (startMarker ?? Date())...(endMarker ?? Date()),
                                         scoredMealEntryIds: store.state.scoredMealEntryIds,
-                                        onTapGroup: { group in
-                                            // Transitional: fan out to existing per-type behavior
-                                            // until Task 13 routes through OverviewView's list-overlay sheet
-                                            if group.isSingle, let marker = group.markers.first {
-                                                switch marker.type {
-                                                case .meal:
-                                                    if let meal = store.state.mealEntryValues.first(where: { $0.id == marker.sourceID }) {
-                                                        if activeMealOverlay?.id == meal.id {
-                                                            activeMealOverlay = nil
-                                                        } else {
-                                                            activeMealOverlay = meal
-                                                        }
-                                                    }
-                                                case .bolus:
-                                                    if let insulin = store.state.insulinDeliveryValues.first(where: { $0.id == marker.sourceID }) {
-                                                        tappedInsulinEntry = insulin
-                                                        showInsulinDetail = true
-                                                    }
-                                                case .exercise:
-                                                    break
-                                                }
-                                            } else {
-                                                // Cross-type cluster: show the first meal in the group as a transitional fallback
-                                                // (Task 13 will replace this with the list overlay)
-                                                if let firstMeal = group.markers.first(where: { $0.type == .meal }),
-                                                   let meal = store.state.mealEntryValues.first(where: { $0.id == firstMeal.sourceID }) {
-                                                    activeMealOverlay = meal
-                                                } else if let firstInsulin = group.markers.first(where: { $0.type == .bolus }),
-                                                          let insulin = store.state.insulinDeliveryValues.first(where: { $0.id == firstInsulin.sourceID }) {
-                                                    tappedInsulinEntry = insulin
-                                                    showInsulinDetail = true
-                                                }
-                                            }
-                                        }
+                                        onTapGroup: onTapMarkerGroup
                                     )
                                     .frame(width: max(0, screenWidth, seriesWidth), height: Config.markerLaneHeight)
 
@@ -212,96 +180,6 @@ struct ChartView: View {
                             }.opacity(0.75)
                         }
                     }
-        }
-        .sheet(item: $tappedMealEntry) { meal in
-            AddMealView(
-                timestamp: meal.timestamp,
-                mealDescription: meal.mealDescription,
-                carbsGrams: meal.carbsGrams
-            ) { newTimestamp, newDescription, newCarbs in
-                store.dispatch(.deleteMealEntry(mealEntry: meal))
-                let updated = MealEntry(
-                    timestamp: newTimestamp,
-                    mealDescription: newDescription,
-                    carbsGrams: newCarbs
-                )
-                store.dispatch(.addMealEntry(mealEntryValues: [updated]))
-            } deleteCallback: {
-                store.dispatch(.deleteMealEntry(mealEntry: meal))
-            }
-        }
-        .confirmationDialog(
-            insulinDetailTitle,
-            isPresented: $showInsulinDetail,
-            titleVisibility: .visible
-        ) {
-            Button("Delete", role: .destructive) {
-                if let insulin = tappedInsulinEntry {
-                    store.dispatch(.deleteInsulinDelivery(insulinDelivery: insulin))
-                }
-            }
-            Button("Cancel", role: .cancel) {}
-        }
-        .sheet(item: $tappedMealGroup) { group in
-            NavigationView {
-                List {
-                    Section {
-                        HStack {
-                            Text("Total")
-                                .font(DOSTypography.body)
-                                .foregroundColor(AmberTheme.amber)
-                            Spacer()
-                            if let carbs = group.totalCarbs {
-                                Text("\(Int(carbs))g carbs")
-                                    .font(DOSTypography.body)
-                                    .foregroundColor(AmberTheme.cgaGreen)
-                            }
-                            if let cals = group.totalCalories {
-                                Text("\(Int(cals)) cal")
-                                    .font(DOSTypography.caption)
-                                    .foregroundColor(AmberTheme.amberDark)
-                            }
-                        }
-                    }
-
-                    Section(header: Text("\(group.count) items")) {
-                        ForEach(group.entries) { entry in
-                            Button {
-                                tappedMealGroup = nil
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                                    tappedMealEntry = entry
-                                }
-                            } label: {
-                                HStack {
-                                    Text(entry.mealDescription)
-                                        .font(DOSTypography.bodySmall)
-                                        .foregroundColor(AmberTheme.amberLight)
-                                    Spacer()
-                                    if let carbs = entry.carbsGrams {
-                                        Text("\(Int(carbs))g")
-                                            .font(DOSTypography.caption)
-                                            .foregroundColor(AmberTheme.cgaGreen)
-                                    }
-                                }
-                            }
-                            .swipeActions(edge: .trailing) {
-                                Button("Delete", role: .destructive) {
-                                    store.dispatch(.deleteMealEntry(mealEntry: entry))
-                                }
-                            }
-                        }
-                    }
-                }
-                .listStyle(.grouped)
-                .navigationTitle("\(group.count) Meals")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("Done") { tappedMealGroup = nil }
-                            .font(DOSTypography.caption)
-                    }
-                }
-            }
         }
         .sheet(item: $tappedInsulinGroup) { group in
             NavigationView {
@@ -589,130 +467,6 @@ struct ChartView: View {
                 }
             }
 
-            // MARK: - Meal Impact Overlay
-            if let overlayMeal = activeMealOverlay {
-                let windowEnd = overlayMeal.timestamp.addingTimeInterval(2 * 60 * 60)
-                let isInProgress = Date() < windowEnd
-                let displayEnd = isInProgress ? Date() : windowEnd
-
-                // Shaded 2hr band
-                RectangleMark(
-                    xStart: .value("MealStart", overlayMeal.timestamp),
-                    xEnd: .value("MealEnd", displayEnd),
-                    yStart: .value("Bottom", 0),
-                    yEnd: .value("Top", chartMinimum)
-                )
-                .foregroundStyle(AmberTheme.cgaGreen.opacity(0.08))
-
-                // Delta annotation at the center of the band
-                let midTime = overlayMeal.timestamp.addingTimeInterval(displayEnd.timeIntervalSince(overlayMeal.timestamp) / 2)
-                let overlayDelta = computeMealOverlayDelta(
-                    meal: overlayMeal,
-                    isInProgress: isInProgress,
-                    sensorGlucoseValues: store.state.sensorGlucoseValues
-                )
-
-                PointMark(
-                    x: .value("Time", midTime),
-                    y: .value("Label", chartMinimum * 0.85)
-                )
-                .symbolSize(0)
-                .annotation(position: .overlay) {
-                    VStack(spacing: 2) {
-                        let confounders = detectMealConfounders(
-                            meal: overlayMeal,
-                            insulinDeliveryValues: store.state.insulinDeliveryValues,
-                            exerciseEntryValues: store.state.exerciseEntryValues,
-                            mealEntryValues: store.state.mealEntryValues
-                        )
-                        let deltaOpacity = (overlayDelta.isLowConfidence ? 0.5 : 1.0) * (confounders.isClean ? 1.0 : 0.5)
-
-                        if isInProgress {
-                            Text("IN PROGRESS")
-                                .font(DOSTypography.caption)
-                                .foregroundStyle(AmberTheme.amberDark)
-                        }
-
-                        if let delta = overlayDelta.delta {
-                            let displayDelta: String = {
-                                let prefix = overlayDelta.isLowConfidence ? "~" : ""
-                                if store.state.glucoseUnit == .mgdL {
-                                    return prefix + (delta >= 0 ? "+" : "") + "\(delta)"
-                                } else {
-                                    let mmolDelta = Double(delta) / 18.0182
-                                    return prefix + (delta >= 0 ? "+" : "") + String(format: "%.1f", mmolDelta)
-                                }
-                            }()
-                            Text(displayDelta)
-                                .font(DOSTypography.body)
-                                .bold()
-                                .foregroundStyle(deltaColor(delta))
-                                .opacity(deltaOpacity)
-
-                            Text(store.state.glucoseUnit == .mgdL ? "mg/dL" : "mmol/L")
-                                .font(DOSTypography.caption)
-                                .foregroundStyle(AmberTheme.amberDark)
-                        } else {
-                            Text("--")
-                                .font(DOSTypography.body)
-                                .foregroundStyle(AmberTheme.amberDark)
-                        }
-
-                        // Confounder indicators
-                        if !confounders.isClean {
-                            HStack(spacing: 4) {
-                                if confounders.hasCorrectionBolus {
-                                    Image(systemName: "syringe.fill")
-                                        .font(.system(size: 10))
-                                        .foregroundStyle(AmberTheme.amberDark)
-                                }
-                                if confounders.hasExercise {
-                                    Image(systemName: "figure.run")
-                                        .font(.system(size: 10))
-                                        .foregroundStyle(AmberTheme.amberDark)
-                                }
-                                if confounders.hasStackedMeal {
-                                    Image(systemName: "fork.knife")
-                                        .font(.system(size: 10))
-                                        .foregroundStyle(AmberTheme.amberDark)
-                                }
-                            }
-                        }
-
-                        // PersonalFood glycemic average
-                        if let sessionId = overlayMeal.analysisSessionId,
-                           let food = store.state.personalFoodValues.first(where: { $0.analysisSessionId == sessionId }),
-                           food.observationCount >= 2,
-                           let avg = food.avgDeltaMgDL {
-                            let avgDisplay: String = {
-                                if store.state.glucoseUnit == .mgdL {
-                                    return "avg +\(Int(avg))"
-                                } else {
-                                    return "avg +\(String(format: "%.1f", avg / 18.0182))"
-                                }
-                            }()
-                            Text("\(avgDisplay) (\(food.observationCount))")
-                                .font(DOSTypography.caption)
-                                .foregroundStyle(AmberTheme.amberDark)
-                        }
-
-                        // Edit button
-                        Button(action: {
-                            tappedMealEntry = activeMealOverlay
-                            activeMealOverlay = nil
-                        }) {
-                            Image(systemName: "pencil")
-                                .font(.system(size: 12))
-                                .foregroundStyle(AmberTheme.amber)
-                        }
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
-                    .background(Color.black.opacity(0.85))
-                    .cornerRadius(4)
-                }
-            }
-
             ForEach(exerciseSeries) { exercise in
                 RectangleMark(
                     xStart: .value("Start", exercise.startTime),
@@ -952,9 +706,6 @@ struct ChartView: View {
                             selectedHeartRate = nil
 
                             guard wasTap else { return }
-
-                            // Dismiss meal overlay on any chart tap
-                            activeMealOverlay = nil
                         }
                     )
             }
@@ -1021,12 +772,7 @@ struct ChartView: View {
     @State private var selectedHeartRate: Int? = nil
     @State private var heartRatePointInfos: [Date: Int] = [:]
 
-    @State private var tappedMealEntry: MealEntry? = nil
-    @State private var tappedInsulinEntry: InsulinDelivery? = nil
-    @State private var showInsulinDetail = false
-    @State private var tappedMealGroup: MealGroup? = nil
     @State private var tappedInsulinGroup: InsulinGroup? = nil
-    @State private var activeMealOverlay: MealEntry? = nil
 
     @State private var markerGroups: [ConsolidatedMarkerGroup] = []
 
@@ -1401,21 +1147,6 @@ struct ChartView: View {
         self.heartRatePointInfos = lookup
     }
 
-    private var mealDetailTitle: String {
-        guard let meal = tappedMealEntry else { return "" }
-        var title = "\(meal.timestamp.toLocalDateTime())\n\(meal.mealDescription)"
-        if let c = meal.carbsGrams { title += "\n\(Int(c))g carbs" }
-        if let p = meal.proteinGrams { title += " · \(Int(p))g P" }
-        if let f = meal.fatGrams { title += " · \(Int(f))g F" }
-        if let cal = meal.calories { title += " · \(Int(cal)) kcal" }
-        return title
-    }
-
-    private var insulinDetailTitle: String {
-        guard let insulin = tappedInsulinEntry else { return "" }
-        return "\(insulin.starts.toLocalDateTime())\n\(insulin.type.localizedDescription)\n\(insulin.units.asInsulin())"
-    }
-
     /// Search within +/- 2 minutes for nearest heart rate sample
     private func nearestHeartRate(at date: Date) -> Int? {
         for offset in 0...2 {
@@ -1430,16 +1161,6 @@ struct ChartView: View {
             }
         }
         return nil
-    }
-
-    private func deltaColor(_ delta: Int) -> Color {
-        if delta < 30 {
-            return AmberTheme.cgaGreen
-        } else if delta < 60 {
-            return AmberTheme.amber
-        } else {
-            return AmberTheme.cgaRed
-        }
     }
 
     private func populateValues(glucoseValues: [InsulinDelivery]) -> [InsulinDatapoint] {

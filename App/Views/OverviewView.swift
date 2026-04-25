@@ -14,6 +14,8 @@ private enum ActiveSheet: Identifiable {
     case treatmentModal(alarmFiredAt: Date)
     case filteredFoodEntry
     case treatmentRecheck(glucoseValue: Int)
+    case entryGroupReadOverlay(ConsolidatedMarkerGroup)
+    case combinedEntryEdit(ConsolidatedMarkerGroup)
 
     var id: String {
         switch self {
@@ -23,6 +25,8 @@ private enum ActiveSheet: Identifiable {
         case .treatmentModal: return "treatmentModal"
         case .filteredFoodEntry: return "filteredFoodEntry"
         case .treatmentRecheck: return "treatmentRecheck"
+        case .entryGroupReadOverlay(let g): return "entryGroupReadOverlay-\(g.id)"
+        case .combinedEntryEdit(let g): return "combinedEntryEdit-\(g.id)"
         }
     }
 }
@@ -48,8 +52,13 @@ struct OverviewView: View {
             ChartToolbarView(selectedReportType: $selectedReportType)
 
             if !store.state.sensorGlucoseValues.isEmpty || !store.state.bloodGlucoseValues.isEmpty {
-                ChartView(selectedReportType: selectedReportType)
-                    .frame(maxHeight: .infinity)
+                ChartView(
+                    selectedReportType: selectedReportType,
+                    onTapMarkerGroup: { group in
+                        activeSheet = .entryGroupReadOverlay(group)
+                    }
+                )
+                .frame(maxHeight: .infinity)
             } else {
                 Spacer()
             }
@@ -154,7 +163,98 @@ struct OverviewView: View {
                 recheckGlucoseValue: glucoseValue
             )
             .environmentObject(store)
+
+        case .entryGroupReadOverlay(let group):
+            EntryGroupListOverlay(
+                group: group,
+                mealEntries: store.state.mealEntryValues,
+                insulinDeliveries: store.state.insulinDeliveryValues,
+                exerciseEntries: store.state.exerciseEntryValues,
+                mealImpacts: computeMealImpactsDict(for: group),
+                personalFoodAvgs: computePersonalFoodAvgsDict(for: group),
+                glucoseUnit: store.state.glucoseUnit,
+                iobAtTime: { date in
+                    let bolusModel = store.state.bolusInsulinPreset.model
+                    let basalModel = ExponentialInsulinModel(
+                        actionDuration: Double(store.state.basalDIAMinutes) * 60,
+                        peakActivityTime: 75 * 60
+                    )
+                    let result = computeIOB(
+                        deliveries: store.state.iobDeliveries,
+                        bolusModel: bolusModel,
+                        basalModel: basalModel,
+                        at: date
+                    )
+                    return result.total > 0.05 ? result.total : nil
+                },
+                confoundersFor: { meal in
+                    let c = detectMealConfounders(
+                        meal: meal,
+                        insulinDeliveryValues: store.state.insulinDeliveryValues,
+                        exerciseEntryValues: store.state.exerciseEntryValues,
+                        mealEntryValues: store.state.mealEntryValues
+                    )
+                    var arr: [ConfounderType] = []
+                    if c.hasCorrectionBolus { arr.append(.correctionBolus) }
+                    if c.hasExercise { arr.append(.exercise) }
+                    if c.hasStackedMeal { arr.append(.stackedMeal) }
+                    return arr
+                },
+                onEdit: {
+                    pendingSheet = .combinedEntryEdit(group)
+                    activeSheet = nil
+                },
+                onDismiss: { activeSheet = nil }
+            )
+
+        case .combinedEntryEdit(let group):
+            CombinedEntryEditView(originalGroup: group)
+                .environmentObject(store)
         }
+    }
+
+    // MARK: - Sheet Helpers
+
+    private func computeMealImpactsDict(for group: ConsolidatedMarkerGroup) -> [UUID: MealImpact] {
+        var dict: [UUID: MealImpact] = [:]
+        for marker in group.markers where marker.type == .meal {
+            guard let meal = store.state.mealEntryValues.first(where: { $0.id == marker.sourceID }) else { continue }
+            let isInProgress = Date().timeIntervalSince(meal.timestamp) < 2 * 60 * 60
+            let delta = computeMealOverlayDelta(
+                meal: meal,
+                isInProgress: isInProgress,
+                sensorGlucoseValues: store.state.sensorGlucoseValues
+            )
+            if let d = delta.delta {
+                dict[meal.id] = MealImpact(
+                    mealEntryId: meal.id,
+                    baselineGlucose: nil,
+                    peakGlucose: 0,
+                    deltaMgDL: d,
+                    timeToPeakMinutes: 0,
+                    isClean: true,
+                    timestamp: meal.timestamp
+                )
+            }
+        }
+        return dict
+    }
+
+    private func computePersonalFoodAvgsDict(for group: ConsolidatedMarkerGroup) -> [UUID: PersonalFoodGlycemic] {
+        var dict: [UUID: PersonalFoodGlycemic] = [:]
+        for marker in group.markers where marker.type == .meal {
+            guard let meal = store.state.mealEntryValues.first(where: { $0.id == marker.sourceID }),
+                  let sessionId = meal.analysisSessionId,
+                  let food = store.state.personalFoodValues.first(where: { $0.analysisSessionId == sessionId }),
+                  food.observationCount >= 2,
+                  let avg = food.avgDeltaMgDL
+            else { continue }
+            dict[meal.id] = PersonalFoodGlycemic(
+                avgDelta: Int(avg),
+                observationCount: food.observationCount
+            )
+        }
+        return dict
     }
 
     // MARK: - Sticky Quick Actions
