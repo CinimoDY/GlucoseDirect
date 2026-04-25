@@ -7,6 +7,11 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 78] — 2026-04-25
+
+### Changed
+- Daily Digest AI insight is now structured: a short opening paragraph (1–2 sentences naming the day's pattern) followed by 2–4 bullet points referencing specific times and values. Bullets render with a cgaCyan glyph so they pop visually against the amber prose. The Claude prompt was updated accordingly; old cached insights without bullets still render gracefully as a single paragraph. Inline markdown (italics, bold) is now interpreted via SwiftUI's LocalizedStringKey path. No headlines, no asterisks, no markdown headers — keeps the wall-of-text feeling at bay without adding heavy structure.
+
 ## [Build 77] — 2026-04-25
 
 ### Fixed

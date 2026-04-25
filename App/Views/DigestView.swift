@@ -137,9 +137,7 @@ struct DigestView: View {
                     .foregroundColor(AmberTheme.amberDark)
                     .opacity(0.7)
             } else if let insight = digest.aiInsight, !insight.isEmpty {
-                Text(insight)
-                    .font(DOSTypography.body)
-                    .foregroundColor(AmberTheme.amberLight)
+                AIInsightContent(text: insight)
             } else if !store.state.aiConsentDailyDigest {
                 Text("ENABLE AI INSIGHTS IN SETTINGS")
                     .font(DOSTypography.caption)
@@ -245,6 +243,78 @@ struct DigestView: View {
         store.dispatch(.loadDailyDigest(date: newDate))
     }
 
+}
+
+// MARK: - AI Insight Content
+
+/// Renders the daily-digest insight text with paragraph + bullet structure.
+/// The AI prompt asks for a short opening paragraph followed by 2–4
+/// bullet points starting with `- `; this view splits the response
+/// accordingly and renders bullets with a cgaCyan glyph.
+///
+/// Falls back gracefully: if the response has no bullets, it renders as
+/// a single paragraph; old cached insights from previous prompt
+/// versions still display correctly.
+private struct AIInsightContent: View {
+    let text: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(blocks.indices, id: \.self) { idx in
+                switch blocks[idx] {
+                case .paragraph(let s):
+                    Text(LocalizedStringKey(s))
+                        .font(DOSTypography.body)
+                        .foregroundStyle(AmberTheme.amberLight)
+                        .fixedSize(horizontal: false, vertical: true)
+                case .bullet(let s):
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text("•")
+                            .font(DOSTypography.body)
+                            .foregroundStyle(AmberTheme.cgaCyan)
+                        Text(LocalizedStringKey(s))
+                            .font(DOSTypography.body)
+                            .foregroundStyle(AmberTheme.amberLight)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+        }
+    }
+
+    private var blocks: [Block] {
+        var result: [Block] = []
+        var paragraphLines: [String] = []
+
+        func flushParagraph() {
+            if !paragraphLines.isEmpty {
+                result.append(.paragraph(paragraphLines.joined(separator: " ")))
+                paragraphLines = []
+            }
+        }
+
+        for line in text.components(separatedBy: "\n") {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.isEmpty {
+                flushParagraph()
+            } else if trimmed.hasPrefix("- ") {
+                flushParagraph()
+                result.append(.bullet(String(trimmed.dropFirst(2))))
+            } else if trimmed.hasPrefix("• ") {
+                flushParagraph()
+                result.append(.bullet(String(trimmed.dropFirst(2))))
+            } else {
+                paragraphLines.append(trimmed)
+            }
+        }
+        flushParagraph()
+        return result
+    }
+
+    private enum Block: Hashable {
+        case paragraph(String)
+        case bullet(String)
+    }
 }
 
 // MARK: - Timeline Item
