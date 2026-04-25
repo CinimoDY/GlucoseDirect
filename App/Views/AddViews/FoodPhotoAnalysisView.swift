@@ -624,12 +624,6 @@ struct FoodPhotoAnalysisView: View {
         }
     }
 
-    private func macroTag(_ text: String, color: Color) -> some View {
-        Text(text)
-            .font(DOSTypography.caption)
-            .foregroundStyle(color)
-    }
-
     private func confidenceRow(_ confidence: NutritionEstimate.Confidence) -> some View {
         HStack {
             Text("Level")
