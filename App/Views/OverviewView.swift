@@ -96,22 +96,27 @@ struct OverviewView: View {
     private func sheetContent(for sheet: ActiveSheet) -> some View {
         switch sheet {
         case .insulin:
-            AddInsulinView(addCallback: { start, end, units, insulinType in
-                let insulinDelivery = InsulinDelivery(id: UUID(), starts: start, ends: end, units: units, type: insulinType)
-                store.dispatch(.addInsulinDelivery(insulinDeliveryValues: [insulinDelivery]))
-            }, currentIOB: {
-                let bolusModel = store.state.bolusInsulinPreset.model
-                let basalModel = ExponentialInsulinModel(
-                    actionDuration: Double(store.state.basalDIAMinutes) * 60,
-                    peakActivityTime: 75 * 60
-                )
-                let result = computeIOB(
-                    deliveries: store.state.iobDeliveries,
-                    bolusModel: bolusModel,
-                    basalModel: basalModel
-                )
-                return result.total
-            }())
+            AddInsulinView(
+                addCallback: { start, end, units, insulinType in
+                    let insulinDelivery = InsulinDelivery(id: UUID(), starts: start, ends: end, units: units, type: insulinType)
+                    store.dispatch(.addInsulinDelivery(insulinDeliveryValues: [insulinDelivery]))
+                },
+                currentIOB: {
+                    let bolusModel = store.state.bolusInsulinPreset.model
+                    let basalModel = ExponentialInsulinModel(
+                        actionDuration: Double(store.state.basalDIAMinutes) * 60,
+                        peakActivityTime: 75 * 60
+                    )
+                    let result = computeIOB(
+                        deliveries: store.state.iobDeliveries,
+                        bolusModel: bolusModel,
+                        basalModel: basalModel
+                    )
+                    return result.total
+                }(),
+                editingDelivery: nil
+            )
+            .environmentObject(store)
 
         case .meal:
             UnifiedFoodEntryView()
