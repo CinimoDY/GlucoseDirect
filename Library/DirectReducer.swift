@@ -28,6 +28,14 @@ func directReducer(state: inout DirectState, action: DirectAction) {
         
     case .addInsulinDelivery(insulinDeliveryValues: let insulinDeliveryValues):
         state.latestInsulinDelivery = insulinDeliveryValues.last
+        // Optimistic append — the marker shows on the chart immediately.
+        // The middleware-triggered .loadInsulinDeliveryValues round-trip
+        // will subsequently replace this with the canonical DB state.
+        state.insulinDeliveryValues.append(contentsOf: insulinDeliveryValues)
+
+    case .addMealEntry(mealEntryValues: let mealEntryValues):
+        // Optimistic append — same rationale as .addInsulinDelivery above.
+        state.mealEntryValues.append(contentsOf: mealEntryValues)
 
     case .addSensorGlucose(glucoseValues: let glucoseValues):
         state.latestSensorGlucose = glucoseValues.last

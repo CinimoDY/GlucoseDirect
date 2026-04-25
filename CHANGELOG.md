@@ -7,6 +7,14 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 79] — 2026-04-25
+
+### Changed
+- Insulin entry stepper now uses 1-unit steps (was 0.5U). Pen users with whole-unit-only doses no longer have to tap twice per click. Help caption updated accordingly. Tap-to-type still works for fractional doses if needed.
+
+### Fixed
+- New meal and insulin entries now show on the chart immediately. Previously the reducer only updated the `latest*` reference and waited for the GRDB-write-then-load middleware round-trip before the marker appeared. Reducer now appends to `mealEntryValues` / `insulinDeliveryValues` optimistically; the load round-trip subsequently replaces with the canonical DB state, and the marker stays in place.
+
 ## [Build 78] — 2026-04-25
 
 ### Changed

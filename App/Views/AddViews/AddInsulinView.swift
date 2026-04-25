@@ -106,10 +106,10 @@ struct AddInsulinView: View {
             StepperField(
                 title: "Units",
                 value: $units,
-                step: 0.5,
+                step: 1.0,
                 range: 0...50,
                 unit: "U",
-                helpText: "tap value to type · ±0.5U steps"
+                helpText: "tap value to type · ±1U steps"
             )
         }
     }
