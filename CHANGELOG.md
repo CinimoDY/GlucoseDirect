@@ -7,6 +7,12 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 77] — 2026-04-25
+
+### Fixed
+- Tapping a combined food + insulin marker on the chart now reliably shows BOTH the meal AND the insulin row in the read overlay. When the entity lookup transiently failed for one of them, the row was rendering with empty Texts (looking like blank space) — primary text and value text now fall back to a generic type label + the marker's pre-computed `label` so the row always has visible content. Subline falls back to a "paired w/ meal" / "paired w/ insulin" hint when the entity lookup fails.
+- Bolus / insulin markers and row icons swap from the dim brown `amberDark` to the brighter primary `amber`. The previous brown was readable against the chart's amber-tinted background but nearly invisible on the read overlay's pure-black sheet.
+
 ## [Build 76] — 2026-04-25
 
 ### Changed

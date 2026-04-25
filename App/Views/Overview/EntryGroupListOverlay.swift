@@ -113,7 +113,7 @@ struct EntryGroupListOverlay: View {
                 .foregroundStyle(marker.type.color)
                 .frame(width: 28, height: 28)
             VStack(alignment: .leading, spacing: 2) {
-                Text(primaryText(for: stub))
+                Text(primaryText(for: stub, marker: marker))
                     .font(DOSTypography.body)
                     .foregroundStyle(AmberTheme.amber)
                 Text(sublineText(for: stub, marker: marker))
@@ -121,14 +121,14 @@ struct EntryGroupListOverlay: View {
                     .foregroundStyle(AmberTheme.amberDark)
             }
             Spacer()
-            Text(valueText(for: stub))
+            Text(valueText(for: stub, marker: marker))
                 .font(DOSTypography.displayMedium)
                 .foregroundStyle(marker.type.color)
         }
         .padding(.horizontal, DOSSpacing.md)
         .padding(.vertical, DOSSpacing.sm)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(voiceOverLabel(for: stub))
+        .accessibilityLabel(voiceOverLabel(for: stub, marker: marker))
     }
 
     // MARK: - Per-row helpers
@@ -144,26 +144,50 @@ struct EntryGroupListOverlay: View {
         }
     }
 
-    private func primaryText(for stub: MarkerEntryStub?) -> String {
+    /// Primary row text. When the entity lookup fails (rare, but possible
+    /// during deletion races), fall back to a generic type label so the row
+    /// still has visible content — empty Text views render as invisible
+    /// blank space, hiding the bolus row entirely from the user.
+    private func primaryText(for stub: MarkerEntryStub?, marker: EventMarker) -> String {
         switch stub {
         case .meal(let m): return m.mealDescription
         case .insulin(let i): return i.type.localizedDescription
         case .exercise(let e): return e.activityType
-        case .none: return ""
+        case .none:
+            switch marker.type {
+            case .meal: return "Meal"
+            case .bolus: return "Insulin"
+            case .exercise: return "Exercise"
+            }
         }
     }
 
-    private func valueText(for stub: MarkerEntryStub?) -> String {
+    /// Value column. When the entity lookup fails, use the marker's
+    /// pre-computed `label` — populated at chart-marker-build time from the
+    /// originating entity (e.g. "5.0U" for insulin, "30g" for a meal).
+    private func valueText(for stub: MarkerEntryStub?, marker: EventMarker) -> String {
         switch stub {
         case .meal(let m): return "\(Int(m.carbsGrams ?? 0))g"
         case .insulin(let i): return String(format: "%.1fU", i.units)
         case .exercise(let e): return "\(Int(e.durationMinutes))m"
-        case .none: return ""
+        case .none: return marker.label
         }
     }
 
     private func sublineText(for stub: MarkerEntryStub?, marker: EventMarker) -> String {
-        guard let stub else { return "" }
+        guard let stub else {
+            // Entity not in lookup arrays — fall back to a minimal "paired"
+            // hint based on the group's own composition so the row at least
+            // tells the user it's part of a combined entry.
+            switch marker.type {
+            case .bolus:
+                return group.markers.contains { $0.type == .meal } ? "paired w/ meal" : ""
+            case .meal:
+                return group.markers.contains { $0.type == .bolus } ? "paired w/ insulin" : ""
+            case .exercise:
+                return ""
+            }
+        }
         let mealCount: Int
         var mealImpact: MealImpact?
         var personalFood: PersonalFoodGlycemic?
@@ -209,8 +233,8 @@ struct EntryGroupListOverlay: View {
         }
     }
 
-    private func voiceOverLabel(for stub: MarkerEntryStub?) -> String {
-        primaryText(for: stub) + ", " + valueText(for: stub)
+    private func voiceOverLabel(for stub: MarkerEntryStub?, marker: EventMarker) -> String {
+        primaryText(for: stub, marker: marker) + ", " + valueText(for: stub, marker: marker)
     }
 
     // MARK: - Static testable helper

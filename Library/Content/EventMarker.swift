@@ -26,7 +26,7 @@ enum EventMarkerType: Hashable {
     var color: Color {
         switch self {
         case .meal: return AmberTheme.cgaGreen
-        case .bolus: return AmberTheme.amberDark
+        case .bolus: return AmberTheme.amber
         case .exercise: return AmberTheme.cgaCyan
         }
     }
