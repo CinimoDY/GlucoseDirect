@@ -137,6 +137,8 @@ enum DirectAction {
     case setServingPresets(servingPresets: [ServingPreset])
     case setRecentFoodCorrections(recentFoodCorrections: [FoodCorrection])
     case updateFavoriteFood(favoriteFood: FavoriteFood)
+    case updateInsulinDelivery(insulinDelivery: InsulinDelivery)
+    case updateMealEntry(mealEntry: MealEntry)
     case validateClaudeAPIKey
 
     // MARK: Treatment Cycle

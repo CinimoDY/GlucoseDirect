@@ -476,3 +476,30 @@ struct DailyDigestStateTests {
         #expect(state.aiConsentDailyDigest == false)
     }
 }
+
+// MARK: - Update Action Reducer Tests
+
+@Suite("Update Actions (DMNC-848)")
+struct UpdateActionReducerTests {
+
+    @Test("updateMealEntry does not mutate state directly (handled by middleware)")
+    func updateMealEntryNoOp() {
+        var state: DirectState = makeState()
+        let original = MealEntry(timestamp: Date(), mealDescription: "Old", carbsGrams: 30, analysisSessionId: nil)
+        state.mealEntryValues = [original]
+        let updated = MealEntry(id: original.id, timestamp: original.timestamp, mealDescription: "New", carbsGrams: 45, analysisSessionId: nil)
+        reduce(&state, .updateMealEntry(mealEntry: updated))
+        // Reducer is a no-op; middleware persists and dispatches setMealEntryValues
+        #expect(state.mealEntryValues == [original])
+    }
+
+    @Test("updateInsulinDelivery does not mutate state directly")
+    func updateInsulinDeliveryNoOp() {
+        var state: DirectState = makeState()
+        let original = InsulinDelivery(starts: Date(), ends: Date(), units: 4.5, type: .mealBolus)
+        state.insulinDeliveryValues = [original]
+        let updated = InsulinDelivery(id: original.id, starts: original.starts, ends: original.ends, units: 5.0, type: original.type)
+        reduce(&state, .updateInsulinDelivery(insulinDelivery: updated))
+        #expect(state.insulinDeliveryValues == [original])
+    }
+}

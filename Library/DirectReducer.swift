@@ -470,6 +470,10 @@ func directReducer(state: inout DirectState, action: DirectAction) {
     case .setAIConsentDailyDigest(enabled: let enabled):
         state.aiConsentDailyDigest = enabled
 
+    // MARK: Update Actions (DMNC-848)
+    case .updateMealEntry, .updateInsulinDelivery:
+        break  // no-op; middleware persists and triggers .load*Values round-trip
+
     default:
         break
     }
