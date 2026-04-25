@@ -43,7 +43,7 @@ struct CombinedEntryEditView: View {
                     Button("Cancel") { cancel() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { save() }.disabled(!isDirty)
+                    Button("Save") { save() }.disabled(!isSaveEnabled)
                 }
             }
         }
@@ -106,7 +106,7 @@ struct CombinedEntryEditView: View {
         }
     }
 
-    // MARK: - isDirty
+    // MARK: - isDirty / isSaveEnabled
 
     private var isDirty: Bool {
         var dirty = false
@@ -121,6 +121,18 @@ struct CombinedEntryEditView: View {
             if abs(i.starts.timeIntervalSince(time)) > 1 { dirty = true }
         }
         return dirty
+    }
+
+    /// Save is enabled when dirty AND the resulting state isn't a half-cleared
+    /// meal (empty description with carbs still set). Empty-description plus
+    /// zero-carbs is the delete-via-empty path and is allowed.
+    private var isSaveEnabled: Bool {
+        guard isDirty else { return false }
+        if originalMealEntry != nil {
+            let totalCarbs = stagedItems.reduce(0.0, { $0 + $1.carbsG })
+            if description.isEmpty && totalCarbs > 0 { return false }
+        }
+        return true
     }
 
     // MARK: - Cancel/Save
@@ -141,10 +153,13 @@ struct CombinedEntryEditView: View {
             if description.isEmpty && totalCarbs == 0 {
                 store.dispatch(.deleteMealEntry(mealEntry: original))
             } else {
+                // Persist `description` as-typed. Empty strings trim to empty in the
+                // constructor; the Save button is gated by `isSaveEnabled` so users
+                // can't reach this path with an empty description and non-zero carbs.
                 let updated = MealEntry(
                     id: original.id,
                     timestamp: time,
-                    mealDescription: description.isEmpty ? original.mealDescription : description,
+                    mealDescription: description,
                     carbsGrams: totalCarbs,
                     proteinGrams: original.proteinGrams,
                     fatGrams: original.fatGrams,
@@ -212,11 +227,11 @@ struct CombinedEntryEditView: View {
                     )
                     .padding(.vertical, 2)
                 }
-                if originalMealEntry?.analysisSessionId != nil, stagedItems.count == 1 {
-                    Text("This meal was analyzed with multiple items. Editing here updates the total only.")
-                        .font(DOSTypography.caption)
-                        .foregroundStyle(AmberTheme.amberDark)
-                }
+                // Multi-item banner intentionally omitted in v1: the original
+                // analysis item count isn't available from the aggregated
+                // MealEntry alone, so we can't reliably distinguish single-item
+                // from multi-item AI meals. Add this back when multi-item
+                // hydration via analysisSessionId is implemented.
             }
             .padding(DOSSpacing.md)
         }

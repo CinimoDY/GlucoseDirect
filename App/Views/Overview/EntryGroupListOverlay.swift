@@ -84,10 +84,14 @@ struct EntryGroupListOverlay: View {
         .padding(.vertical, DOSSpacing.sm)
     }
 
-    private var headerText: String {
+    private static let headerTimeFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "HH:mm"
-        return "\(f.string(from: group.time)) · Logged"
+        return f
+    }()
+
+    private var headerText: String {
+        "\(Self.headerTimeFormatter.string(from: group.time)) · Logged"
     }
 
     private var okBar: some View {
@@ -168,7 +172,6 @@ struct EntryGroupListOverlay: View {
         var iob: Double?
         var confs: [ConfounderType] = []
         var paired: Bool = false
-        var mealStart: Date?
 
         switch stub {
         case .meal(let m):
@@ -177,7 +180,6 @@ struct EntryGroupListOverlay: View {
             personalFood = personalFoodAvgs[m.id]
             confs = confoundersFor(m)
             paired = group.markers.contains { $0.type == .bolus }
-            mealStart = m.timestamp
         case .insulin(let i):
             mealCount = 1
             iob = iobAtTime(i.starts)
@@ -194,7 +196,6 @@ struct EntryGroupListOverlay: View {
             glucoseUnit: glucoseUnit,
             iob: iob,
             paired: paired,
-            mealStart: mealStart,
             confounders: confs
         )
     }
@@ -213,7 +214,6 @@ struct EntryGroupListOverlay: View {
         glucoseUnit: GlucoseUnit,
         iob: Double?,
         paired: Bool,
-        mealStart: Date?,
         confounders: [ConfounderType]
     ) -> String {
         switch marker {

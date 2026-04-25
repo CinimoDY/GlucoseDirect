@@ -122,10 +122,8 @@ struct OverviewView: View {
                         basalModel: basalModel
                     )
                     return result.total
-                }(),
-                editingDelivery: nil
+                }()
             )
-            .environmentObject(store)
 
         case .meal:
             UnifiedFoodEntryView()
