@@ -1,103 +1,93 @@
-# DMNC-848 HR Overlay Plan (D6)
+# DMNC-848 HR Overlay Plan (D6, v2 — post doc-review)
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Render the user's HealthKit heart-rate series as a magenta dashed line overlaid on the glucose chart, with an end-of-line numeric readout and a settings toggle. Relative-scaled (no separate y-axis).
+**Goal:** Gate the existing always-on HR overlay behind a `showHeartRateOverlay` setting, add an end-of-line numeric readout, and place the toggle alongside the Apple Health import switch.
 
-**Architecture:** New `showHeartRateOverlay` Bool in state (UserDefaults-backed). `setHeartRateSeries` action already exists (`Library/DirectAction.swift:79`). Add chart `LineMark` + end-of-line `PointMark` overlay in `ChartView`, gated by the new toggle. Settings switch alongside the existing HealthKit integration toggle.
+**Architecture (after doc-review):** The HR `LineMark` already exists in `ChartView.swift:699-710` (cgaMagenta dashed, opacity 0.3, unit-aware scaling via existing `chartMinimum`/`alarmHigh` formula). `cgaMagenta` already in `AmberTheme.swift:43`. `setHeartRateSeries` action + `heartRateSeries` state already exist. **Nothing new to build for the line itself** — only gate the existing rendering, add a readout, add the toggle.
 
-**Tech Stack:** SwiftUI Charts, Combine, Redux-like Store, UserDefaults persistence.
+**Tech Stack:** SwiftUI Charts, Redux-like Store, UserDefaults persistence.
 
 **Spec:** `docs/brainstorms/2026-04-25-unified-entry-and-chart-markers-design.md` D6.
 
-**Out of scope:** HR-resting-rate calibrated to glucose-100 line. Stays as a follow-up Linear issue. v1 is relative-scaled only.
+**Doc-review revisions from v1:**
+- Acknowledge HR rendering already exists; do not add a new `HRChartOverlay`.
+- Drop adding `cgaMagenta` (already defined).
+- Toggle home is `AppleExportSettingsView.swift`, not the non-existent `HealthKitSettingsView.swift`.
+- Reuse the existing unit-aware scaling formula; do not invent `40...300` hardcode.
+- Handle empty/single-point/stale HR series.
+- Default `false` (per brainstorm); document the visible-behavior change in CHANGELOG.
+- Use existing `firstTimestamp`/`lastTimestamp` for time bounds; no `chartStartDate`/`chartEndDate` invention.
 
-**Depends on:** None — D6 is orthogonal to the core unified-entry plan. Can ship independently.
+**Out of scope:** HR-resting calibration to glucose-100 line — separate follow-up.
 
 ---
 
 ## File Structure
 
-### Modified files
-
 | Path | Change |
 |---|---|
 | `Library/DirectState.swift` | Add `var showHeartRateOverlay: Bool { get set }`. |
-| `App/AppState.swift` | Add backing property + `didSet` UserDefaults persistence. |
-| `Library/Extensions/UserDefaults.swift` | Add `Keys.showHeartRateOverlay` + computed property. |
-| `Library/DirectAction.swift` | Add `case setShowHeartRateOverlay(enabled: Bool)`. |
-| `Library/DirectReducer.swift` | Handle the new action. |
-| `App/Views/Overview/ChartView.swift` | Add `LineMark` for HR series + end-of-line `PointMark` + readout text, gated by `showHeartRateOverlay`. |
-| `App/Views/Settings/HealthKitSettingsView.swift` | Add toggle row for `showHeartRateOverlay`. |
-| `DOSBTSTests/DirectReducerTests.swift` | Cover the new action. |
-
-### New files
-
-| Path | Responsibility |
-|---|---|
-| `App/Views/Overview/HRChartOverlay.swift` | Optional helper view containing the HR `LineMark` + readout (extracted to keep ChartView body manageable). |
+| `App/AppState.swift` | Backing storage + UserDefaults `didSet`. |
+| `Library/Extensions/UserDefaults.swift` | `Keys.showHeartRateOverlay` + computed property. |
+| `Library/DirectAction.swift` | `case setShowHeartRateOverlay(enabled: Bool)`. |
+| `Library/DirectReducer.swift` | Reducer case. |
+| `App/Views/Overview/ChartView.swift` | Wrap existing HR `LineMark` (lines 699-710) and HR legend chip (lines 70-79) and HR tooltip/selection logic (lines 134, 181-193) in `if store.state.showHeartRateOverlay`. Add end-of-line `PointMark` + readout when enabled. |
+| `App/Views/Settings/AppleExportSettingsView.swift` | Add toggle row inside the existing `if store.state.appleHealthImport { … }` block. |
+| `DOSBTSTests/DirectReducerTests.swift` | Cover `setShowHeartRateOverlay`. |
+| `CHANGELOG.md` | "Changed: HR overlay is now toggleable; default off (was always on for users on build ≤ 62)." |
 
 ---
 
-## Task 1: Add toggle state
+## Task 1: Add toggle state + reducer test
 
 **Files:**
-- Modify: `Library/DirectState.swift` (add protocol property)
-- Modify: `App/AppState.swift` (add storage + didSet)
-- Modify: `Library/Extensions/UserDefaults.swift` (add Keys + computed property)
-- Modify: `Library/DirectAction.swift` (add action case)
-- Modify: `Library/DirectReducer.swift` (add reducer case)
-- Modify: `DOSBTSTests/DirectReducerTests.swift` (test the reducer case)
+- Modify: `Library/DirectState.swift`, `App/AppState.swift`, `Library/Extensions/UserDefaults.swift`, `Library/DirectAction.swift`, `Library/DirectReducer.swift`, `DOSBTSTests/DirectReducerTests.swift`
 
-- [ ] **Step 1: Write failing reducer test**
+- [ ] **Step 1: Failing reducer test (use `directReducer(state:action:)` and `AppState()` no-arg per existing pattern in DirectReducerTests.swift)**
 
 ```swift
-// DOSBTSTests/DirectReducerTests.swift — add to existing suite
 @Test("setShowHeartRateOverlay toggles the flag")
 func toggleHROverlay() {
     var state = AppState()
     state.showHeartRateOverlay = false
-    DirectReducer.reducer(state: &state, action: .setShowHeartRateOverlay(enabled: true))
+    directReducer(state: &state, action: .setShowHeartRateOverlay(enabled: true))
     #expect(state.showHeartRateOverlay == true)
-    DirectReducer.reducer(state: &state, action: .setShowHeartRateOverlay(enabled: false))
+    directReducer(state: &state, action: .setShowHeartRateOverlay(enabled: false))
     #expect(state.showHeartRateOverlay == false)
 }
 ```
 
-- [ ] **Step 2: Run test, expect FAIL.**
+- [ ] **Step 2: Run, expect FAIL.**
 
-- [ ] **Step 3: Add the protocol property, storage, UserDefaults, action, reducer**
+- [ ] **Step 3: Wire the property + action + reducer + UserDefaults**
 
 ```swift
-// Library/DirectState.swift — alongside other booleans
+// Library/DirectState.swift
 var showHeartRateOverlay: Bool { get set }
 ```
 
 ```swift
 // App/AppState.swift
 var showHeartRateOverlay: Bool {
-    didSet {
-        UserDefaults.standard.showHeartRateOverlay = showHeartRateOverlay
-    }
+    didSet { UserDefaults.standard.showHeartRateOverlay = showHeartRateOverlay }
 }
-
-// In init:
-self.showHeartRateOverlay = UserDefaults.standard.showHeartRateOverlay
+// In init(): self.showHeartRateOverlay = UserDefaults.standard.showHeartRateOverlay
 ```
 
 ```swift
-// Library/Extensions/UserDefaults.swift — Keys enum
+// Library/Extensions/UserDefaults.swift — add to Keys enum:
 case showHeartRateOverlay
 
-// computed property
+// Computed property:
 var showHeartRateOverlay: Bool {
-    get { bool(forKey: Keys.showHeartRateOverlay.rawValue) }
+    get { bool(forKey: Keys.showHeartRateOverlay.rawValue) }  // defaults to false (per brainstorm)
     set { set(newValue, forKey: Keys.showHeartRateOverlay.rawValue) }
 }
 ```
 
 ```swift
-// Library/DirectAction.swift — alphabetical position
+// Library/DirectAction.swift — alphabetical
 case setShowHeartRateOverlay(enabled: Bool)
 ```
 
@@ -113,171 +103,142 @@ case .setShowHeartRateOverlay(let enabled):
 
 ```bash
 git add Library/DirectState.swift App/AppState.swift Library/Extensions/UserDefaults.swift Library/DirectAction.swift Library/DirectReducer.swift DOSBTSTests/DirectReducerTests.swift
-git commit -m "feat: add showHeartRateOverlay state + toggle action"
+git commit -m "feat: add showHeartRateOverlay state + toggle action (default off)"
 ```
 
 ---
 
-## Task 2: HR overlay rendering on the chart
+## Task 2: Gate the existing HR rendering + add end-of-line readout
 
 **Files:**
-- Create: `App/Views/Overview/HRChartOverlay.swift`
-- Modify: `App/Views/Overview/ChartView.swift` (compose the overlay into the chart body)
+- Modify: `App/Views/Overview/ChartView.swift`
 
-- [ ] **Step 1: Implement `HRChartOverlay`**
+- [ ] **Step 1: Wrap the existing HR rendering in `if store.state.showHeartRateOverlay`**
 
-```swift
-// App/Views/Overview/HRChartOverlay.swift
-import SwiftUI
-import Charts
+In `ChartView.swift`:
+1. Lines 70-79 (HR legend chip): wrap in `if store.state.showHeartRateOverlay && !store.state.heartRateSeries.isEmpty`.
+2. Lines 134, 181-193 (HR tooltip/selection): wrap in `if store.state.showHeartRateOverlay`.
+3. Lines 699-710 (the HR `LineMark` `ForEach`): wrap in `if store.state.showHeartRateOverlay`. Keep the existing scaling formula `((point.1 - 40) / (200 - 40)) * (chartMinimum - alarmHigh) + alarmHigh` — it's unit-aware (mg/dL vs mmol/L) via `chartMinimum`. Keep `cgaMagenta.opacity(0.3)` line styling.
 
-struct HRChartOverlay: ChartContent {
-    let series: [(Date, Double)]
-    let yRange: ClosedRange<Double>          // chart's current glucose y-extent
-    let hrRange: ClosedRange<Double>         // user's HR range (e.g., 50–180 bpm)
+- [ ] **Step 2: Add end-of-line `PointMark` + readout**
 
-    var body: some ChartContent {
-        ForEach(series, id: \.0) { (timestamp, bpm) in
-            LineMark(
-                x: .value("Time", timestamp),
-                y: .value("HR (scaled)", scaledY(for: bpm))
-            )
-            .foregroundStyle(AmberTheme.cgaMagenta)
-            .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
-            .interpolationMethod(.linear)
-        }
-        if let last = series.last {
-            PointMark(
-                x: .value("Time", last.0),
-                y: .value("HR", scaledY(for: last.1))
-            )
-            .foregroundStyle(AmberTheme.cgaMagenta)
-            .symbol(.circle)
-            .symbolSize(30)
-            .annotation(position: .trailing, alignment: .leading, spacing: 4) {
-                Text("\(Int(last.1))")
-                    .font(DOSTypography.caption)
-                    .foregroundStyle(AmberTheme.cgaMagenta)
-            }
-        }
-    }
-
-    /// Maps HR value into the chart's vertical extent, proportional to user's range.
-    private func scaledY(for bpm: Double) -> Double {
-        let normalised = (bpm - hrRange.lowerBound) / (hrRange.upperBound - hrRange.lowerBound)
-        return yRange.lowerBound + normalised * (yRange.upperBound - yRange.lowerBound)
-    }
-}
-```
-
-Add `cgaMagenta` to `AmberTheme`:
+Inside the same `if store.state.showHeartRateOverlay` block as the LineMark, append:
 
 ```swift
-// Library/DesignSystem/AmberTheme.swift
-public static let cgaMagenta = Color(red: 1.0, green: 85.0 / 255.0, blue: 1.0)  // #ff55ff
-```
-
-- [ ] **Step 2: Compose into the chart**
-
-```swift
-// ChartView.swift — inside the Chart {} body, after existing sensor LineMark
-if store.state.showHeartRateOverlay && !store.state.heartRateSeries.isEmpty {
-    HRChartOverlay(
-        series: store.state.heartRateSeries.filter { $0.0 >= chartStartDate && $0.0 <= chartEndDate },
-        yRange: 40...300,    // glucose chart y-extent
-        hrRange: hrRangeForUser()
+if let last = store.state.heartRateSeries.last {
+    PointMark(
+        x: .value("Time", last.0),
+        y: .value("HR", scaledHR(last.1))   // reuse the same scaling formula as the LineMark
     )
+    .foregroundStyle(AmberTheme.cgaMagenta.opacity(0.7))
+    .symbol(.circle)
+    .symbolSize(30)
+    .annotation(position: .trailing, alignment: .leading, spacing: 4) {
+        Text("\(Int(last.1))")
+            .font(DOSTypography.caption)
+            .foregroundStyle(AmberTheme.cgaMagenta.opacity(0.7))
+    }
 }
 ```
 
-Compute `hrRangeForUser()`:
+Helper (extract the shared scaling expression to avoid duplicating it):
 
 ```swift
-// ChartView.swift — helper
-private func hrRangeForUser() -> ClosedRange<Double> {
-    let bpms = store.state.heartRateSeries.map(\.1)
-    let lo = max(40, bpms.min() ?? 50)
-    let hi = min(220, bpms.max() ?? 180)
-    return lo...hi
+private func scaledHR(_ bpm: Double) -> Double {
+    ((bpm - 40) / (200 - 40)) * (chartMinimum - alarmHigh) + alarmHigh
 }
 ```
 
-- [ ] **Step 3: Build app, expect success**
+(Use existing `chartMinimum`, `alarmHigh` references that ChartView already has.)
+
+- [ ] **Step 3: Stale-data guard for the readout**
+
+Above the PointMark, gate the readout when the latest HR sample is older than 10 minutes (HealthKit can lag):
+
+```swift
+if let last = store.state.heartRateSeries.last,
+   Date().timeIntervalSince(last.0) < 10 * 60 {
+    // PointMark + annotation as above
+}
+```
+
+- [ ] **Step 4: Build app**
 
 ```bash
 xcodebuild -project DOSBTS.xcodeproj -scheme DOSBTSApp -sdk iphonesimulator -configuration Debug build
 ```
 
-- [ ] **Step 4: Run on simulator with HealthKit Import enabled and HR data present. Toggle `showHeartRateOverlay` → magenta dashed line + end-of-line readout appear/disappear.**
+- [ ] **Step 5: Run on simulator with HealthKit Import on + HR samples available. Toggle `showHeartRateOverlay` via Settings (next task) → magenta dashed line + readout appear/disappear.**
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add App/Views/Overview/HRChartOverlay.swift App/Views/Overview/ChartView.swift Library/DesignSystem/AmberTheme.swift
-git commit -m "feat: HR overlay on glucose chart (relative-scaled, magenta dashed)"
+git add App/Views/Overview/ChartView.swift
+git commit -m "feat: gate HR overlay behind showHeartRateOverlay + add end-of-line readout"
 ```
 
 ---
 
-## Task 3: Settings toggle
+## Task 3: Settings toggle in AppleExportSettingsView
 
 **Files:**
-- Modify: `App/Views/Settings/HealthKitSettingsView.swift` (add the toggle row)
+- Modify: `App/Views/Settings/AppleExportSettingsView.swift`
 
-- [ ] **Step 1: Add a toggle row near the existing HealthKit Import toggle**
+- [ ] **Step 1: Add toggle row inside the existing import section (lines 40-57)**
+
+Place the new `Toggle` inside the existing `if store.state.appleHealthImport { … }` block so it only appears when import is active and HR data actually flows:
 
 ```swift
-// HealthKitSettingsView.swift — inside the settings Form
+// AppleExportSettingsView.swift — inside the import section
 Toggle(isOn: Binding(
     get: { store.state.showHeartRateOverlay },
     set: { store.dispatch(.setShowHeartRateOverlay(enabled: $0)) }
 )) {
-    VStack(alignment: .leading) {
-        Text("HR overlay")
-        Text("Show heart rate on the chart")
+    VStack(alignment: .leading, spacing: 2) {
+        Text("HR overlay on chart")
+            .font(DOSTypography.body)
+        Text("Magenta dashed line + current bpm")
             .font(DOSTypography.caption)
             .foregroundStyle(AmberTheme.amberDark)
     }
 }
 ```
 
-- [ ] **Step 2: Build app, expect success.**
+- [ ] **Step 2: Build, run on simulator, navigate to Settings → Apple Health import → toggle on/off → confirm chart overlay tracks the toggle.**
 
-- [ ] **Step 3: Run on simulator, navigate to Settings → HealthKit. Toggle on/off. Confirm chart overlay tracks the toggle.**
-
-- [ ] **Step 4: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
-git add App/Views/Settings/HealthKitSettingsView.swift
-git commit -m "feat: HR overlay settings toggle"
+git add App/Views/Settings/AppleExportSettingsView.swift
+git commit -m "feat: HR overlay settings toggle in AppleExportSettingsView"
 ```
 
 ---
 
 ## Task 4: CHANGELOG entry
 
-**Files:**
-- Modify: `CHANGELOG.md`
-
 - [ ] **Step 1: Append to `[Unreleased]`**
 
 ```markdown
+### Changed
+- Heart rate overlay on the glucose chart is now toggleable (Settings → Apple Health import → "HR overlay on chart"). Default is **off** to give users explicit control. If you saw the magenta HR line on prior builds and want it back, enable the toggle. (DMNC-848 D6)
+
 ### Added
-- Heart rate overlay on glucose chart (magenta dashed line, relative-scaled). Toggle in Settings → HealthKit. (DMNC-848 D6)
+- End-of-line numeric BPM readout on the HR overlay (when enabled and HR data is fresh within the last 10 minutes).
 ```
 
 - [ ] **Step 2: Commit**
 
 ```bash
 git add CHANGELOG.md
-git commit -m "docs: changelog — HR overlay (D6)"
+git commit -m "docs: changelog — HR overlay toggle (D6)"
 ```
 
 ---
 
 ## Self-review
 
-- [ ] Spec coverage: D6 fully covered (toggle, rendering, settings, no calibration). Calibration stays out.
-- [ ] No GRDB changes — `setHeartRateSeries` action already populated by HealthKit middleware.
-- [ ] No new sheet presentations.
-- [ ] Type consistency: `cgaMagenta` defined once in `AmberTheme`.
+- [ ] **Spec coverage:** D6 covered. The LineMark already shipped; the spec's "ship HR as relative-scaled magenta dashed line" is satisfied by the existing rendering. The new work is the toggle + readout. Calibration to glucose-100 stays a follow-up.
+- [ ] **No phantom symbols:** plan does not reference `HealthKitSettingsView`, `HRChartOverlay`, `chartStartDate`/`chartEndDate`, hardcoded `40...300` y-range, or duplicate `cgaMagenta` definition.
+- [ ] **No GRDB changes.**
+- [ ] **Behavior-regression call-out:** users on build 62 saw HR always-on; this build defaults it off. Documented in CHANGELOG.

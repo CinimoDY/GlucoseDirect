@@ -1,16 +1,23 @@
-# DMNC-848 Strict-Separation Customisation Plan (D7)
+# DMNC-848 Marker-Lane Position Plan (D7, v2 — post doc-review)
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Allow the user to choose whether the chart marker lane sits at the top or bottom of the chart stack. Marker groups never sandwich the IOB lane (cluster rule).
+**Goal:** Allow the user to choose whether the marker lane sits **above** or **below** the glucose chart. Default `.top` (matches today's placement — no behavior change for existing users unless they opt into bottom).
 
-**Architecture:** New `markerLanePosition` enum in state (UserDefaults-backed, default `.bottom`). `ChartView` reads the preference and reorders its vertical layout accordingly. The IOB lane stays adjacent to the chart on the opposite side from the marker lane.
+**Architecture (after doc-review):** Today's `EventMarkerLaneView` is the first child of an inner `VStack(spacing: 0)` (above the inner SwiftUI `Chart`). The IOB curve is rendered as `AreaMark` **inside** the same `Chart {}` block as glucose — it shares the chart canvas, not a separate stack child. Therefore the **"IOB sandwich" rule from the original brainstorm is dropped**: there is no separate IOB lane to sandwich. The toggle simply moves `EventMarkerLaneView` between two positions inside the existing `VStack`. No view extraction, no new `ChartSettingsView`, no new chart-area refactor.
 
 **Tech Stack:** SwiftUI, Redux-like Store, UserDefaults persistence.
 
-**Spec:** `docs/brainstorms/2026-04-25-unified-entry-and-chart-markers-design.md` D7.
+**Spec:** `docs/brainstorms/2026-04-25-unified-entry-and-chart-markers-design.md` D7. Note: D7's "cluster rule" (markers never sandwich IOB) is removed from this plan because the structural premise doesn't hold — IOB is in the chart canvas, not a sibling lane. The spec should be updated separately if the user wants to re-introduce IOB-related layout rules later.
 
-**Depends on:** Core unified-entry plan (Task 12 `MarkerLaneView`) — needs to land first so `MarkerLaneView` exists to be repositioned.
+**Doc-review revisions from v1:**
+- Drop "IOB lane sandwich" framing — no such lane exists.
+- Default `.top` (current placement) — no regression for existing users.
+- Position toggle lives inside the existing inner `VStack(spacing: 0)`, not a refactored `chartArea`/`iobLane`/`markerLane` extraction.
+- Use established settings inline-toggle pattern (like `showSmoothedGlucose` in `AdditionalSettingsView`) — no new `ChartSettingsView` file.
+- Reducer test follows existing `directReducer(state:action:)` + `AppState()` pattern.
+
+**Depends on:** Core plan's adapted `EventMarkerLaneView` (Phase 6 Task 10) — bare-icon visual + `onTapGroup` callback. The view name and prop surface stay; only visual changes. This plan can either ship before or after Core; if before, the toggle works against today's chip-bordered markers and adopts the bare icons when Core lands.
 
 ---
 
@@ -20,20 +27,20 @@
 
 | Path | Responsibility |
 |---|---|
-| `Library/Content/MarkerLanePosition.swift` | Enum (`.bottom`, `.top`) with `rawValue: String` for UserDefaults storage. |
+| `Library/Content/MarkerLanePosition.swift` | Enum (`.top`, `.bottom`) with `rawValue: String`. |
 
 ### Modified files
 
 | Path | Change |
 |---|---|
-| `Library/DirectState.swift` | Add `var markerLanePosition: MarkerLanePosition { get set }`. |
+| `Library/DirectState.swift` | `var markerLanePosition: MarkerLanePosition { get set }`. |
 | `App/AppState.swift` | Backing storage + UserDefaults `didSet`. |
-| `Library/Extensions/UserDefaults.swift` | `Keys.markerLanePosition` + computed property. |
+| `Library/Extensions/UserDefaults.swift` | `Keys.markerLanePosition` + computed property (default `.top`). |
 | `Library/DirectAction.swift` | `case setMarkerLanePosition(position: MarkerLanePosition)`. |
-| `Library/DirectReducer.swift` | Handle the new action. |
-| `App/Views/Overview/ChartView.swift` | Honour `markerLanePosition` when laying out chart + IOB + marker lane. |
-| `App/Views/Settings/ChartSettingsView.swift` (or new file if absent) | Picker for the position. |
-| `DOSBTSTests/DirectReducerTests.swift` | Cover the new action. |
+| `Library/DirectReducer.swift` | Reducer case. |
+| `App/Views/Overview/ChartView.swift` | Conditional ordering of the existing inner `VStack(spacing: 0)` children at lines 85-130. |
+| `App/Views/Settings/AdditionalSettingsView.swift` | Add a `Picker` for the position (segmented style) inline — same pattern as existing `showSmoothedGlucose` toggle. |
+| `DOSBTSTests/DirectReducerTests.swift` | Cover `setMarkerLanePosition`. |
 
 ---
 
@@ -42,21 +49,21 @@
 **Files:**
 - Create: `Library/Content/MarkerLanePosition.swift`
 
-- [ ] **Step 1: Implement the enum**
+- [ ] **Step 1: Implement**
 
 ```swift
 // Library/Content/MarkerLanePosition.swift
 import Foundation
 
 enum MarkerLanePosition: String, CaseIterable, Identifiable {
-    case bottom
     case top
+    case bottom
 
     var id: String { rawValue }
     var displayLabel: String {
         switch self {
-        case .bottom: return "Bottom (default)"
-        case .top: return "Top"
+        case .top: return "Above chart (default)"
+        case .bottom: return "Below chart"
         }
     }
 }
@@ -73,32 +80,26 @@ git commit -m "feat: MarkerLanePosition enum"
 
 ---
 
-## Task 2: State + action + reducer
+## Task 2: State + action + reducer + UserDefaults
 
 **Files:**
-- Modify: `Library/DirectState.swift`
-- Modify: `App/AppState.swift`
-- Modify: `Library/Extensions/UserDefaults.swift`
-- Modify: `Library/DirectAction.swift`
-- Modify: `Library/DirectReducer.swift`
-- Modify: `DOSBTSTests/DirectReducerTests.swift`
+- Modify: `Library/DirectState.swift`, `App/AppState.swift`, `Library/Extensions/UserDefaults.swift`, `Library/DirectAction.swift`, `Library/DirectReducer.swift`, `DOSBTSTests/DirectReducerTests.swift`
 
-- [ ] **Step 1: Write failing reducer test**
+- [ ] **Step 1: Failing reducer test**
 
 ```swift
-// DOSBTSTests/DirectReducerTests.swift
 @Test("setMarkerLanePosition updates the preference")
 func markerLanePosition() {
     var state = AppState()
-    state.markerLanePosition = .bottom
-    DirectReducer.reducer(state: &state, action: .setMarkerLanePosition(position: .top))
-    #expect(state.markerLanePosition == .top)
+    state.markerLanePosition = .top
+    directReducer(state: &state, action: .setMarkerLanePosition(position: .bottom))
+    #expect(state.markerLanePosition == .bottom)
 }
 ```
 
-- [ ] **Step 2: Run test, expect FAIL.**
+- [ ] **Step 2: Run, expect FAIL.**
 
-- [ ] **Step 3: Wire the property + action + reducer + UserDefaults**
+- [ ] **Step 3: Wire**
 
 ```swift
 // Library/DirectState.swift
@@ -110,18 +111,16 @@ var markerLanePosition: MarkerLanePosition { get set }
 var markerLanePosition: MarkerLanePosition {
     didSet { UserDefaults.standard.markerLanePosition = markerLanePosition }
 }
-
-// init:
-self.markerLanePosition = UserDefaults.standard.markerLanePosition
+// init(): self.markerLanePosition = UserDefaults.standard.markerLanePosition
 ```
 
 ```swift
 // Library/Extensions/UserDefaults.swift — Keys
 case markerLanePosition
 
-// computed property
+// Computed property — default .top so existing users see no change
 var markerLanePosition: MarkerLanePosition {
-    get { MarkerLanePosition(rawValue: string(forKey: Keys.markerLanePosition.rawValue) ?? "") ?? .bottom }
+    get { MarkerLanePosition(rawValue: string(forKey: Keys.markerLanePosition.rawValue) ?? "") ?? .top }
     set { set(newValue.rawValue, forKey: Keys.markerLanePosition.rawValue) }
 }
 ```
@@ -132,7 +131,7 @@ case setMarkerLanePosition(position: MarkerLanePosition)
 ```
 
 ```swift
-// Library/DirectReducer.swift
+// Library/DirectReducer.swift — inside switch
 case .setMarkerLanePosition(let pos):
     state.markerLanePosition = pos
 ```
@@ -143,39 +142,58 @@ case .setMarkerLanePosition(let pos):
 
 ```bash
 git add Library/DirectState.swift App/AppState.swift Library/Extensions/UserDefaults.swift Library/DirectAction.swift Library/DirectReducer.swift DOSBTSTests/DirectReducerTests.swift
-git commit -m "feat: markerLanePosition state + action + persistence"
+git commit -m "feat: markerLanePosition state + action + persistence (default .top)"
 ```
 
 ---
 
-## Task 3: ChartView honours marker-lane position
+## Task 3: ChartView reorders the inner VStack children based on position
 
 **Files:**
-- Modify: `App/Views/Overview/ChartView.swift`
+- Modify: `App/Views/Overview/ChartView.swift` (the inner `VStack(spacing: 0)` at lines 85-130)
 
-- [ ] **Step 1: Refactor the chart layout to a `Group` driven by `markerLanePosition`**
+**Critical:** the conditional reorder must happen **inside** the existing inner `VStack(spacing: 0)` (where `EventMarkerLaneView` and the inner `Chart` are siblings). Reordering at an outer level would break the shared horizontal-scroll container and desync marker tap coordinates from the chart x-axis.
 
-In ChartView's body, replace the existing fixed vertical order (chart → IOB → MarkerLane) with:
+- [ ] **Step 1: Wrap the two children in a conditional ordering**
 
+Today (paraphrased lines 85-130):
 ```swift
-// ChartView.swift — body
+VStack(spacing: 0) {
+    EventMarkerLaneView(markerGroups: ..., totalWidth: ..., ...)
+    Chart {
+        // glucose LineMarks, IOB AreaMark, HR LineMark (gated by D6 toggle), etc.
+    }
+    .chartXScale(...)
+    .frame(height: ...)
+}
+```
+
+After:
+```swift
 VStack(spacing: 0) {
     if store.state.markerLanePosition == .top {
-        markerLane
+        EventMarkerLaneView(markerGroups: ..., totalWidth: ..., ...)
     }
-    chartArea           // existing chart + axes
-    iobLane             // existing IOB AreaMark wrapper
+    Chart {
+        // unchanged
+    }
+    .chartXScale(...)
+    .frame(height: ...)
     if store.state.markerLanePosition == .bottom {
-        markerLane
+        EventMarkerLaneView(markerGroups: ..., totalWidth: ..., ...)
     }
 }
 ```
 
-The cluster rule is enforced structurally: marker lane is either at the very top or very bottom; IOB lane sits adjacent to the chart on the opposite side. There is no path where IOB is sandwiched between marker lane and chart.
+Both invocations of `EventMarkerLaneView` pass identical props. `ScrollViewReader` and the outer `ScrollView` enclose the entire `VStack` so both positions remain inside the same horizontal scroll container — marker x-coordinates stay synced with the chart.
 
-- [ ] **Step 2: Build, expect success.**
+- [ ] **Step 2: Build**
 
-- [ ] **Step 3: Run on simulator. Toggle `markerLanePosition` via Settings (Task 4). Confirm visual reorder. Confirm IOB stays adjacent to chart. Confirm marker tap still routes to list overlay (Core plan Task 17).**
+```bash
+xcodebuild -project DOSBTS.xcodeproj -scheme DOSBTSApp -sdk iphonesimulator -configuration Debug build
+```
+
+- [ ] **Step 3: Run on simulator. Toggle position via Settings (Task 4). Confirm visual reorder; tap a marker in both positions and confirm the list overlay opens (taps stay aligned with chart x-axis).**
 
 - [ ] **Step 4: Commit**
 
@@ -186,53 +204,44 @@ git commit -m "feat: ChartView honours markerLanePosition (top | bottom)"
 
 ---
 
-## Task 4: Settings picker
+## Task 4: Inline picker in AdditionalSettingsView
 
 **Files:**
-- Modify: `App/Views/Settings/ChartSettingsView.swift` (or wherever chart-customisation settings live; create the file if absent)
+- Modify: `App/Views/Settings/AdditionalSettingsView.swift`
 
-- [ ] **Step 1: Add a Picker for the position**
+- [ ] **Step 1: Add a Picker row near the existing chart-related toggles (e.g., near `showSmoothedGlucose`)**
 
 ```swift
-// ChartSettingsView.swift — inside the chart-customisation section
-Section("Marker lane position") {
-    Picker("Position", selection: Binding(
-        get: { store.state.markerLanePosition },
-        set: { store.dispatch(.setMarkerLanePosition(position: $0)) }
-    )) {
-        ForEach(MarkerLanePosition.allCases) { position in
-            Text(position.displayLabel).tag(position)
-        }
+// AdditionalSettingsView.swift — inside the existing chart-related Section
+Picker("Marker lane", selection: Binding(
+    get: { store.state.markerLanePosition },
+    set: { store.dispatch(.setMarkerLanePosition(position: $0)) }
+)) {
+    ForEach(MarkerLanePosition.allCases) { position in
+        Text(position.displayLabel).tag(position)
     }
-    .pickerStyle(.segmented)
 }
+.pickerStyle(.segmented)
 ```
 
-If `ChartSettingsView` doesn't exist yet, create it as a sibling of `HealthKitSettingsView` and add it to the main `SettingsView` navigation.
+- [ ] **Step 2: Build, run, navigate to Settings → Additional → toggle position. Confirm chart layout updates immediately.**
 
-- [ ] **Step 2: Build, expect success.**
-
-- [ ] **Step 3: Run on simulator. Settings → Chart → toggle position. Confirm chart layout updates immediately.**
-
-- [ ] **Step 4: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
-git add App/Views/Settings/ChartSettingsView.swift App/Views/SettingsView.swift
-git commit -m "feat: marker lane position picker in chart settings"
+git add App/Views/Settings/AdditionalSettingsView.swift
+git commit -m "feat: marker lane position picker in additional settings"
 ```
 
 ---
 
 ## Task 5: CHANGELOG entry
 
-**Files:**
-- Modify: `CHANGELOG.md`
-
 - [ ] **Step 1: Append to `[Unreleased]`**
 
 ```markdown
 ### Added
-- Chart customisation: marker lane position (top or bottom). IOB lane never sandwiched between marker lane and chart. (DMNC-848 D7)
+- Chart customisation: marker lane position toggle (above or below the glucose chart). Default is "above" — no change for existing users unless they opt into below. (DMNC-848 D7)
 ```
 
 - [ ] **Step 2: Commit**
@@ -246,8 +255,8 @@ git commit -m "docs: changelog — marker lane position toggle (D7)"
 
 ## Self-review
 
-- [ ] Spec coverage: D7 fully covered. Cluster rule is enforced by structure (vertical layout never places marker lane between chart and IOB lane).
-- [ ] No GRDB changes.
-- [ ] No new sheet presentations.
-- [ ] Default is `.bottom` — no behavioural change for users who never toggle.
-- [ ] Depends on Core plan Task 12 (`MarkerLaneView`) — must land first.
+- [ ] **Spec coverage:** D7 toggle covered. The "IOB never sandwiched" rule is dropped from this plan because IOB is part of the glucose `Chart {}` canvas, not a separate lane — there is nothing to sandwich. If the spec wants a future cluster rule, a follow-up plan would extract the IOB AreaMark out of the glucose chart into its own view, which is a larger architectural move.
+- [ ] **No GRDB changes.**
+- [ ] **No new sheet presentations.**
+- [ ] **Default `.top` — no regression** for existing users.
+- [ ] **No phantom symbols:** plan does not reference non-existent `chartArea`, `iobLane`, `markerLane`, or `ChartSettingsView`.
