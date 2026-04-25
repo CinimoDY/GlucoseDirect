@@ -12,6 +12,7 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 - `AmberChip`, `StepperField`, `QuickTimeChips` design-system primitives for chip rows, numeric steppers, and quick-time selectors used in the redesigned insulin entry surface and combined edit modal.
 - `StagingPlateRowView` extraction shared between `FoodPhotoAnalysisView` and the new `CombinedEntryEditView` — single ratio-link auto-scale + manual override implementation.
 - End-of-line numeric BPM readout on the heart-rate chart overlay (when enabled and HR data is fresh within the last 10 minutes). DMNC-848 D6.
+- Chart customisation: marker lane position toggle in Settings → Additional settings (above or below the glucose chart). Default is "above" — no change for existing users unless they opt into below. DMNC-848 D7.
 
 ### Changed
 - `AddInsulinView` replaces the type `Picker` with an `AmberChip` row, the units `TextField` with a `StepperField`, and the time `DatePicker` with `QuickTimeChips` (NOW / −15m / −30m / −1h plus a `⋯` chip opening a custom DatePicker popover). Basal entries still show an `Ends` `DatePicker`. The IOB stacking warning for correction boluses is preserved.
