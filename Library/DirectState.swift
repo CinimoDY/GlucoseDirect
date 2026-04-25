@@ -107,6 +107,9 @@ protocol DirectState {
     // MARK: Heart Rate Overlay (DMNC-848)
     var showHeartRateOverlay: Bool { get set }
 
+    // MARK: Marker Lane Position (DMNC-848 D7)
+    var markerLanePosition: MarkerLanePosition { get set }
+
     // MARK: IOB
     var bolusInsulinPreset: InsulinPreset { get set }
     var basalDIAMinutes: Int { get set }

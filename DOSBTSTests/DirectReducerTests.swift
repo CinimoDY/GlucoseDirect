@@ -518,3 +518,18 @@ struct HROverlayTests {
         #expect(state.showHeartRateOverlay == false)
     }
 }
+
+// MARK: - Marker Lane Position Tests (DMNC-848 D7)
+
+@Suite("Marker Lane Position")
+struct MarkerLanePositionTests {
+    @Test("setMarkerLanePosition updates the preference")
+    func setPosition() {
+        var state: DirectState = makeState()
+        state.markerLanePosition = .top
+        reduce(&state, .setMarkerLanePosition(position: .bottom))
+        #expect(state.markerLanePosition == .bottom)
+        reduce(&state, .setMarkerLanePosition(position: .top))
+        #expect(state.markerLanePosition == .top)
+    }
+}

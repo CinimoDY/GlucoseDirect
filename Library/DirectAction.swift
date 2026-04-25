@@ -159,6 +159,9 @@ enum DirectAction {
     // MARK: Heart Rate Overlay (DMNC-848)
     case setShowHeartRateOverlay(enabled: Bool)
 
+    // MARK: Marker Lane Position (DMNC-848 D7)
+    case setMarkerLanePosition(position: MarkerLanePosition)
+
     // MARK: IOB
     case setBolusInsulinPreset(preset: InsulinPreset)
     case setBasalDIAMinutes(minutes: Int)

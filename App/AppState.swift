@@ -101,6 +101,7 @@ struct AppState: DirectState {
         self.hypoTreatmentWaitMinutes = UserDefaults.standard.hypoTreatmentWaitMinutes
         self.showPredictiveLowAlarm = UserDefaults.standard.showPredictiveLowAlarm
         self.showHeartRateOverlay = UserDefaults.standard.showHeartRateOverlay
+        self.markerLanePosition = UserDefaults.standard.markerLanePosition
         self.bolusInsulinPreset = UserDefaults.standard.bolusInsulinPreset
         self.basalDIAMinutes = UserDefaults.standard.basalDIAMinutes
         self.showSplitIOB = UserDefaults.standard.showSplitIOB
@@ -210,6 +211,9 @@ struct AppState: DirectState {
 
     // MARK: Heart Rate Overlay (DMNC-848)
     var showHeartRateOverlay: Bool { didSet { UserDefaults.standard.showHeartRateOverlay = showHeartRateOverlay } }
+
+    // MARK: Marker Lane Position (DMNC-848 D7)
+    var markerLanePosition: MarkerLanePosition { didSet { UserDefaults.standard.markerLanePosition = markerLanePosition } }
 
     // MARK: IOB
     var bolusInsulinPreset: InsulinPreset { didSet { UserDefaults.standard.bolusInsulinPreset = bolusInsulinPreset } }

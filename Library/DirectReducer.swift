@@ -429,6 +429,10 @@ func directReducer(state: inout DirectState, action: DirectAction) {
     case .setShowHeartRateOverlay(enabled: let enabled):
         state.showHeartRateOverlay = enabled
 
+    // MARK: Marker Lane Position (DMNC-848 D7)
+    case .setMarkerLanePosition(position: let position):
+        state.markerLanePosition = position
+
     // MARK: IOB
     case .setBolusInsulinPreset(preset: let preset):
         state.bolusInsulinPreset = preset
