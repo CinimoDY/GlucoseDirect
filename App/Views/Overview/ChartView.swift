@@ -68,7 +68,7 @@ struct ChartView: View {
                             .font(.system(size: 9, weight: .medium, design: .monospaced))
                             .foregroundColor(AmberTheme.amberMuted)
                         Spacer()
-                        if !store.state.heartRateSeries.isEmpty {
+                        if store.state.showHeartRateOverlay && !store.state.heartRateSeries.isEmpty {
                             HStack(spacing: 3) {
                                 RoundedRectangle(cornerRadius: 1)
                                     .fill(AmberTheme.cgaMagenta.opacity(0.4))
@@ -164,7 +164,7 @@ struct ChartView: View {
                                     .cornerRadius(0)
                                 }
 
-                                if let hr = selectedHeartRate {
+                                if let hr = selectedHeartRate, store.state.showHeartRateOverlay {
                                     HStack(spacing: 4) {
                                         Image(systemName: "heart.fill")
                                             .font(.system(size: 10))
@@ -429,17 +429,33 @@ struct ChartView: View {
                 .foregroundStyle(AmberTheme.cgaCyan.opacity(0.3))
             }
 
-            ForEach(store.state.heartRateSeries.indices, id: \.self) { index in
-                let point = store.state.heartRateSeries[index]
-                let normalizedHR = ((point.1 - 40) / (200 - 40)) * (chartMinimum - alarmHigh) + alarmHigh
-                LineMark(
-                    x: .value("Time", point.0),
-                    y: .value("HR", normalizedHR),
-                    series: .value("Series", "HeartRate")
-                )
-                .interpolationMethod(.monotone)
-                .foregroundStyle(AmberTheme.cgaMagenta.opacity(0.3))
-                .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+            if store.state.showHeartRateOverlay {
+                ForEach(store.state.heartRateSeries.indices, id: \.self) { index in
+                    let point = store.state.heartRateSeries[index]
+                    LineMark(
+                        x: .value("Time", point.0),
+                        y: .value("HR", scaledHR(point.1)),
+                        series: .value("Series", "HeartRate")
+                    )
+                    .interpolationMethod(.monotone)
+                    .foregroundStyle(AmberTheme.cgaMagenta.opacity(0.3))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                }
+
+                if let last = store.state.heartRateSeries.last,
+                   Date().timeIntervalSince(last.0) < 10 * 60 {
+                    PointMark(
+                        x: .value("Time", last.0),
+                        y: .value("HR", scaledHR(last.1))
+                    )
+                    .foregroundStyle(AmberTheme.cgaMagenta.opacity(0.7))
+                    .symbolSize(30)
+                    .annotation(position: .trailing, alignment: .leading, spacing: 4) {
+                        Text("\(Int(last.1))")
+                            .font(DOSTypography.caption)
+                            .foregroundStyle(AmberTheme.cgaMagenta.opacity(0.7))
+                    }
+                }
             }
 
             if showUnsmoothedValues, store.state.showSmoothedGlucose {
@@ -785,6 +801,10 @@ struct ChartView: View {
 
     private var alarmHigh: Double {
         convertToRequired(mgdLValue: store.state.alarmHigh)
+    }
+
+    private func scaledHR(_ bpm: Double) -> Double {
+        ((bpm - 40) / (200 - 40)) * (chartMinimum - alarmHigh) + alarmHigh
     }
 
     private var startMarker: Date? {
