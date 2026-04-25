@@ -10,37 +10,77 @@ struct StepperField: View {
     @Binding var value: Double?
     let step: Double
     let range: ClosedRange<Double>
-    var format: FloatingPointFormatStyle<Double> = .number.precision(.fractionLength(1))
+    var unit: String = ""
+    var helpText: String? = nil
 
     @FocusState private var isFocused: Bool
 
     var body: some View {
-        HStack(spacing: DOSSpacing.sm) {
-            button(symbol: "minus", action: { Self.decrement(&value, step: step, range: range) })
-            TextField(title, value: $value, format: format)
-                .multilineTextAlignment(.center)
-                .keyboardType(.decimalPad)
-                .focused($isFocused)
-                .frame(minWidth: 60, minHeight: 28)
-                .font(DOSTypography.body)
-                .foregroundStyle(AmberTheme.amberLight)
-            button(symbol: "plus", action: { Self.increment(&value, step: step, range: range) })
-        }
-        .padding(.horizontal, DOSSpacing.sm)
-        .padding(.vertical, 4)
-        .background(RoundedRectangle(cornerRadius: 2).fill(Color.black))
-        .overlay(RoundedRectangle(cornerRadius: 2).stroke(AmberTheme.amberDark, lineWidth: 1))
-    }
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 0) {
+                Button {
+                    Self.decrement(&value, step: step, range: range)
+                } label: {
+                    Image(systemName: "minus")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(AmberTheme.amber)
+                        .frame(width: 60, height: 56)
+                        .background(AmberTheme.amber.opacity(0.08))
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
 
-    private func button(symbol: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: symbol)
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(.black)
-                .frame(width: 22, height: 22)
-                .background(RoundedRectangle(cornerRadius: 2).fill(AmberTheme.amberLight))
+                ZStack {
+                    if isFocused || value == nil {
+                        TextField("", value: $value, format: .number.precision(.fractionLength(1)))
+                            .multilineTextAlignment(.center)
+                            .keyboardType(.decimalPad)
+                            .focused($isFocused)
+                            .font(.system(size: 24, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(AmberTheme.amber)
+                    } else if let v = value {
+                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                            Text(String(format: "%.1f", v))
+                                .font(.system(size: 24, weight: .semibold, design: .monospaced))
+                                .foregroundStyle(AmberTheme.amber)
+                            if !unit.isEmpty {
+                                Text(unit)
+                                    .font(.system(size: 14, weight: .regular, design: .monospaced))
+                                    .foregroundStyle(AmberTheme.amberDark)
+                            }
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 56)
+                .contentShape(Rectangle())
+                .onTapGesture { isFocused = true }
+
+                Button {
+                    Self.increment(&value, step: step, range: range)
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(AmberTheme.amber)
+                        .frame(width: 60, height: 56)
+                        .background(AmberTheme.amber.opacity(0.08))
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+            .background(Color.black)
+            .overlay(
+                RoundedRectangle(cornerRadius: 3)
+                    .stroke(AmberTheme.amberDark, lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 3))
+
+            if let helpText {
+                Text(helpText)
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(AmberTheme.amberDark.opacity(0.7))
+            }
         }
-        .buttonStyle(.plain)
     }
 
     static func increment(_ value: inout Double?, step: Double, range: ClosedRange<Double>) {

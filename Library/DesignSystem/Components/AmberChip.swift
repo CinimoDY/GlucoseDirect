@@ -7,8 +7,8 @@ import SwiftUI
 
 public struct AmberChip: View {
     public enum Variant {
-        case type      // segmented selection chip
-        case preset    // single-tap action chip
+        case type      // 44pt segmented selection chip
+        case preset    // 40pt single-tap action chip
     }
 
     public let label: String
@@ -38,17 +38,20 @@ public struct AmberChip: View {
         Button(action: action) {
             HStack(spacing: 4) {
                 if let icon { Image(systemName: icon).font(.system(size: 11)) }
-                Text(label).font(DOSTypography.caption)
+                Text(label)
+                    .font(.system(size: variant == .type ? 13 : 12, weight: isSelected ? .semibold : .regular, design: .monospaced))
+                    .tracking(0.4)
             }
-            .padding(.horizontal, DOSSpacing.sm)
-            .frame(minHeight: 28)
-            .foregroundStyle(isSelected ? tint : AmberTheme.amberDark)
+            .padding(.horizontal, 8)
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: variant == .type ? 44 : 40)
+            .foregroundStyle(isSelected ? Color.black : tint)
             .background(
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(isSelected ? tint.opacity(0.08) : Color.clear)
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(isSelected ? tint : Color.black)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 2)
+                RoundedRectangle(cornerRadius: 3)
                     .stroke(isSelected ? tint : AmberTheme.amberDark, lineWidth: 1)
             )
         }
