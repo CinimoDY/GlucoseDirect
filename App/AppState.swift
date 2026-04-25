@@ -100,6 +100,7 @@ struct AppState: DirectState {
         self.treatmentCycleSnoozeUntil = UserDefaults.standard.treatmentCycleSnoozeUntil
         self.hypoTreatmentWaitMinutes = UserDefaults.standard.hypoTreatmentWaitMinutes
         self.showPredictiveLowAlarm = UserDefaults.standard.showPredictiveLowAlarm
+        self.showHeartRateOverlay = UserDefaults.standard.showHeartRateOverlay
         self.bolusInsulinPreset = UserDefaults.standard.bolusInsulinPreset
         self.basalDIAMinutes = UserDefaults.standard.basalDIAMinutes
         self.showSplitIOB = UserDefaults.standard.showSplitIOB
@@ -206,6 +207,9 @@ struct AppState: DirectState {
     // MARK: Predictive Low Alarm
     var showPredictiveLowAlarm: Bool { didSet { UserDefaults.standard.showPredictiveLowAlarm = showPredictiveLowAlarm } }
     var predictiveLowAlarmFired: Bool = false
+
+    // MARK: Heart Rate Overlay (DMNC-848)
+    var showHeartRateOverlay: Bool { didSet { UserDefaults.standard.showHeartRateOverlay = showHeartRateOverlay } }
 
     // MARK: IOB
     var bolusInsulinPreset: InsulinPreset { didSet { UserDefaults.standard.bolusInsulinPreset = bolusInsulinPreset } }

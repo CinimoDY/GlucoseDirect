@@ -425,6 +425,10 @@ func directReducer(state: inout DirectState, action: DirectAction) {
     case .setPredictiveLowAlarmFired(fired: let fired):
         state.predictiveLowAlarmFired = fired
 
+    // MARK: Heart Rate Overlay (DMNC-848)
+    case .setShowHeartRateOverlay(enabled: let enabled):
+        state.showHeartRateOverlay = enabled
+
     // MARK: IOB
     case .setBolusInsulinPreset(preset: let preset):
         state.bolusInsulinPreset = preset

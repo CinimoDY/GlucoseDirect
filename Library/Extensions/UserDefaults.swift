@@ -73,6 +73,7 @@ private enum Keys: String {
     case treatmentCycleSnoozeUntil = "libre-direct.settings.treatment-cycle-snooze-until"
     case hypoTreatmentWaitMinutes = "libre-direct.settings.hypo-treatment-wait-minutes"
     case showPredictiveLowAlarm = "libre-direct.settings.show-predictive-low-alarm"
+    case showHeartRateOverlay = "libre-direct.settings.show-heart-rate-overlay"
     case bolusInsulinPreset = "libre-direct.settings.bolus-insulin-preset"
     case basalDIAMinutes = "libre-direct.settings.basal-dia-minutes"
     case showSplitIOB = "libre-direct.settings.show-split-iob"
@@ -964,6 +965,11 @@ extension UserDefaults {
         set {
             set(newValue, forKey: Keys.showPredictiveLowAlarm.rawValue)
         }
+    }
+
+    var showHeartRateOverlay: Bool {
+        get { bool(forKey: Keys.showHeartRateOverlay.rawValue) }
+        set { set(newValue, forKey: Keys.showHeartRateOverlay.rawValue) }
     }
 
     var hypoTreatmentWaitMinutes: Int {

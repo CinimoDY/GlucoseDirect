@@ -156,6 +156,9 @@ enum DirectAction {
     case setShowPredictiveLowAlarm(enabled: Bool)
     case setPredictiveLowAlarmFired(fired: Bool)
 
+    // MARK: Heart Rate Overlay (DMNC-848)
+    case setShowHeartRateOverlay(enabled: Bool)
+
     // MARK: IOB
     case setBolusInsulinPreset(preset: InsulinPreset)
     case setBasalDIAMinutes(minutes: Int)

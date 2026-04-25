@@ -503,3 +503,18 @@ struct UpdateActionReducerTests {
         #expect(state.insulinDeliveryValues == [original])
     }
 }
+
+// MARK: - HR Overlay Tests (DMNC-848)
+
+@Suite("HR Overlay")
+struct HROverlayTests {
+    @Test("setShowHeartRateOverlay toggles the flag")
+    func toggleHROverlay() {
+        var state: DirectState = makeState()
+        state.showHeartRateOverlay = false
+        reduce(&state, .setShowHeartRateOverlay(enabled: true))
+        #expect(state.showHeartRateOverlay == true)
+        reduce(&state, .setShowHeartRateOverlay(enabled: false))
+        #expect(state.showHeartRateOverlay == false)
+    }
+}
