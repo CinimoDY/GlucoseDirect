@@ -201,94 +201,199 @@ struct ChartView: View {
     // MARK: - Time In Range Content
 
     private var TimeInRangeContent: some View {
-        VStack(spacing: DOSSpacing.md) {
+        VStack(spacing: DOSSpacing.lg) {
             if let stats = store.state.glucoseStatistics {
-                VStack(spacing: DOSSpacing.sm) {
-                    TimeInRangeBar(label: "TAR", value: stats.tar, color: AmberTheme.cgaRed)
-                    TimeInRangeBar(label: "TIR", value: stats.tir, color: AmberTheme.cgaGreen)
-                    TimeInRangeBar(label: "TBR", value: stats.tbr, color: AmberTheme.cgaRed)
+                // Hero: TIR percentage
+                VStack(spacing: 2) {
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Text("\(Int(stats.tir))")
+                            .font(.system(size: 72, weight: .bold, design: .monospaced))
+                            .foregroundStyle(tirColor(stats.tir))
+                        Text("%")
+                            .font(.system(size: 28, weight: .medium, design: .monospaced))
+                            .foregroundStyle(tirColor(stats.tir).opacity(0.6))
+                    }
+                    Text("TIME IN RANGE")
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .tracking(0.6)
+                        .foregroundStyle(AmberTheme.amberDark)
                 }
 
-                Text("\(stats.days) of \(stats.maxDays) days")
-                    .font(DOSTypography.caption)
-                    .foregroundColor(AmberTheme.amberDark)
+                // Stacked distribution bar (TBR | TIR | TAR)
+                stackedTIRBar(tbr: stats.tbr, tir: stats.tir, tar: stats.tar)
+                    .padding(.horizontal, DOSSpacing.md)
+
+                // Three-up numeric breakdown
+                HStack(alignment: .top, spacing: 0) {
+                    tirStat(label: "BELOW", value: stats.tbr, color: AmberTheme.cgaRed)
+                    Spacer()
+                    tirStat(label: "IN RANGE", value: stats.tir, color: AmberTheme.cgaGreen)
+                    Spacer()
+                    tirStat(label: "ABOVE", value: stats.tar, color: AmberTheme.amber)
+                }
+                .padding(.horizontal, DOSSpacing.md)
+
+                // Target range + days footer
+                VStack(spacing: 4) {
+                    Text("TARGET \(store.state.alarmLow)–\(store.state.alarmHigh) \(store.state.glucoseUnit.localizedDescription.uppercased())")
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(AmberTheme.amberDark.opacity(0.7))
+                    Text("\(stats.days) of \(stats.maxDays) days")
+                        .font(DOSTypography.caption)
+                        .foregroundStyle(AmberTheme.amberDark)
+                }
             } else {
                 Text("No statistics available")
                     .font(DOSTypography.bodySmall)
                     .foregroundColor(AmberTheme.amberDark)
             }
         }
-        .padding(.vertical, DOSSpacing.sm)
+        .padding(.vertical, DOSSpacing.md)
     }
 
-    private func TimeInRangeBar(label: String, value: Double, color: Color) -> some View {
-        HStack(spacing: DOSSpacing.sm) {
-            Text(label)
-                .font(DOSTypography.caption)
-                .foregroundColor(AmberTheme.amberDark)
-                .frame(width: 30, alignment: .trailing)
+    private func tirColor(_ tir: Double) -> Color {
+        if tir >= 70 { return AmberTheme.cgaGreen }
+        if tir >= 50 { return AmberTheme.amber }
+        return AmberTheme.cgaRed
+    }
 
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Rectangle()
-                        .fill(AmberTheme.amberMuted.opacity(0.3))
-                        .frame(height: 16)
-
-                    Rectangle()
-                        .fill(color)
-                        .frame(width: max(0, geo.size.width * CGFloat(value / 100.0)), height: 16)
-                }
+    private func stackedTIRBar(tbr: Double, tir: Double, tar: Double) -> some View {
+        GeometryReader { geo in
+            HStack(spacing: 0) {
+                Rectangle()
+                    .fill(AmberTheme.cgaRed)
+                    .frame(width: max(0, geo.size.width * CGFloat(tbr / 100.0)))
+                Rectangle()
+                    .fill(AmberTheme.cgaGreen)
+                    .frame(width: max(0, geo.size.width * CGFloat(tir / 100.0)))
+                Rectangle()
+                    .fill(AmberTheme.amber)
+                    .frame(width: max(0, geo.size.width * CGFloat(tar / 100.0)))
             }
-            .frame(height: 16)
+        }
+        .frame(height: 28)
+        .clipShape(RoundedRectangle(cornerRadius: 3))
+        .overlay(
+            RoundedRectangle(cornerRadius: 3)
+                .stroke(AmberTheme.amberDark.opacity(0.4), lineWidth: 0.5)
+        )
+    }
 
-            Text(String(format: "%.0f%%", value))
-                .font(DOSTypography.caption)
-                .foregroundColor(AmberTheme.amberLight)
-                .frame(width: 36, alignment: .trailing)
+    private func tirStat(label: String, value: Double, color: Color) -> some View {
+        VStack(spacing: 4) {
+            Text("\(Int(value))%")
+                .font(.system(size: 22, weight: .semibold, design: .monospaced))
+                .foregroundStyle(color)
+            Text(label)
+                .font(.system(size: 9, weight: .medium, design: .monospaced))
+                .tracking(0.5)
+                .foregroundStyle(AmberTheme.amberDark)
         }
     }
 
     // MARK: - Statistics Content
 
     private var StatisticsContent: some View {
-        VStack(spacing: DOSSpacing.sm) {
+        VStack(spacing: DOSSpacing.md) {
             if let stats = store.state.glucoseStatistics {
-                StatRow(label: "AVG", value: String(format: "%.0f", stats.avg), unit: store.state.glucoseUnit.localizedDescription)
-                StatRow(label: "SD", value: String(format: "%.1f", stats.stdev), unit: store.state.glucoseUnit.localizedDescription)
-                StatRow(label: "CV", value: String(format: "%.1f%%", stats.cv), unit: "")
-                StatRow(label: "GMI", value: String(format: "%.1f%%", stats.gmi), unit: "")
-                StatRow(label: "READINGS", value: "\(stats.readings)", unit: "")
+                // Hero: AVG glucose
+                VStack(spacing: 2) {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text(String(format: "%.0f", stats.avg))
+                            .font(.system(size: 56, weight: .bold, design: .monospaced))
+                            .foregroundStyle(AmberTheme.amber)
+                        Text(store.state.glucoseUnit.localizedDescription)
+                            .font(.system(size: 14, weight: .medium, design: .monospaced))
+                            .foregroundStyle(AmberTheme.amberDark)
+                    }
+                    Text("AVERAGE")
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .tracking(0.6)
+                        .foregroundStyle(AmberTheme.amberDark)
+                }
+                .padding(.bottom, DOSSpacing.xs)
 
-                Text("\(stats.days) of \(stats.maxDays) days")
-                    .font(DOSTypography.caption)
-                    .foregroundColor(AmberTheme.amberDark)
-                    .padding(.top, DOSSpacing.xs)
+                // 2x2 grid: GMI · TIR / SD · CV
+                VStack(spacing: DOSSpacing.sm) {
+                    HStack(spacing: DOSSpacing.sm) {
+                        statCard(
+                            label: "GMI",
+                            value: String(format: "%.1f%%", stats.gmi),
+                            help: "≈ A1C"
+                        )
+                        statCard(
+                            label: "TIR",
+                            value: String(format: "%.0f%%", stats.tir),
+                            valueColor: tirColor(stats.tir),
+                            help: tirHelp(stats.tir)
+                        )
+                    }
+                    HStack(spacing: DOSSpacing.sm) {
+                        statCard(
+                            label: "SD",
+                            value: String(format: "%.1f", stats.stdev),
+                            help: store.state.glucoseUnit.localizedDescription
+                        )
+                        statCard(
+                            label: "CV",
+                            value: String(format: "%.1f%%", stats.cv),
+                            valueColor: stats.cv <= 33 ? AmberTheme.cgaGreen : AmberTheme.amber,
+                            help: stats.cv <= 33 ? "Stable" : "Variable"
+                        )
+                    }
+                }
+                .padding(.horizontal, DOSSpacing.md)
+
+                // Footer
+                HStack {
+                    Text("\(stats.readings) readings")
+                    Spacer()
+                    Text("\(stats.days) of \(stats.maxDays) days")
+                }
+                .font(DOSTypography.caption)
+                .foregroundStyle(AmberTheme.amberDark)
+                .padding(.horizontal, DOSSpacing.md)
             } else {
                 Text("No statistics available")
                     .font(DOSTypography.bodySmall)
                     .foregroundColor(AmberTheme.amberDark)
             }
         }
-        .padding(.vertical, DOSSpacing.sm)
+        .padding(.vertical, DOSSpacing.md)
     }
 
-    private func StatRow(label: String, value: String, unit: String) -> some View {
-        HStack {
+    private func tirHelp(_ tir: Double) -> String {
+        if tir >= 70 { return "On target" }
+        if tir >= 50 { return "Close" }
+        return "Off target"
+    }
+
+    private func statCard(label: String, value: String, valueColor: Color = AmberTheme.amberLight, help: String? = nil) -> some View {
+        VStack(spacing: 6) {
             Text(label)
-                .font(DOSTypography.caption)
-                .foregroundColor(AmberTheme.amberDark)
-            Spacer()
-            HStack(spacing: 4) {
-                Text(value)
-                    .font(DOSTypography.bodySmall)
-                    .foregroundColor(AmberTheme.amberLight)
-                if !unit.isEmpty {
-                    Text(unit)
-                        .font(DOSTypography.caption)
-                        .foregroundColor(AmberTheme.amberDark)
-                }
+                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                .tracking(0.6)
+                .foregroundStyle(AmberTheme.amberDark)
+            Text(value)
+                .font(.system(size: 24, weight: .semibold, design: .monospaced))
+                .foregroundStyle(valueColor)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            if let help {
+                Text(help)
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundStyle(AmberTheme.amberDark.opacity(0.7))
+                    .lineLimit(1)
             }
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, DOSSpacing.sm)
+        .padding(.horizontal, DOSSpacing.xs)
+        .background(AmberTheme.amber.opacity(0.04))
+        .overlay(
+            RoundedRectangle(cornerRadius: 3)
+                .stroke(AmberTheme.amberDark.opacity(0.4), lineWidth: 1)
+        )
     }
 
     var ChartView: some View {

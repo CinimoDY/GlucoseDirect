@@ -7,6 +7,12 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 75] — 2026-04-25
+
+### Changed
+- TIME IN RANGE tab on the Overview chart redesigned. Hero `TIR%` number large + colour-coded by clinical thresholds (≥70% green, ≥50% amber, otherwise red). Single horizontal stacked TBR/TIR/TAR distribution bar replaces the three separate bars. Three-up numeric breakdown below ("BELOW · IN RANGE · ABOVE"). Target range and days-covered footer.
+- STATISTICS tab on the Overview chart redesigned. Hero AVG glucose with unit. 2×2 grid of stat cards: GMI (with "≈ A1C" hint), TIR (with on-target / close / off-target hint, colour-coded), SD (with unit), CV (with "Stable" / "Variable" hint, colour-coded against the 33% clinical threshold). Footer shows readings count + days covered.
+
 ## [Build 74] — 2026-04-25
 
 ### Changed
