@@ -606,7 +606,11 @@ struct ChartView: View {
 
                 // Delta annotation at the center of the band
                 let midTime = overlayMeal.timestamp.addingTimeInterval(displayEnd.timeIntervalSince(overlayMeal.timestamp) / 2)
-                let overlayDelta = computeMealOverlayDelta(meal: overlayMeal, isInProgress: isInProgress)
+                let overlayDelta = computeMealOverlayDelta(
+                    meal: overlayMeal,
+                    isInProgress: isInProgress,
+                    sensorGlucoseValues: store.state.sensorGlucoseValues
+                )
 
                 PointMark(
                     x: .value("Time", midTime),
@@ -615,7 +619,12 @@ struct ChartView: View {
                 .symbolSize(0)
                 .annotation(position: .overlay) {
                     VStack(spacing: 2) {
-                        let confounders = detectMealConfounders(meal: overlayMeal)
+                        let confounders = detectMealConfounders(
+                            meal: overlayMeal,
+                            insulinDeliveryValues: store.state.insulinDeliveryValues,
+                            exerciseEntryValues: store.state.exerciseEntryValues,
+                            mealEntryValues: store.state.mealEntryValues
+                        )
                         let deltaOpacity = (overlayDelta.isLowConfidence ? 0.5 : 1.0) * (confounders.isClean ? 1.0 : 0.5)
 
                         if isInProgress {
@@ -1421,76 +1430,6 @@ struct ChartView: View {
             }
         }
         return nil
-    }
-
-    private struct MealOverlayDelta {
-        let delta: Int?
-        let isLowConfidence: Bool
-    }
-
-    private func computeMealOverlayDelta(meal: MealEntry, isInProgress: Bool) -> MealOverlayDelta {
-        let windowEnd = isInProgress ? Date() : meal.timestamp.addingTimeInterval(2 * 60 * 60)
-
-        // Filter glucose readings in the window
-        let readings = store.state.sensorGlucoseValues.filter { glucose in
-            glucose.timestamp >= meal.timestamp && glucose.timestamp <= windowEnd
-        }
-
-        guard !readings.isEmpty else {
-            return MealOverlayDelta(delta: nil, isLowConfidence: false)
-        }
-
-        // Baseline: closest reading before meal within 15 min
-        let baselineStart = meal.timestamp.addingTimeInterval(-15 * 60)
-        let baseline = store.state.sensorGlucoseValues
-            .filter { $0.timestamp >= baselineStart && $0.timestamp < meal.timestamp }
-            .last // already sorted by time
-
-        let referenceGlucose: Int
-        if let baseline = baseline {
-            referenceGlucose = baseline.glucoseValue
-        } else if let first = readings.first {
-            referenceGlucose = first.glucoseValue
-        } else {
-            return MealOverlayDelta(delta: nil, isLowConfidence: false)
-        }
-
-        // Peak
-        guard let peak = readings.max(by: { $0.glucoseValue < $1.glucoseValue }) else {
-            return MealOverlayDelta(delta: nil, isLowConfidence: false)
-        }
-        let delta = peak.glucoseValue - referenceGlucose
-
-        // Low confidence: fewer than 4 readings regardless of in-progress state
-        let isLowConfidence = readings.count < 4
-
-        return MealOverlayDelta(delta: delta, isLowConfidence: isLowConfidence)
-    }
-
-    private struct MealConfounders {
-        let hasCorrectionBolus: Bool
-        let hasExercise: Bool
-        let hasStackedMeal: Bool
-
-        var isClean: Bool { !hasCorrectionBolus && !hasExercise && !hasStackedMeal }
-    }
-
-    private func detectMealConfounders(meal: MealEntry) -> MealConfounders {
-        let windowEnd = meal.timestamp.addingTimeInterval(2 * 60 * 60)
-
-        let hasCorrectionBolus = store.state.insulinDeliveryValues.contains { delivery in
-            delivery.starts >= meal.timestamp && delivery.starts <= windowEnd && delivery.type == .correctionBolus
-        }
-
-        let hasExercise = store.state.exerciseEntryValues.contains { exercise in
-            exercise.startTime <= windowEnd && exercise.endTime >= meal.timestamp
-        }
-
-        let hasStackedMeal = store.state.mealEntryValues.contains { other in
-            other.id != meal.id && other.timestamp >= meal.timestamp && other.timestamp <= windowEnd
-        }
-
-        return MealConfounders(hasCorrectionBolus: hasCorrectionBolus, hasExercise: hasExercise, hasStackedMeal: hasStackedMeal)
     }
 
     private func deltaColor(_ delta: Int) -> Color {
