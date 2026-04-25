@@ -35,6 +35,13 @@ func insulinDeliveryStoreMiddleware() -> Middleware<DirectState, DirectAction> {
                 .setFailureType(to: DirectError.self)
                 .eraseToAnyPublisher()
 
+        case .updateInsulinDelivery(insulinDelivery: let insulinDelivery):
+            DataStore.shared.updateInsulinDelivery(insulinDelivery)
+
+            return Just(DirectAction.loadInsulinDeliveryValues)
+                .setFailureType(to: DirectError.self)
+                .eraseToAnyPublisher()
+
         case .setSelectedDate(selectedDate: _):
             return Just(DirectAction.loadInsulinDeliveryValues)
                 .setFailureType(to: DirectError.self)
@@ -118,6 +125,22 @@ private extension DataStore {
                 try dbQueue.write { db in
                     do {
                         try InsulinDelivery.deleteOne(db, id: value.id)
+                    } catch {
+                        DirectLog.error("\(error)")
+                    }
+                }
+            } catch {
+                DirectLog.error("\(error)")
+            }
+        }
+    }
+
+    func updateInsulinDelivery(_ value: InsulinDelivery) {
+        if let dbQueue = dbQueue {
+            do {
+                try dbQueue.write { db in
+                    do {
+                        try value.update(db)
                     } catch {
                         DirectLog.error("\(error)")
                     }
