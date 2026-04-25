@@ -7,6 +7,11 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 81] — 2026-04-25
+
+### Fixed
+- Split-IOB basal layer is now actually visible on the chart. Both AreaMark layers (bolus + basal) now declare an explicit `series:` argument so SwiftUI Charts treats them as two independent stacked series. Without it, the two `ForEach` loops were silently auto-grouped into a single series and the second layer never rendered — that's why the previous "make basal more visible" passes didn't help even at 0.85 opacity. Sky blue retained from Build 80.
+
 ## [Build 80] — 2026-04-25
 
 ### Changed

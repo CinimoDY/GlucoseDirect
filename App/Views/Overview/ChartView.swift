@@ -401,12 +401,17 @@ struct ChartView: View {
                 let iobCeiling = max(maxIOB, 1.0)
 
                 if store.state.showSplitIOB {
-                    // Bottom layer: meal/snack bolus IOB — warm green
+                    // Bottom layer: meal/snack bolus IOB — warm green.
+                    // `series:` is required so Charts treats this and the basal
+                    // layer below as two independent series; without it, the two
+                    // ForEach loops auto-group into one stack and the second
+                    // layer stops rendering.
                     ForEach(Array(iobSeries.enumerated()), id: \.offset) { _, point in
                         AreaMark(
                             x: .value("Time", point.date),
                             yStart: .value("Bottom", 0),
-                            yEnd: .value("Meal+Snack IOB", point.mealSnack.map(from: 0...iobCeiling, to: 0...Double(alarmLow)))
+                            yEnd: .value("IOB", point.mealSnack.map(from: 0...iobCeiling, to: 0...Double(alarmLow))),
+                            series: .value("IOB Layer", "Bolus")
                         )
                         .foregroundStyle(AmberTheme.iobBolus.opacity(0.7))
                         .interpolationMethod(.monotone)
@@ -416,8 +421,9 @@ struct ChartView: View {
                     ForEach(Array(iobSeries.enumerated()), id: \.offset) { _, point in
                         AreaMark(
                             x: .value("Time", point.date),
-                            yStart: .value("Meal+Snack IOB", point.mealSnack.map(from: 0...iobCeiling, to: 0...Double(alarmLow))),
-                            yEnd: .value("Total IOB", point.total.map(from: 0...iobCeiling, to: 0...Double(alarmLow)))
+                            yStart: .value("Bottom", point.mealSnack.map(from: 0...iobCeiling, to: 0...Double(alarmLow))),
+                            yEnd: .value("IOB", point.total.map(from: 0...iobCeiling, to: 0...Double(alarmLow))),
+                            series: .value("IOB Layer", "Basal")
                         )
                         .foregroundStyle(AmberTheme.iobBasal.opacity(0.85))
                         .interpolationMethod(.monotone)
