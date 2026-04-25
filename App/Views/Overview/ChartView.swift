@@ -84,14 +84,16 @@ struct ChartView: View {
                         ScrollViewReader { scrollViewProxy in
                             ScrollView(.horizontal, showsIndicators: false) {
                                 VStack(spacing: 0) {
-                                    EventMarkerLaneView(
-                                        markerGroups: markerGroups,
-                                        totalWidth: max(0, screenWidth, seriesWidth),
-                                        timeRange: (startMarker ?? Date())...(endMarker ?? Date()),
-                                        scoredMealEntryIds: store.state.scoredMealEntryIds,
-                                        onTapGroup: onTapMarkerGroup
-                                    )
-                                    .frame(width: max(0, screenWidth, seriesWidth), height: Config.markerLaneHeight)
+                                    if store.state.markerLanePosition == .top {
+                                        EventMarkerLaneView(
+                                            markerGroups: markerGroups,
+                                            totalWidth: max(0, screenWidth, seriesWidth),
+                                            timeRange: (startMarker ?? Date())...(endMarker ?? Date()),
+                                            scoredMealEntryIds: store.state.scoredMealEntryIds,
+                                            onTapGroup: onTapMarkerGroup
+                                        )
+                                        .frame(width: max(0, screenWidth, seriesWidth), height: Config.markerLaneHeight)
+                                    }
 
                                     ChartView
                                         .frame(width: max(0, screenWidth, seriesWidth), height: min(screenHeight, Config.chartHeight))
@@ -112,6 +114,17 @@ struct ChartView: View {
 
                                     }.onTapGesture(count: 2) {
                                         showUnsmoothedValues = !showUnsmoothedValues
+                                    }
+
+                                    if store.state.markerLanePosition == .bottom {
+                                        EventMarkerLaneView(
+                                            markerGroups: markerGroups,
+                                            totalWidth: max(0, screenWidth, seriesWidth),
+                                            timeRange: (startMarker ?? Date())...(endMarker ?? Date()),
+                                            scoredMealEntryIds: store.state.scoredMealEntryIds,
+                                            onTapGroup: onTapMarkerGroup
+                                        )
+                                        .frame(width: max(0, screenWidth, seriesWidth), height: Config.markerLaneHeight)
                                     }
                                 } // VStack
                             }
