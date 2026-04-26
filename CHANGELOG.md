@@ -7,6 +7,15 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 84] — 2026-04-26
+
+### Fixed
+- Correction boluses are no longer counted as basal IOB. Previously the IOB calculator put `.correctionBolus` in the same bucket as `.basal`, so a 3U correction bolus showed up as "BASAL" in the chart legend and stack. The bucketing now follows insulin pharmacology: meal / snack / correction boluses are all rapid-acting and go into the bolus bucket; only `.basal` is in the basal bucket. The IOB header label, the chart's split-IOB stack, and the `mealSnackIOB` / `correctionBasalIOB` returned values all reflect this correctly now.
+
+### Changed
+- Marker flag poles dropped. The lane sits beneath the chart so the poles weren't anchored to anything semantically meaningful — just the bottom of the lane. Lane height shrinks 90 → 60pt.
+- `IOBCalculatorTests/splitIOB()` updated to assert the new bucketing (`mealSnackIOB == 4.0` for meal + correction together, not split).
+
 ## [Build 83] — 2026-04-26
 
 ### Changed

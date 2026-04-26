@@ -118,8 +118,10 @@ struct IOBComputationTests {
         #expect(result.total == 0.0)
     }
 
-    @Test("Split IOB separates meal+snack from correction+basal")
+    @Test("Split IOB separates rapid-acting bolus (meal+snack+correction) from basal")
     func splitIOB() {
+        // Meal, snack, and correction boluses are all rapid-acting and share
+        // the bolus IOB bucket; only basal is in the basal bucket.
         let meal = InsulinDelivery(
             id: UUID(), starts: now, ends: now, units: 3.0, type: .mealBolus
         )
@@ -127,8 +129,8 @@ struct IOBComputationTests {
             id: UUID(), starts: now, ends: now, units: 1.0, type: .correctionBolus
         )
         let result = computeIOB(deliveries: [meal, correction], bolusModel: bolusModel, basalModel: basalModel, at: now)
-        #expect(abs(result.mealSnackIOB - 3.0) < 0.01)
-        #expect(abs(result.correctionBasalIOB - 1.0) < 0.01)
+        #expect(abs(result.mealSnackIOB - 4.0) < 0.01)
+        #expect(abs(result.correctionBasalIOB - 0.0) < 0.01)
         #expect(abs(result.total - 4.0) < 0.01)
     }
 

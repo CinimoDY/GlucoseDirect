@@ -15,8 +15,7 @@ struct EventMarkerLaneView: View {
     let scoredMealEntryIds: Set<UUID>
     let onTapGroup: (ConsolidatedMarkerGroup) -> Void
 
-    private let laneHeight: CGFloat = 90
-    private let poleHeight: CGFloat = 22
+    private let laneHeight: CGFloat = 60
     private let touchTargetWidth: CGFloat = 88
     private let touchTargetHeight: CGFloat = 48
     private let yAxisPadding: CGFloat = 30
@@ -35,8 +34,7 @@ struct EventMarkerLaneView: View {
             ForEach(visualGroups, id: \.id) { group in
                 FlagView(
                     group: group,
-                    isScored: isGroupScored(group),
-                    poleHeight: poleHeight
+                    isScored: isGroupScored(group)
                 )
                 .frame(width: touchTargetWidth, height: touchTargetHeight, alignment: .bottom)
                 .contentShape(Rectangle())
@@ -114,13 +112,9 @@ struct EventMarkerLaneView: View {
 private struct FlagView: View {
     let group: ConsolidatedMarkerGroup
     let isScored: Bool
-    let poleHeight: CGFloat
 
     var body: some View {
-        VStack(spacing: 0) {
-            chip
-            pole
-        }
+        chip
     }
 
     private var chip: some View {
@@ -143,12 +137,6 @@ private struct FlagView: View {
             RoundedRectangle(cornerRadius: 3)
                 .stroke(isScored ? AmberTheme.amber : AmberTheme.amberDark, lineWidth: 1)
         )
-    }
-
-    private var pole: some View {
-        Rectangle()
-            .fill(AmberTheme.amberDark)
-            .frame(width: 1, height: poleHeight)
     }
 
     private struct ChipRow {
