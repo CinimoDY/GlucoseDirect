@@ -7,6 +7,15 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 83] — 2026-04-26
+
+### Changed
+- Chart event markers redesigned to match the locked Q2-final-lock brainstorm spec (`.superpowers/brainstorm/35252-1777068283/content/q2-marker-overlap-v15-final-lock.html`). Each event renders as a small black chip with an amber-dim border, containing one row per event type — `<icon> <value>` — stacked top-to-bottom in the order `insulin → meal → exercise`. A 22pt amber-dim "pole" drops from the chip's bottom centre to the lane baseline so the marker visually anchors at the event time. Single events with one type show a one-row chip (e.g. `🍎 30g`); multi-event groups stack rows (e.g. `💉 5U / 🍎 45g`). Multi-entries-within-a-type collapse to a sum with a count suffix (`5U×2`, `45g×3`).
+- Marker consolidation rewritten from a fixed time-window (e.g. 30 min at 24h zoom) to overlap-driven: walk left-to-right, merge if the next chip would land within 4pt of the previous one's right edge. Chip widths therefore drive consolidation, not arbitrary minute counts — and you no longer get "all 7am entries collapsed into one icon" at 24h zoom even when their absolute distance would have rendered them separately.
+- Touch target stays 88pt × 48pt centred on each chip; iOS resolves overlapping touch targets by centroid distance.
+- Marker lane height bumped 48pt → 90pt to fit chip + pole. Chips with up to three stacked rows fit comfortably; the chart pane shrinks slightly to accommodate.
+- Replaces the previous bare-icon-with-circle-border design which hid event values, conflated counts of different types, and overlapped messily in dense windows.
+
 ## [Build 82] — 2026-04-25
 
 ### Changed

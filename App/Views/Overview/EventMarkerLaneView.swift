@@ -2,6 +2,9 @@
 //  EventMarkerLaneView.swift
 //  DOSBTS
 //
+//  Flag-and-chip marker rendering per the locked Q2 final-lock design
+//  (.superpowers/brainstorm/35252-1777068283/content/q2-marker-overlap-v15-final-lock.html).
+//
 
 import SwiftUI
 
@@ -12,22 +15,35 @@ struct EventMarkerLaneView: View {
     let scoredMealEntryIds: Set<UUID>
     let onTapGroup: (ConsolidatedMarkerGroup) -> Void
 
-    private let laneHeight: CGFloat = 48
-    private let iconSize: CGFloat = 22
-    private let yAxisPadding: CGFloat = 30
+    private let laneHeight: CGFloat = 90
+    private let poleHeight: CGFloat = 22
     private let touchTargetWidth: CGFloat = 88
     private let touchTargetHeight: CGFloat = 48
+    private let yAxisPadding: CGFloat = 30
+
+    /// Approximate chip width for the merge heuristic. Real chip widths vary
+    /// by content (single-row "💉 5U" is narrower than triple-stack "💉 5U /
+    /// 🍴 45g / 🏃 20m") but we don't get layout sizes during data prep, so
+    /// we use a conservative average.
+    private let estimatedChipWidth: CGFloat = 60
+    private let minChipGap: CGFloat = 4
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            ForEach(markerGroups) { group in
-                markerView(for: group)
-                    .position(x: xPosition(for: group.time), y: laneHeight / 2)
-                    .frame(width: touchTargetWidth, height: touchTargetHeight)
-                    .contentShape(Rectangle())
-                    .onTapGesture { onTapGroup(group) }
-                    .accessibilityLabel(accessibilityLabel(for: group))
-                    .accessibilityAddTraits(.isButton)
+        let visualGroups = consolidateByOverlap(markerGroups)
+
+        ZStack(alignment: .bottom) {
+            ForEach(visualGroups, id: \.id) { group in
+                FlagView(
+                    group: group,
+                    isScored: isGroupScored(group),
+                    poleHeight: poleHeight
+                )
+                .frame(width: touchTargetWidth, height: touchTargetHeight, alignment: .bottom)
+                .contentShape(Rectangle())
+                .onTapGesture { onTapGroup(group) }
+                .position(x: xPosition(for: group.time), y: laneHeight - touchTargetHeight / 2 - 2)
+                .accessibilityLabel(accessibilityLabel(for: group))
+                .accessibilityAddTraits(.isButton)
             }
         }
         .frame(height: laneHeight)
@@ -35,63 +51,38 @@ struct EventMarkerLaneView: View {
         .clipped()
     }
 
-    /// One icon per batch (per the v2 design):
-    /// - Single type, single entry → that type's icon
-    /// - Single type, multiple entries → that type's icon + circular border
-    /// - Mixed food + insulin (any count) → CombinedFoodInsulinIcon
-    /// - Mixed types involving exercise → fall back to dominant-type icon
-    ///
-    /// The border is the "this is a batch" cue; we no longer stack icons
-    /// or show a count badge.
-    @ViewBuilder
-    private func markerView(for group: ConsolidatedMarkerGroup) -> some View {
-        let types = Set(group.markers.map(\.type))
-        let isBatch = group.markers.count > 1
-        let isMixedFoodInsulin = types.contains(.meal) && types.contains(.bolus)
+    /// Walk the groups left-to-right and merge any whose visual chip would
+    /// overlap (with a 4pt min gap) into the previous one. Replaces the old
+    /// fixed `consolidationWindows[chartZoomLevel]` so consolidation
+    /// follows the rendered layout, not an arbitrary minute count.
+    private func consolidateByOverlap(_ groups: [ConsolidatedMarkerGroup]) -> [ConsolidatedMarkerGroup] {
+        let mergeDistance = estimatedChipWidth + minChipGap
+        var visual: [ConsolidatedMarkerGroup] = []
 
-        Group {
-            if isMixedFoodInsulin {
-                CombinedFoodInsulinIcon(size: iconSize)
-            } else if types.contains(.meal) {
-                AppleIcon()
-                    .frame(width: iconSize, height: iconSize)
-                    .foregroundStyle(EventMarkerType.meal.color)
-            } else if types.contains(.bolus) {
-                Image(systemName: EventMarkerType.bolus.icon)
-                    .font(.system(size: iconSize))
-                    .foregroundStyle(EventMarkerType.bolus.color)
-            } else if types.contains(.exercise) {
-                Image(systemName: EventMarkerType.exercise.icon)
-                    .font(.system(size: iconSize))
-                    .foregroundStyle(EventMarkerType.exercise.color)
+        for group in groups.sorted(by: { $0.time < $1.time }) {
+            if let last = visual.last {
+                let lastX = xPosition(for: last.time)
+                let groupX = xPosition(for: group.time)
+                if groupX - lastX < mergeDistance {
+                    let merged = last.markers + group.markers
+                    let sortedTimes = merged.map(\.time).sorted()
+                    let medianTime = sortedTimes[sortedTimes.count / 2]
+                    visual[visual.count - 1] = ConsolidatedMarkerGroup(
+                        id: last.id,
+                        time: medianTime,
+                        markers: merged
+                    )
+                    continue
+                }
             }
+            visual.append(group)
         }
-        .padding(6)
-        .background(
-            Circle()
-                .stroke(borderColor(for: types), lineWidth: 1.5)
-                .opacity(isBatch ? 1 : 0)
-        )
-        .overlay(scoredMealCue(for: group), alignment: .bottomTrailing)
+        return visual
     }
 
-    private func borderColor(for types: Set<EventMarkerType>) -> Color {
-        if types.contains(.meal) && types.contains(.bolus) {
-            return AmberTheme.amber
-        } else if types.contains(.meal) {
-            return EventMarkerType.meal.color
-        } else if types.contains(.bolus) {
-            return EventMarkerType.bolus.color
-        }
-        return EventMarkerType.exercise.color
-    }
-
-    @ViewBuilder
-    private func scoredMealCue(for group: ConsolidatedMarkerGroup) -> some View {
-        if group.isSingle,
-           group.markers[0].type == .meal,
-           scoredMealEntryIds.contains(group.markers[0].sourceID) {
-            Circle().fill(AmberTheme.amber).frame(width: 4, height: 4)
+    private func isGroupScored(_ group: ConsolidatedMarkerGroup) -> Bool {
+        group.markers.contains { marker in
+            marker.type == .meal && scoredMealEntryIds.contains(marker.sourceID)
         }
     }
 
@@ -112,5 +103,112 @@ struct EventMarkerLaneView: View {
         let offset = time.timeIntervalSince(timeRange.lowerBound)
         let adjustedWidth = totalWidth - yAxisPadding
         return (offset / totalDuration) * adjustedWidth
+    }
+}
+
+// MARK: - FlagView
+
+/// Small black chip with amber-dim border and a 22pt vertical pole anchored at
+/// the chip's bottom-centre. Each chip can have 1–3 stacked rows showing
+/// `<icon> <value>` per event type — insulin → meal → exercise top-to-bottom.
+private struct FlagView: View {
+    let group: ConsolidatedMarkerGroup
+    let isScored: Bool
+    let poleHeight: CGFloat
+
+    var body: some View {
+        VStack(spacing: 0) {
+            chip
+            pole
+        }
+    }
+
+    private var chip: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            ForEach(rows.indices, id: \.self) { idx in
+                let row = rows[idx]
+                HStack(spacing: 4) {
+                    iconView(for: row.type)
+                        .foregroundStyle(row.color)
+                    Text(row.label)
+                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(row.color)
+                }
+            }
+        }
+        .padding(.horizontal, 5)
+        .padding(.vertical, 3)
+        .background(Color.black.opacity(0.92))
+        .overlay(
+            RoundedRectangle(cornerRadius: 3)
+                .stroke(isScored ? AmberTheme.amber : AmberTheme.amberDark, lineWidth: 1)
+        )
+    }
+
+    private var pole: some View {
+        Rectangle()
+            .fill(AmberTheme.amberDark)
+            .frame(width: 1, height: poleHeight)
+    }
+
+    private struct ChipRow {
+        let type: EventMarkerType
+        let label: String
+        let color: Color
+    }
+
+    /// One row per event type present in the group, in the locked order:
+    /// insulin → meal → exercise. Multi-entry within a type collapses to a
+    /// total (e.g., `5U×2`, `45g×3`).
+    private var rows: [ChipRow] {
+        var result: [ChipRow] = []
+
+        let bolus = group.markers.filter { $0.type == .bolus }
+        if !bolus.isEmpty {
+            let total = bolus.reduce(0.0) { $0 + $1.rawValue }
+            let label = bolus.count > 1
+                ? "\(formatUnits(total))×\(bolus.count)"
+                : formatUnits(total)
+            result.append(ChipRow(type: .bolus, label: label, color: AmberTheme.amber))
+        }
+
+        let meals = group.markers.filter { $0.type == .meal }
+        if !meals.isEmpty {
+            let total = meals.reduce(0.0) { $0 + $1.rawValue }
+            let label = meals.count > 1
+                ? "\(Int(total))g×\(meals.count)"
+                : "\(Int(total))g"
+            result.append(ChipRow(type: .meal, label: label, color: AmberTheme.cgaGreen))
+        }
+
+        let exercise = group.markers.filter { $0.type == .exercise }
+        if !exercise.isEmpty {
+            let total = exercise.reduce(0.0) { $0 + $1.rawValue }
+            let label = exercise.count > 1
+                ? "\(Int(total))m×\(exercise.count)"
+                : "\(Int(total))m"
+            result.append(ChipRow(type: .exercise, label: label, color: AmberTheme.cgaCyan))
+        }
+
+        return result
+    }
+
+    @ViewBuilder
+    private func iconView(for type: EventMarkerType) -> some View {
+        switch type {
+        case .meal:
+            AppleIcon().frame(width: 11, height: 11)
+        case .bolus:
+            Image(systemName: "syringe.fill").font(.system(size: 11))
+        case .exercise:
+            Image(systemName: "figure.run").font(.system(size: 11))
+        }
+    }
+
+    private func formatUnits(_ units: Double) -> String {
+        if units == units.rounded() {
+            return "\(Int(units))U"
+        }
+        return String(format: "%.1fU", units)
     }
 }

@@ -733,7 +733,7 @@ struct ChartView: View {
             ZoomLevel(level: 12, name: LocalizedString("12h"), visibleHours: 12, labelEvery: 3),
             ZoomLevel(level: 24, name: LocalizedString("24h"), visibleHours: 24, labelEvery: 4)
         ]
-        static let markerLaneHeight: CGFloat = 48
+        static let markerLaneHeight: CGFloat = 90
         static let consolidationWindows: [Int: TimeInterval] = [
             3: 0,
             6: 10 * 60,
