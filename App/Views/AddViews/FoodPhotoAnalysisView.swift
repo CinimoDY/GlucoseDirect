@@ -14,10 +14,16 @@ struct FoodPhotoAnalysisView: View {
     @EnvironmentObject var store: DirectStore
     @Environment(\.dismiss) var dismiss
 
+    /// When set, the staging plate opens in "relog" mode: it hydrates from
+    /// this past meal on first appear, preserves its `analysisSessionId`,
+    /// and skips correction tracking on save (the user is repeating a known
+    /// meal with a tweaked portion, not correcting an AI estimate).
+    var relogMeal: MealEntry? = nil
+
     var body: some View {
         NavigationView {
             Form {
-                if !store.state.aiConsentFoodPhoto {
+                if !store.state.aiConsentFoodPhoto, relogMeal == nil {
                     consentSection
                 } else if store.state.foodAnalysisLoading {
                     loadingSection
@@ -25,10 +31,13 @@ struct FoodPhotoAnalysisView: View {
                     resultsSection(result)
                 } else if let error = store.state.foodAnalysisError {
                     errorSection(error)
+                } else if relogMeal != nil {
+                    loadingSection // brief placeholder until hydrateRelogIfNeeded() runs
                 } else {
                     photoPickerSection
                 }
             }
+            .onAppear { hydrateRelogIfNeeded() }
             .navigationDestination(isPresented: Binding(
                 get: { scanTargetIndex != nil },
                 set: { active in if !active { scanTargetIndex = nil } }
@@ -94,6 +103,7 @@ struct FoodPhotoAnalysisView: View {
     @State private var stagedItems: [EditableFoodItem] = []
     @State private var editDescription = ""
     @State private var editTimestamp = Date()
+    @State private var didHydrateRelog = false
     @FocusState private var focusedItemID: UUID?
 
     // Inline item barcode scan
@@ -687,8 +697,21 @@ struct FoodPhotoAnalysisView: View {
             value.flatMap { $0 >= 0 && $0 <= 10000 ? $0 : nil }
         }
 
-        // View creates the MealEntry (UUID ownership per learning)
-        let sessionId = UUID()
+        // For relog mode: preserve the original analysisSessionId (so the new
+        // entry stays linked to the same PersonalFood cluster) and skip
+        // correction tracking — the user is repeating a known meal with a
+        // tweaked portion, not correcting an AI estimate.
+        let sessionId: UUID?
+        let corrections: [FoodCorrection]
+        if let original = relogMeal {
+            sessionId = original.analysisSessionId
+            corrections = []
+        } else {
+            // View creates the MealEntry (UUID ownership per learning)
+            sessionId = UUID()
+            corrections = computeCorrections()
+        }
+
         let meal = MealEntry(
             id: UUID(),
             timestamp: editTimestamp,
@@ -697,13 +720,19 @@ struct FoodPhotoAnalysisView: View {
             analysisSessionId: sessionId
         )
 
-        // Compute corrections by diffing staged items against original AI result
-        let corrections = computeCorrections()
-
         // Single dispatch — middleware chains to .addMealEntry
         store.dispatch(.saveMealWithCorrections(meal: meal, corrections: corrections))
         store.dispatch(.setFoodAnalysisResult(result: nil))
         dismiss()
+    }
+
+    private func hydrateRelogIfNeeded() {
+        guard let meal = relogMeal, !didHydrateRelog else { return }
+        didHydrateRelog = true
+        guard store.state.foodAnalysisResult == nil else { return }
+        let estimate = meal.toNutritionEstimate(personalFoods: store.state.personalFoodValues)
+        editTimestamp = Date() // log "now", not the original meal time
+        store.dispatch(.setFoodAnalysisResult(result: estimate))
     }
 
     // MARK: - Correction Computation
