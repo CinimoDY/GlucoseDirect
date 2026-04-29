@@ -37,6 +37,13 @@ func mealEntryStoreMiddleware() -> Middleware<DirectState, DirectAction> {
                 .setFailureType(to: DirectError.self)
                 .eraseToAnyPublisher()
 
+        case .updateMealEntry(mealEntry: let mealEntry):
+            DataStore.shared.updateMealEntry(mealEntry)
+
+            return Just(DirectAction.loadMealEntryValues)
+                .setFailureType(to: DirectError.self)
+                .eraseToAnyPublisher()
+
         case .setSelectedDate(selectedDate: _):
             return Just(DirectAction.loadMealEntryValues)
                 .setFailureType(to: DirectError.self)
@@ -138,6 +145,22 @@ private extension DataStore {
                 try dbQueue.write { db in
                     do {
                         try MealEntry.deleteOne(db, id: value.id)
+                    } catch {
+                        DirectLog.error("\(error)")
+                    }
+                }
+            } catch {
+                DirectLog.error("\(error)")
+            }
+        }
+    }
+
+    func updateMealEntry(_ value: MealEntry) {
+        if let dbQueue = dbQueue {
+            do {
+                try dbQueue.write { db in
+                    do {
+                        try value.update(db)
                     } catch {
                         DirectLog.error("\(error)")
                     }

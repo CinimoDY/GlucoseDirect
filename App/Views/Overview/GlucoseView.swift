@@ -85,9 +85,6 @@ struct GlucoseView: View {
 
                 if iobResult.total > 0 {
                     iobLabel
-                        .font(DOSTypography.caption)
-                        .foregroundColor(AmberTheme.amber)
-                        .opacity(0.5)
                 }
 
             } else {
@@ -101,9 +98,6 @@ struct GlucoseView: View {
 
                 if iobResult.total > 0 {
                     iobLabel
-                        .font(DOSTypography.caption)
-                        .foregroundColor(AmberTheme.amber)
-                        .opacity(0.5)
                 }
             }
 
@@ -204,10 +198,39 @@ struct GlucoseView: View {
 
     @ViewBuilder
     private var iobLabel: some View {
-        if store.state.showSplitIOB && (iobResult.mealSnackIOB > 0 || iobResult.correctionBasalIOB > 0) {
-            Text(verbatim: "IOB \(formatIOB(iobResult.mealSnackIOB))M · \(formatIOB(iobResult.correctionBasalIOB))B")
-        } else {
-            Text(verbatim: "IOB \(formatIOB(iobResult.total))")
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text("IOB")
+                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .tracking(0.6)
+                .foregroundStyle(AmberTheme.amberDark)
+
+            if store.state.showSplitIOB && (iobResult.mealSnackIOB > 0 || iobResult.correctionBasalIOB > 0) {
+                HStack(alignment: .firstTextBaseline, spacing: 3) {
+                    Text(formatIOB(iobResult.mealSnackIOB))
+                        .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(AmberTheme.iobBolus)
+                    Text("BOLUS")
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                        .tracking(0.4)
+                        .foregroundStyle(AmberTheme.iobBolus.opacity(0.7))
+                }
+                Text("·")
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(AmberTheme.amberDark.opacity(0.6))
+                HStack(alignment: .firstTextBaseline, spacing: 3) {
+                    Text(formatIOB(iobResult.correctionBasalIOB))
+                        .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(AmberTheme.iobBasal)
+                    Text("BASAL")
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                        .tracking(0.4)
+                        .foregroundStyle(AmberTheme.iobBasal.opacity(0.7))
+                }
+            } else {
+                Text(formatIOB(iobResult.total))
+                    .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(AmberTheme.iobBolus)
+            }
         }
     }
 

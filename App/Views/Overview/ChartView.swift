@@ -13,6 +13,7 @@ struct ChartView: View {
 
     @EnvironmentObject var store: DirectStore
     let selectedReportType: ReportType
+    let onTapMarkerGroup: (ConsolidatedMarkerGroup) -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -67,7 +68,7 @@ struct ChartView: View {
                             .font(.system(size: 9, weight: .medium, design: .monospaced))
                             .foregroundColor(AmberTheme.amberMuted)
                         Spacer()
-                        if !store.state.heartRateSeries.isEmpty {
+                        if store.state.showHeartRateOverlay && !store.state.heartRateSeries.isEmpty {
                             HStack(spacing: 3) {
                                 RoundedRectangle(cornerRadius: 1)
                                     .fill(AmberTheme.cgaMagenta.opacity(0.4))
@@ -83,29 +84,17 @@ struct ChartView: View {
                         ScrollViewReader { scrollViewProxy in
                             ScrollView(.horizontal, showsIndicators: false) {
                                 VStack(spacing: 0) {
-                                    EventMarkerLaneView(
-                                        markerGroups: markerGroups,
-                                        totalWidth: max(0, screenWidth, seriesWidth),
-                                        timeRange: (startMarker ?? Date())...(endMarker ?? Date()),
-                                        scoredMealEntryIds: store.state.scoredMealEntryIds,
-                                        onTapMeal: { mealID in
-                                            if let meal = store.state.mealEntryValues.first(where: { $0.id == mealID }) {
-                                                if activeMealOverlay?.id == meal.id {
-                                                    activeMealOverlay = nil
-                                                } else {
-                                                    activeMealOverlay = meal
-                                                }
-                                            }
-                                        },
-                                        onTapInsulin: { insulinID in
-                                            if let insulin = store.state.insulinDeliveryValues.first(where: { $0.id == insulinID }) {
-                                                tappedInsulinEntry = insulin
-                                                showInsulinDetail = true
-                                            }
-                                        },
-                                        expandedGroupID: $expandedGroupID
-                                    )
-                                    .frame(width: max(0, screenWidth, seriesWidth), height: Config.markerLaneHeight)
+                                    if store.state.markerLanePosition == .top {
+                                        EventMarkerLaneView(
+                                            markerGroups: markerGroups,
+                                            totalWidth: max(0, screenWidth, seriesWidth),
+                                            timeRange: (startMarker ?? Date())...(endMarker ?? Date()),
+                                            scoredMealEntryIds: store.state.scoredMealEntryIds,
+                                            onTapGroup: onTapMarkerGroup
+                                        )
+                                        .frame(width: max(0, screenWidth, seriesWidth), height: Config.markerLaneHeight)
+                                        .id("lane-\(store.state.markerLanePosition.rawValue)")
+                                    }
 
                                     ChartView
                                         .frame(width: max(0, screenWidth, seriesWidth), height: min(screenHeight, Config.chartHeight))
@@ -126,6 +115,18 @@ struct ChartView: View {
 
                                     }.onTapGesture(count: 2) {
                                         showUnsmoothedValues = !showUnsmoothedValues
+                                    }
+
+                                    if store.state.markerLanePosition == .bottom {
+                                        EventMarkerLaneView(
+                                            markerGroups: markerGroups,
+                                            totalWidth: max(0, screenWidth, seriesWidth),
+                                            timeRange: (startMarker ?? Date())...(endMarker ?? Date()),
+                                            scoredMealEntryIds: store.state.scoredMealEntryIds,
+                                            onTapGroup: onTapMarkerGroup
+                                        )
+                                        .frame(width: max(0, screenWidth, seriesWidth), height: Config.markerLaneHeight)
+                                        .id("lane-\(store.state.markerLanePosition.rawValue)")
                                     }
                                 } // VStack
                             }
@@ -178,7 +179,7 @@ struct ChartView: View {
                                     .cornerRadius(0)
                                 }
 
-                                if let hr = selectedHeartRate {
+                                if let hr = selectedHeartRate, store.state.showHeartRateOverlay {
                                     HStack(spacing: 4) {
                                         Image(systemName: "heart.fill")
                                             .font(.system(size: 10))
@@ -195,237 +196,95 @@ struct ChartView: View {
                         }
                     }
         }
-        .sheet(item: $tappedMealEntry) { meal in
-            AddMealView(
-                timestamp: meal.timestamp,
-                mealDescription: meal.mealDescription,
-                carbsGrams: meal.carbsGrams
-            ) { newTimestamp, newDescription, newCarbs in
-                store.dispatch(.deleteMealEntry(mealEntry: meal))
-                let updated = MealEntry(
-                    timestamp: newTimestamp,
-                    mealDescription: newDescription,
-                    carbsGrams: newCarbs
-                )
-                store.dispatch(.addMealEntry(mealEntryValues: [updated]))
-            } deleteCallback: {
-                store.dispatch(.deleteMealEntry(mealEntry: meal))
-            }
-        }
-        .confirmationDialog(
-            insulinDetailTitle,
-            isPresented: $showInsulinDetail,
-            titleVisibility: .visible
-        ) {
-            Button("Delete", role: .destructive) {
-                if let insulin = tappedInsulinEntry {
-                    store.dispatch(.deleteInsulinDelivery(insulinDelivery: insulin))
-                }
-            }
-            Button("Cancel", role: .cancel) {}
-        }
-        .sheet(item: $tappedMealGroup) { group in
-            NavigationView {
-                List {
-                    Section {
-                        HStack {
-                            Text("Total")
-                                .font(DOSTypography.body)
-                                .foregroundColor(AmberTheme.amber)
-                            Spacer()
-                            if let carbs = group.totalCarbs {
-                                Text("\(Int(carbs))g carbs")
-                                    .font(DOSTypography.body)
-                                    .foregroundColor(AmberTheme.cgaGreen)
-                            }
-                            if let cals = group.totalCalories {
-                                Text("\(Int(cals)) cal")
-                                    .font(DOSTypography.caption)
-                                    .foregroundColor(AmberTheme.amberDark)
-                            }
-                        }
-                    }
-
-                    Section(header: Text("\(group.count) items")) {
-                        ForEach(group.entries) { entry in
-                            Button {
-                                tappedMealGroup = nil
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                                    tappedMealEntry = entry
-                                }
-                            } label: {
-                                HStack {
-                                    Text(entry.mealDescription)
-                                        .font(DOSTypography.bodySmall)
-                                        .foregroundColor(AmberTheme.amberLight)
-                                    Spacer()
-                                    if let carbs = entry.carbsGrams {
-                                        Text("\(Int(carbs))g")
-                                            .font(DOSTypography.caption)
-                                            .foregroundColor(AmberTheme.cgaGreen)
-                                    }
-                                }
-                            }
-                            .swipeActions(edge: .trailing) {
-                                Button("Delete", role: .destructive) {
-                                    store.dispatch(.deleteMealEntry(mealEntry: entry))
-                                }
-                            }
-                        }
-                    }
-                }
-                .listStyle(.grouped)
-                .navigationTitle("\(group.count) Meals")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("Done") { tappedMealGroup = nil }
-                            .font(DOSTypography.caption)
-                    }
-                }
-            }
-        }
-        .sheet(item: $tappedInsulinGroup) { group in
-            NavigationView {
-                List {
-                    Section {
-                        HStack {
-                            Text("Total")
-                                .font(DOSTypography.body)
-                                .foregroundColor(AmberTheme.amber)
-                            Spacer()
-                            Text(group.totalUnits.asInsulin())
-                                .font(DOSTypography.body)
-                                .foregroundColor(AmberTheme.amberDark)
-                        }
-                    }
-
-                    Section(header: Text("\(group.count) doses")) {
-                        ForEach(group.entries) { entry in
-                            HStack {
-                                Text(entry.type.localizedDescription)
-                                    .font(DOSTypography.bodySmall)
-                                    .foregroundColor(AmberTheme.amberLight)
-                                Spacer()
-                                Text(entry.units.asInsulin())
-                                    .font(DOSTypography.caption)
-                                    .foregroundColor(AmberTheme.amberDark)
-                                Text(entry.starts.toLocalTime())
-                                    .font(DOSTypography.caption)
-                                    .foregroundColor(AmberTheme.amberDark)
-                            }
-                            .swipeActions(edge: .trailing) {
-                                Button("Delete", role: .destructive) {
-                                    store.dispatch(.deleteInsulinDelivery(insulinDelivery: entry))
-                                }
-                            }
-                        }
-                    }
-                }
-                .listStyle(.grouped)
-                .navigationTitle("\(group.count) Insulin Doses")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("Done") { tappedInsulinGroup = nil }
-                            .font(DOSTypography.caption)
-                    }
-                }
-            }
-        }
     }
 
     // MARK: - Time In Range Content
 
     private var TimeInRangeContent: some View {
-        VStack(spacing: DOSSpacing.md) {
+        VStack(spacing: DOSSpacing.lg) {
             if let stats = store.state.glucoseStatistics {
-                VStack(spacing: DOSSpacing.sm) {
-                    TimeInRangeBar(label: "TAR", value: stats.tar, color: AmberTheme.cgaRed)
-                    TimeInRangeBar(label: "TIR", value: stats.tir, color: AmberTheme.cgaGreen)
-                    TimeInRangeBar(label: "TBR", value: stats.tbr, color: AmberTheme.cgaRed)
-                }
+                HeroStatView(
+                    value: "\(Int(stats.tir))%",
+                    label: "TIME IN RANGE",
+                    valueColor: tirColor(stats.tir)
+                )
 
-                Text("\(stats.days) of \(stats.maxDays) days")
-                    .font(DOSTypography.caption)
-                    .foregroundColor(AmberTheme.amberDark)
+                StackedTIRBar(tbr: stats.tbr, tir: stats.tir, tar: stats.tar)
+                    .padding(.horizontal, DOSSpacing.md)
+
+                TIRBreakdownRow(tbr: stats.tbr, tir: stats.tir, tar: stats.tar)
+                    .padding(.horizontal, DOSSpacing.md)
+
+                VStack(spacing: 4) {
+                    Text("TARGET \(store.state.alarmLow)–\(store.state.alarmHigh) \(store.state.glucoseUnit.localizedDescription.uppercased())")
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(AmberTheme.amberDark.opacity(0.7))
+                    Text("\(stats.days) of \(stats.maxDays) days")
+                        .font(DOSTypography.caption)
+                        .foregroundStyle(AmberTheme.amberDark)
+                }
             } else {
                 Text("No statistics available")
                     .font(DOSTypography.bodySmall)
                     .foregroundColor(AmberTheme.amberDark)
             }
         }
-        .padding(.vertical, DOSSpacing.sm)
-    }
-
-    private func TimeInRangeBar(label: String, value: Double, color: Color) -> some View {
-        HStack(spacing: DOSSpacing.sm) {
-            Text(label)
-                .font(DOSTypography.caption)
-                .foregroundColor(AmberTheme.amberDark)
-                .frame(width: 30, alignment: .trailing)
-
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Rectangle()
-                        .fill(AmberTheme.amberMuted.opacity(0.3))
-                        .frame(height: 16)
-
-                    Rectangle()
-                        .fill(color)
-                        .frame(width: max(0, geo.size.width * CGFloat(value / 100.0)), height: 16)
-                }
-            }
-            .frame(height: 16)
-
-            Text(String(format: "%.0f%%", value))
-                .font(DOSTypography.caption)
-                .foregroundColor(AmberTheme.amberLight)
-                .frame(width: 36, alignment: .trailing)
-        }
+        .padding(.vertical, DOSSpacing.md)
     }
 
     // MARK: - Statistics Content
 
     private var StatisticsContent: some View {
-        VStack(spacing: DOSSpacing.sm) {
+        VStack(spacing: DOSSpacing.md) {
             if let stats = store.state.glucoseStatistics {
-                StatRow(label: "AVG", value: String(format: "%.0f", stats.avg), unit: store.state.glucoseUnit.localizedDescription)
-                StatRow(label: "SD", value: String(format: "%.1f", stats.stdev), unit: store.state.glucoseUnit.localizedDescription)
-                StatRow(label: "CV", value: String(format: "%.1f%%", stats.cv), unit: "")
-                StatRow(label: "GMI", value: String(format: "%.1f%%", stats.gmi), unit: "")
-                StatRow(label: "READINGS", value: "\(stats.readings)", unit: "")
+                HeroStatView(
+                    value: String(format: "%.0f", stats.avg),
+                    unit: store.state.glucoseUnit.localizedDescription,
+                    label: "AVERAGE"
+                )
+                .padding(.bottom, DOSSpacing.xs)
 
-                Text("\(stats.days) of \(stats.maxDays) days")
-                    .font(DOSTypography.caption)
-                    .foregroundColor(AmberTheme.amberDark)
-                    .padding(.top, DOSSpacing.xs)
+                VStack(spacing: DOSSpacing.sm) {
+                    HStack(spacing: DOSSpacing.sm) {
+                        StatCard(label: "GMI", value: String(format: "%.1f%%", stats.gmi), help: "≈ A1C")
+                        StatCard(
+                            label: "TIR",
+                            value: String(format: "%.0f%%", stats.tir),
+                            valueColor: tirColor(stats.tir),
+                            help: tirHelp(stats.tir)
+                        )
+                    }
+                    HStack(spacing: DOSSpacing.sm) {
+                        StatCard(
+                            label: "SD",
+                            value: String(format: "%.1f", stats.stdev),
+                            help: store.state.glucoseUnit.localizedDescription
+                        )
+                        StatCard(
+                            label: "CV",
+                            value: String(format: "%.1f%%", stats.cv),
+                            valueColor: stats.cv <= 33 ? AmberTheme.cgaGreen : AmberTheme.amber,
+                            help: stats.cv <= 33 ? "Stable" : "Variable"
+                        )
+                    }
+                }
+                .padding(.horizontal, DOSSpacing.md)
+
+                HStack {
+                    Text("\(stats.readings) readings")
+                    Spacer()
+                    Text("\(stats.days) of \(stats.maxDays) days")
+                }
+                .font(DOSTypography.caption)
+                .foregroundStyle(AmberTheme.amberDark)
+                .padding(.horizontal, DOSSpacing.md)
             } else {
                 Text("No statistics available")
                     .font(DOSTypography.bodySmall)
                     .foregroundColor(AmberTheme.amberDark)
             }
         }
-        .padding(.vertical, DOSSpacing.sm)
-    }
-
-    private func StatRow(label: String, value: String, unit: String) -> some View {
-        HStack {
-            Text(label)
-                .font(DOSTypography.caption)
-                .foregroundColor(AmberTheme.amberDark)
-            Spacer()
-            HStack(spacing: 4) {
-                Text(value)
-                    .font(DOSTypography.bodySmall)
-                    .foregroundColor(AmberTheme.amberLight)
-                if !unit.isEmpty {
-                    Text(unit)
-                        .font(DOSTypography.caption)
-                        .foregroundColor(AmberTheme.amberDark)
-                }
-            }
-        }
+        .padding(.vertical, DOSSpacing.md)
     }
 
     var ChartView: some View {
@@ -542,21 +401,32 @@ struct ChartView: View {
                 let iobCeiling = max(maxIOB, 1.0)
 
                 if store.state.showSplitIOB {
+                    // Bottom layer: basal + correction IOB — sky blue. Basal
+                    // is the constant background baseline, so it sits at the
+                    // floor of the chart. `series:` is required so Charts
+                    // treats this and the bolus layer above as two independent
+                    // series; without it the two ForEach loops auto-group into
+                    // one stack and only one renders.
                     ForEach(Array(iobSeries.enumerated()), id: \.offset) { _, point in
                         AreaMark(
                             x: .value("Time", point.date),
-                            y: .value("IOB", point.mealSnack.map(from: 0...iobCeiling, to: 0...Double(alarmLow)))
+                            yStart: .value("Bottom", 0),
+                            yEnd: .value("IOB", point.corrBasal.map(from: 0...iobCeiling, to: 0...Double(alarmLow))),
+                            series: .value("IOB Layer", "Basal")
                         )
-                        .foregroundStyle(AmberTheme.cgaCyan.opacity(0.3))
+                        .foregroundStyle(AmberTheme.iobBasal.opacity(0.85))
                         .interpolationMethod(.monotone)
                     }
 
+                    // Top layer: meal/snack bolus IOB stacked above basal — warm green.
                     ForEach(Array(iobSeries.enumerated()), id: \.offset) { _, point in
                         AreaMark(
                             x: .value("Time", point.date),
-                            y: .value("IOB-corr", point.corrBasal.map(from: 0...iobCeiling, to: 0...Double(alarmLow)))
+                            yStart: .value("Bottom", point.corrBasal.map(from: 0...iobCeiling, to: 0...Double(alarmLow))),
+                            yEnd: .value("IOB", point.total.map(from: 0...iobCeiling, to: 0...Double(alarmLow))),
+                            series: .value("IOB Layer", "Bolus")
                         )
-                        .foregroundStyle(AmberTheme.amberDark.opacity(0.3))
+                        .foregroundStyle(AmberTheme.iobBolus.opacity(0.7))
                         .interpolationMethod(.monotone)
                     }
                 } else {
@@ -565,124 +435,9 @@ struct ChartView: View {
                             x: .value("Time", point.date),
                             y: .value("IOB", point.total.map(from: 0...iobCeiling, to: 0...Double(alarmLow)))
                         )
-                        .foregroundStyle(AmberTheme.cgaCyan.opacity(0.3))
+                        .foregroundStyle(AmberTheme.iobBolus.opacity(0.4))
                         .interpolationMethod(.monotone)
                     }
-                }
-            }
-
-            // MARK: - Meal Impact Overlay
-            if let overlayMeal = activeMealOverlay {
-                let windowEnd = overlayMeal.timestamp.addingTimeInterval(2 * 60 * 60)
-                let isInProgress = Date() < windowEnd
-                let displayEnd = isInProgress ? Date() : windowEnd
-
-                // Shaded 2hr band
-                RectangleMark(
-                    xStart: .value("MealStart", overlayMeal.timestamp),
-                    xEnd: .value("MealEnd", displayEnd),
-                    yStart: .value("Bottom", 0),
-                    yEnd: .value("Top", chartMinimum)
-                )
-                .foregroundStyle(AmberTheme.cgaGreen.opacity(0.08))
-
-                // Delta annotation at the center of the band
-                let midTime = overlayMeal.timestamp.addingTimeInterval(displayEnd.timeIntervalSince(overlayMeal.timestamp) / 2)
-                let overlayDelta = computeMealOverlayDelta(meal: overlayMeal, isInProgress: isInProgress)
-
-                PointMark(
-                    x: .value("Time", midTime),
-                    y: .value("Label", chartMinimum * 0.85)
-                )
-                .symbolSize(0)
-                .annotation(position: .overlay) {
-                    VStack(spacing: 2) {
-                        let confounders = detectMealConfounders(meal: overlayMeal)
-                        let deltaOpacity = (overlayDelta.isLowConfidence ? 0.5 : 1.0) * (confounders.isClean ? 1.0 : 0.5)
-
-                        if isInProgress {
-                            Text("IN PROGRESS")
-                                .font(DOSTypography.caption)
-                                .foregroundStyle(AmberTheme.amberDark)
-                        }
-
-                        if let delta = overlayDelta.delta {
-                            let displayDelta: String = {
-                                let prefix = overlayDelta.isLowConfidence ? "~" : ""
-                                if store.state.glucoseUnit == .mgdL {
-                                    return prefix + (delta >= 0 ? "+" : "") + "\(delta)"
-                                } else {
-                                    let mmolDelta = Double(delta) / 18.0182
-                                    return prefix + (delta >= 0 ? "+" : "") + String(format: "%.1f", mmolDelta)
-                                }
-                            }()
-                            Text(displayDelta)
-                                .font(DOSTypography.body)
-                                .bold()
-                                .foregroundStyle(deltaColor(delta))
-                                .opacity(deltaOpacity)
-
-                            Text(store.state.glucoseUnit == .mgdL ? "mg/dL" : "mmol/L")
-                                .font(DOSTypography.caption)
-                                .foregroundStyle(AmberTheme.amberDark)
-                        } else {
-                            Text("--")
-                                .font(DOSTypography.body)
-                                .foregroundStyle(AmberTheme.amberDark)
-                        }
-
-                        // Confounder indicators
-                        if !confounders.isClean {
-                            HStack(spacing: 4) {
-                                if confounders.hasCorrectionBolus {
-                                    Image(systemName: "syringe.fill")
-                                        .font(.system(size: 10))
-                                        .foregroundStyle(AmberTheme.amberDark)
-                                }
-                                if confounders.hasExercise {
-                                    Image(systemName: "figure.run")
-                                        .font(.system(size: 10))
-                                        .foregroundStyle(AmberTheme.amberDark)
-                                }
-                                if confounders.hasStackedMeal {
-                                    Image(systemName: "fork.knife")
-                                        .font(.system(size: 10))
-                                        .foregroundStyle(AmberTheme.amberDark)
-                                }
-                            }
-                        }
-
-                        // PersonalFood glycemic average
-                        if let sessionId = overlayMeal.analysisSessionId,
-                           let food = store.state.personalFoodValues.first(where: { $0.analysisSessionId == sessionId }),
-                           food.observationCount >= 2,
-                           let avg = food.avgDeltaMgDL {
-                            let avgDisplay: String = {
-                                if store.state.glucoseUnit == .mgdL {
-                                    return "avg +\(Int(avg))"
-                                } else {
-                                    return "avg +\(String(format: "%.1f", avg / 18.0182))"
-                                }
-                            }()
-                            Text("\(avgDisplay) (\(food.observationCount))")
-                                .font(DOSTypography.caption)
-                                .foregroundStyle(AmberTheme.amberDark)
-                        }
-
-                        // Edit button
-                        Button(action: {
-                            tappedMealEntry = activeMealOverlay
-                            activeMealOverlay = nil
-                        }) {
-                            Image(systemName: "pencil")
-                                .font(.system(size: 12))
-                                .foregroundStyle(AmberTheme.amber)
-                        }
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
-                    .background(Color.black.opacity(0.85))
-                    .cornerRadius(4)
                 }
             }
 
@@ -696,17 +451,33 @@ struct ChartView: View {
                 .foregroundStyle(AmberTheme.cgaCyan.opacity(0.3))
             }
 
-            ForEach(store.state.heartRateSeries.indices, id: \.self) { index in
-                let point = store.state.heartRateSeries[index]
-                let normalizedHR = ((point.1 - 40) / (200 - 40)) * (chartMinimum - alarmHigh) + alarmHigh
-                LineMark(
-                    x: .value("Time", point.0),
-                    y: .value("HR", normalizedHR),
-                    series: .value("Series", "HeartRate")
-                )
-                .interpolationMethod(.monotone)
-                .foregroundStyle(AmberTheme.cgaMagenta.opacity(0.3))
-                .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+            if store.state.showHeartRateOverlay {
+                ForEach(store.state.heartRateSeries.indices, id: \.self) { index in
+                    let point = store.state.heartRateSeries[index]
+                    LineMark(
+                        x: .value("Time", point.0),
+                        y: .value("HR", scaledHR(point.1)),
+                        series: .value("Series", "HeartRate")
+                    )
+                    .interpolationMethod(.monotone)
+                    .foregroundStyle(AmberTheme.cgaMagenta.opacity(0.3))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                }
+
+                if let last = store.state.heartRateSeries.last,
+                   Date().timeIntervalSince(last.0) < 10 * 60 {
+                    PointMark(
+                        x: .value("Time", last.0),
+                        y: .value("HR", scaledHR(last.1))
+                    )
+                    .foregroundStyle(AmberTheme.cgaMagenta.opacity(0.7))
+                    .symbolSize(30)
+                    .annotation(position: .trailing, alignment: .leading, spacing: 4) {
+                        Text("\(Int(last.1))")
+                            .font(DOSTypography.caption)
+                            .foregroundStyle(AmberTheme.cgaMagenta.opacity(0.7))
+                    }
+                }
             }
 
             if showUnsmoothedValues, store.state.showSmoothedGlucose {
@@ -912,8 +683,12 @@ struct ChartView: View {
                                 self.selectedRawSensorPoint = selectedRawSensorPoint
                                 self.selectedBloodPoint = selectedBloodPoint
 
-                                // Search nearby minutes for heart rate (HR samples may not align exactly)
-                                self.selectedHeartRate = nearestHeartRate(at: rounded)
+                                // Search nearby minutes for heart rate (HR samples may not align exactly).
+                                // Skip when the overlay is disabled — keeps the HR chip in the tooltip
+                                // hidden and avoids the lookup work on every drag tick.
+                                if store.state.showHeartRateOverlay {
+                                    self.selectedHeartRate = nearestHeartRate(at: rounded)
+                                }
                             }
                         }
                         .onEnded { dragValue in
@@ -925,10 +700,6 @@ struct ChartView: View {
                             selectedHeartRate = nil
 
                             guard wasTap else { return }
-
-                            // Dismiss meal overlay and expanded marker group on any chart tap
-                            activeMealOverlay = nil
-                            expandedGroupID = nil
                         }
                     )
             }
@@ -962,7 +733,7 @@ struct ChartView: View {
             ZoomLevel(level: 12, name: LocalizedString("12h"), visibleHours: 12, labelEvery: 3),
             ZoomLevel(level: 24, name: LocalizedString("24h"), visibleHours: 24, labelEvery: 4)
         ]
-        static let markerLaneHeight: CGFloat = 32
+        static let markerLaneHeight: CGFloat = 60
         static let consolidationWindows: [Int: TimeInterval] = [
             3: 0,
             6: 10 * 60,
@@ -980,8 +751,6 @@ struct ChartView: View {
     @State private var bloodGlucoseSeries: [GlucoseDatapoint] = []
     @State private var insulinSeries: [InsulinDatapoint] = []
     @State private var mealSeries: [MealDatapoint] = []
-    @State private var mealGroups: [MealGroup] = []
-    @State private var insulinGroups: [InsulinGroup] = []
     @State private var exerciseSeries: [ExerciseDatapoint] = []
     @State private var iobSeries: [(date: Date, total: Double, mealSnack: Double, corrBasal: Double)] = []
 
@@ -995,15 +764,7 @@ struct ChartView: View {
     @State private var selectedHeartRate: Int? = nil
     @State private var heartRatePointInfos: [Date: Int] = [:]
 
-    @State private var tappedMealEntry: MealEntry? = nil
-    @State private var tappedInsulinEntry: InsulinDelivery? = nil
-    @State private var showInsulinDetail = false
-    @State private var tappedMealGroup: MealGroup? = nil
-    @State private var tappedInsulinGroup: InsulinGroup? = nil
-    @State private var activeMealOverlay: MealEntry? = nil
-
     @State private var markerGroups: [ConsolidatedMarkerGroup] = []
-    @State private var expandedGroupID: String? = nil
 
     @State private var smoothedMinuteChange: Double? = nil
 
@@ -1068,7 +829,11 @@ struct ChartView: View {
         convertToRequired(mgdLValue: store.state.alarmHigh)
     }
 
-    private var startMarker: Date? {
+    private func scaledHR(_ bpm: Double) -> Double {
+        ((bpm - 40) / (200 - 40)) * (chartMinimum - alarmHigh) + alarmHigh
+    }
+
+private var startMarker: Date? {
         return firstTimestamp
     }
 
@@ -1234,7 +999,10 @@ struct ChartView: View {
             var iobPoints: [(date: Date, total: Double, mealSnack: Double, corrBasal: Double)] = []
 
             if !iobDeliveries.isEmpty, let first = firstTimestamp, let last = lastTimestamp {
-                let step: TimeInterval = 5 * 60 // 5-minute intervals
+                // 1-minute sampling smooths visible step transitions when a
+                // new bolus is delivered between two adjacent samples
+                // (5-min sampling produced visible "cuts" in the area chart).
+                let step: TimeInterval = 60
                 var current = first
                 while current <= last {
                     let result = computeIOB(
@@ -1251,13 +1019,6 @@ struct ChartView: View {
             DispatchQueue.main.async {
                 self.insulinSeries = insulinSeries
                 self.iobSeries = iobPoints
-
-                // Group non-basal insulin by timegroup for chart display
-                let bolusEntries = store.state.insulinDeliveryValues.filter { $0.type != .basal }
-                let grouped = Dictionary(grouping: bolusEntries, by: \.timegroup)
-                self.insulinGroups = grouped.map { timegroup, entries in
-                    InsulinGroup(id: timegroup, entries: entries, time: timegroup)
-                }.sorted { $0.time < $1.time }
             }
         }
     }
@@ -1265,12 +1026,6 @@ struct ChartView: View {
     private func updateMealSeries() {
         DirectLog.info("updateMealSeries()")
         self.mealSeries = store.state.mealEntryValues.map { $0.toDatapoint() }
-
-        // Group meals by timegroup (15-min window) for chart display
-        let grouped = Dictionary(grouping: store.state.mealEntryValues, by: \.timegroup)
-        self.mealGroups = grouped.map { timegroup, entries in
-            MealGroup(id: timegroup, entries: entries, time: timegroup)
-        }.sorted { $0.time < $1.time }
     }
 
     private func updateExerciseSeries() {
@@ -1376,21 +1131,6 @@ struct ChartView: View {
         self.heartRatePointInfos = lookup
     }
 
-    private var mealDetailTitle: String {
-        guard let meal = tappedMealEntry else { return "" }
-        var title = "\(meal.timestamp.toLocalDateTime())\n\(meal.mealDescription)"
-        if let c = meal.carbsGrams { title += "\n\(Int(c))g carbs" }
-        if let p = meal.proteinGrams { title += " · \(Int(p))g P" }
-        if let f = meal.fatGrams { title += " · \(Int(f))g F" }
-        if let cal = meal.calories { title += " · \(Int(cal)) kcal" }
-        return title
-    }
-
-    private var insulinDetailTitle: String {
-        guard let insulin = tappedInsulinEntry else { return "" }
-        return "\(insulin.starts.toLocalDateTime())\n\(insulin.type.localizedDescription)\n\(insulin.units.asInsulin())"
-    }
-
     /// Search within +/- 2 minutes for nearest heart rate sample
     private func nearestHeartRate(at date: Date) -> Int? {
         for offset in 0...2 {
@@ -1405,86 +1145,6 @@ struct ChartView: View {
             }
         }
         return nil
-    }
-
-    private struct MealOverlayDelta {
-        let delta: Int?
-        let isLowConfidence: Bool
-    }
-
-    private func computeMealOverlayDelta(meal: MealEntry, isInProgress: Bool) -> MealOverlayDelta {
-        let windowEnd = isInProgress ? Date() : meal.timestamp.addingTimeInterval(2 * 60 * 60)
-
-        // Filter glucose readings in the window
-        let readings = store.state.sensorGlucoseValues.filter { glucose in
-            glucose.timestamp >= meal.timestamp && glucose.timestamp <= windowEnd
-        }
-
-        guard !readings.isEmpty else {
-            return MealOverlayDelta(delta: nil, isLowConfidence: false)
-        }
-
-        // Baseline: closest reading before meal within 15 min
-        let baselineStart = meal.timestamp.addingTimeInterval(-15 * 60)
-        let baseline = store.state.sensorGlucoseValues
-            .filter { $0.timestamp >= baselineStart && $0.timestamp < meal.timestamp }
-            .last // already sorted by time
-
-        let referenceGlucose: Int
-        if let baseline = baseline {
-            referenceGlucose = baseline.glucoseValue
-        } else if let first = readings.first {
-            referenceGlucose = first.glucoseValue
-        } else {
-            return MealOverlayDelta(delta: nil, isLowConfidence: false)
-        }
-
-        // Peak
-        guard let peak = readings.max(by: { $0.glucoseValue < $1.glucoseValue }) else {
-            return MealOverlayDelta(delta: nil, isLowConfidence: false)
-        }
-        let delta = peak.glucoseValue - referenceGlucose
-
-        // Low confidence: fewer than 4 readings regardless of in-progress state
-        let isLowConfidence = readings.count < 4
-
-        return MealOverlayDelta(delta: delta, isLowConfidence: isLowConfidence)
-    }
-
-    private struct MealConfounders {
-        let hasCorrectionBolus: Bool
-        let hasExercise: Bool
-        let hasStackedMeal: Bool
-
-        var isClean: Bool { !hasCorrectionBolus && !hasExercise && !hasStackedMeal }
-    }
-
-    private func detectMealConfounders(meal: MealEntry) -> MealConfounders {
-        let windowEnd = meal.timestamp.addingTimeInterval(2 * 60 * 60)
-
-        let hasCorrectionBolus = store.state.insulinDeliveryValues.contains { delivery in
-            delivery.starts >= meal.timestamp && delivery.starts <= windowEnd && delivery.type == .correctionBolus
-        }
-
-        let hasExercise = store.state.exerciseEntryValues.contains { exercise in
-            exercise.startTime <= windowEnd && exercise.endTime >= meal.timestamp
-        }
-
-        let hasStackedMeal = store.state.mealEntryValues.contains { other in
-            other.id != meal.id && other.timestamp >= meal.timestamp && other.timestamp <= windowEnd
-        }
-
-        return MealConfounders(hasCorrectionBolus: hasCorrectionBolus, hasExercise: hasExercise, hasStackedMeal: hasStackedMeal)
-    }
-
-    private func deltaColor(_ delta: Int) -> Color {
-        if delta < 30 {
-            return AmberTheme.cgaGreen
-        } else if delta < 60 {
-            return AmberTheme.amber
-        } else {
-            return AmberTheme.cgaRed
-        }
     }
 
     private func populateValues(glucoseValues: [InsulinDelivery]) -> [InsulinDatapoint] {
@@ -1624,32 +1284,6 @@ private struct MealDatapoint: Identifiable {
     let time: Date
     let label: String
     let carbs: Double?
-}
-
-private struct MealGroup: Identifiable {
-    let id: Date // the timegroup
-    let entries: [MealEntry]
-    let time: Date
-
-    var totalCarbs: Double? {
-        let values = entries.compactMap(\.carbsGrams)
-        return values.isEmpty ? nil : values.reduce(0, +)
-    }
-
-    var totalCalories: Double? {
-        let values = entries.compactMap(\.calories)
-        return values.isEmpty ? nil : values.reduce(0, +)
-    }
-
-    var count: Int { entries.count }
-}
-
-private struct InsulinGroup: Identifiable {
-    let id: Date // the timegroup
-    let entries: [InsulinDelivery]
-    let time: Date
-    var totalUnits: Double { entries.reduce(0) { $0 + $1.units } }
-    var count: Int { entries.count }
 }
 
 private extension MealEntry {
@@ -1796,63 +1430,3 @@ private extension SensorGlucose {
     }
 }
 
-// MARK: - Marker Lane Types
-
-enum MarkerType: Hashable {
-    case meal
-    case bolus
-    case exercise
-
-    var icon: String {
-        switch self {
-        case .meal: return "fork.knife"
-        case .bolus: return "syringe.fill"
-        case .exercise: return "figure.run"
-        }
-    }
-
-    var color: Color {
-        switch self {
-        case .meal: return AmberTheme.cgaGreen
-        case .bolus: return AmberTheme.amberDark
-        case .exercise: return AmberTheme.cgaCyan
-        }
-    }
-}
-
-struct EventMarker: Identifiable {
-    let id: String
-    let time: Date
-    let type: MarkerType
-    let label: String
-    let rawValue: Double
-    let sourceID: UUID
-}
-
-struct ConsolidatedMarkerGroup: Identifiable {
-    let id: String
-    let time: Date
-    let markers: [EventMarker]
-
-    var isSingle: Bool { markers.count == 1 }
-
-    var dominantType: MarkerType {
-        let counts = Dictionary(grouping: markers, by: \.type).mapValues(\.count)
-        return counts.max(by: { $0.value < $1.value })?.key ?? .meal
-    }
-
-    var summaryLabel: String {
-        let totalCarbs = markers
-            .filter { $0.type == .meal }
-            .reduce(0.0) { $0 + $1.rawValue }
-        if totalCarbs > 0 {
-            return "\(Int(totalCarbs))g"
-        }
-        return "\(markers.count)"
-    }
-
-    var totalCarbs: Double? {
-        let carbs = markers.filter { $0.type == .meal }.reduce(0.0) { $0 + $1.rawValue }
-        return carbs > 0 ? carbs : nil
-    }
-}

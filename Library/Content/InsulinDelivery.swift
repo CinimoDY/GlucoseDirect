@@ -7,7 +7,7 @@ import Foundation
 
 // MARK: - Insulin
 
-enum InsulinType: Codable {
+enum InsulinType: Codable, CaseIterable {
     case mealBolus
     case snackBolus
     case correctionBolus
@@ -85,5 +85,16 @@ extension InsulinDelivery: Equatable {
 
     static func == (lhs: InsulinDelivery, rhs: InsulinDelivery) -> Bool {
         lhs.id == rhs.id
+    }
+}
+
+extension InsulinType {
+    var shortLabel: String {
+        switch self {
+        case .mealBolus: return "MEAL"
+        case .snackBolus: return "SNACK"
+        case .correctionBolus: return "CORR"
+        case .basal: return "BASAL"
+        }
     }
 }

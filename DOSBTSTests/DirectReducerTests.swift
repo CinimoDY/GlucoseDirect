@@ -476,3 +476,60 @@ struct DailyDigestStateTests {
         #expect(state.aiConsentDailyDigest == false)
     }
 }
+
+// MARK: - Update Action Reducer Tests
+
+@Suite("Update Actions (DMNC-848)")
+struct UpdateActionReducerTests {
+
+    @Test("updateMealEntry does not mutate state directly (handled by middleware)")
+    func updateMealEntryNoOp() {
+        var state: DirectState = makeState()
+        let original = MealEntry(timestamp: Date(), mealDescription: "Old", carbsGrams: 30, analysisSessionId: nil)
+        state.mealEntryValues = [original]
+        let updated = MealEntry(id: original.id, timestamp: original.timestamp, mealDescription: "New", carbsGrams: 45, analysisSessionId: nil)
+        reduce(&state, .updateMealEntry(mealEntry: updated))
+        // Reducer is a no-op; middleware persists and dispatches setMealEntryValues
+        #expect(state.mealEntryValues == [original])
+    }
+
+    @Test("updateInsulinDelivery does not mutate state directly")
+    func updateInsulinDeliveryNoOp() {
+        var state: DirectState = makeState()
+        let original = InsulinDelivery(starts: Date(), ends: Date(), units: 4.5, type: .mealBolus)
+        state.insulinDeliveryValues = [original]
+        let updated = InsulinDelivery(id: original.id, starts: original.starts, ends: original.ends, units: 5.0, type: original.type)
+        reduce(&state, .updateInsulinDelivery(insulinDelivery: updated))
+        #expect(state.insulinDeliveryValues == [original])
+    }
+}
+
+// MARK: - HR Overlay Tests (DMNC-848)
+
+@Suite("HR Overlay")
+struct HROverlayTests {
+    @Test("setShowHeartRateOverlay toggles the flag")
+    func toggleHROverlay() {
+        var state: DirectState = makeState()
+        state.showHeartRateOverlay = false
+        reduce(&state, .setShowHeartRateOverlay(enabled: true))
+        #expect(state.showHeartRateOverlay == true)
+        reduce(&state, .setShowHeartRateOverlay(enabled: false))
+        #expect(state.showHeartRateOverlay == false)
+    }
+}
+
+// MARK: - Marker Lane Position Tests (DMNC-848 D7)
+
+@Suite("Marker Lane Position")
+struct MarkerLanePositionTests {
+    @Test("setMarkerLanePosition updates the preference")
+    func setPosition() {
+        var state: DirectState = makeState()
+        state.markerLanePosition = .top
+        reduce(&state, .setMarkerLanePosition(position: .bottom))
+        #expect(state.markerLanePosition == .bottom)
+        reduce(&state, .setMarkerLanePosition(position: .top))
+        #expect(state.markerLanePosition == .top)
+    }
+}

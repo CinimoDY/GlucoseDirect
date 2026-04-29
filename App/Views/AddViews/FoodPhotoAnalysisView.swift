@@ -6,19 +6,6 @@
 import PhotosUI
 import SwiftUI
 
-// MARK: - EditableFoodItem
-
-/// Staging plate item — editable copy of a NutritionItem
-struct EditableFoodItem: Identifiable {
-    var id = UUID()
-    var name: String
-    var carbsG: Double
-    var isExpanded: Bool = false
-    var baseServingG: Double? = nil  // From OFF serving_quantity, for portion presets
-    var currentAmountG: Double? = nil // User-visible portion in g/ml (nil = amount field hidden)
-    var carbsPerG: Double? = nil      // Carbs-per-gram ratio (nil = user overrode carbs directly)
-}
-
 // MARK: - FoodPhotoAnalysisView
 
 struct FoodPhotoAnalysisView: View {
@@ -40,6 +27,31 @@ struct FoodPhotoAnalysisView: View {
                     errorSection(error)
                 } else {
                     photoPickerSection
+                }
+            }
+            .navigationDestination(isPresented: Binding(
+                get: { scanTargetIndex != nil },
+                set: { active in if !active { scanTargetIndex = nil } }
+            )) {
+                if let idx = scanTargetIndex, idx < stagedItems.count {
+                    let itemID = stagedItems[idx].id
+                    ItemBarcodeScannerView { scannedEstimate in
+                        isItemScanActive = false
+                        if let currentIdx = stagedItems.firstIndex(where: { $0.id == itemID }),
+                           let scannedItem = scannedEstimate.items.first {
+                            let amount = parseBaseServingG(scannedItem.servingSize)
+                            let ratio: Double? = amount.flatMap { $0 > 0 ? scannedItem.carbsG / $0 : nil }
+                            // Update in-place (preserve ID so ForEach doesn't re-render)
+                            stagedItems[currentIdx].name = scannedItem.name
+                            stagedItems[currentIdx].carbsG = scannedItem.carbsG
+                            stagedItems[currentIdx].baseServingG = amount
+                            stagedItems[currentIdx].currentAmountG = amount
+                            stagedItems[currentIdx].carbsPerG = ratio
+                        }
+                    }
+                    .navigationBarHidden(true)
+                    .onAppear { isItemScanActive = true }
+                    .onDisappear { isItemScanActive = false }
                 }
             }
             .navigationTitle("AI Meal Analysis")
@@ -211,7 +223,11 @@ struct FoodPhotoAnalysisView: View {
                 }
             },
             header: {
-                Label("Food photo", systemImage: "fork.knife")
+                Label {
+                    Text("Food photo")
+                } icon: {
+                    AppleIcon().frame(width: 16, height: 16)
+                }
             },
             footer: {
                 VStack(alignment: .leading, spacing: 4) {
@@ -402,7 +418,11 @@ struct FoodPhotoAnalysisView: View {
                     }
                 },
                 header: {
-                    Label("Meal", systemImage: "fork.knife")
+                    Label {
+                        Text("Meal")
+                    } icon: {
+                        AppleIcon().frame(width: 16, height: 16)
+                    }
                 }
             )
 
@@ -410,128 +430,17 @@ struct FoodPhotoAnalysisView: View {
             Section(
                 content: {
                     ForEach($stagedItems) { $item in
-                        VStack(alignment: .leading, spacing: 4) {
-                            // Summary row — tap to expand
-                            HStack {
-                                Text(item.name.isEmpty ? "New item" : item.name)
-                                    .font(DOSTypography.body)
-                                    .foregroundStyle(item.name.isEmpty ? AmberTheme.amberDark : AmberTheme.amber)
-                                Spacer()
-                                macroTag("\(Int(item.carbsG))g C", color: AmberTheme.amber)
-                                Image(systemName: "chevron.right")
-                                    .font(DOSTypography.caption)
-                                    .foregroundStyle(AmberTheme.amberDark)
-                                    .rotationEffect(item.isExpanded ? .degrees(90) : .zero)
+                        let itemID = item.id
+                        StagingPlateRowView(
+                            item: $item,
+                            onBarcodeRescan: { _ in
+                                scanTargetIndex = stagedItems.firstIndex(where: { $0.id == itemID })
+                            },
+                            isExpanded: item.isExpanded,
+                            onToggleExpand: {
+                                withAnimation(.linear(duration: 0.18)) { item.isExpanded.toggle() }
                             }
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                withAnimation(.linear(duration: 0.2)) {
-                                    item.isExpanded.toggle()
-                                }
-                            }
-
-                            // Expanded edit fields
-                            if item.isExpanded {
-                                VStack(spacing: DOSSpacing.sm) {
-                                    HStack {
-                                        Text("Name")
-                                            .font(DOSTypography.caption)
-                                            .foregroundStyle(AmberTheme.amberDark)
-                                        TextField("Food name", text: $item.name)
-                                            .font(DOSTypography.body)
-                                            .multilineTextAlignment(.trailing)
-                                            .focused($focusedItemID, equals: item.id)
-
-                                        // Inline barcode scan for this item (capture ID, not index)
-                                        let itemID = item.id
-                                        NavigationLink {
-                                            ItemBarcodeScannerView { scannedEstimate in
-                                                isItemScanActive = false
-                                                if let currentIdx = stagedItems.firstIndex(where: { $0.id == itemID }),
-                                                   let scannedItem = scannedEstimate.items.first {
-                                                    let amount = parseBaseServingG(scannedItem.servingSize)
-                                                    let ratio: Double? = amount.flatMap { $0 > 0 ? scannedItem.carbsG / $0 : nil }
-                                                    // Update in-place (preserve ID so ForEach doesn't re-render)
-                                                    stagedItems[currentIdx].name = scannedItem.name
-                                                    stagedItems[currentIdx].carbsG = scannedItem.carbsG
-                                                    stagedItems[currentIdx].baseServingG = amount
-                                                    stagedItems[currentIdx].currentAmountG = amount
-                                                    stagedItems[currentIdx].carbsPerG = ratio
-                                                }
-                                            }
-                                            .navigationBarHidden(true)
-                                            .onAppear { isItemScanActive = true }
-                                            .onDisappear { isItemScanActive = false }
-                                        } label: {
-                                            Image(systemName: "barcode.viewfinder")
-                                                .font(.system(size: 20))
-                                                .frame(width: 44, height: 44) // Apple 44pt touch target
-                                                .contentShape(Rectangle())
-                                                .foregroundStyle(AmberTheme.amberDark)
-                                        }
-                                    }
-                                    // Amount field — only when parseable serving size exists
-                                    if item.currentAmountG != nil {
-                                        HStack {
-                                            Text("Amount")
-                                                .font(DOSTypography.caption)
-                                                .foregroundStyle(AmberTheme.amberDark)
-                                            TextField("0", value: $item.currentAmountG, format: .number)
-                                                .keyboardType(.decimalPad)
-                                                .multilineTextAlignment(.trailing)
-                                                .frame(width: 80)
-                                                .onChange(of: item.currentAmountG) { _, newAmount in
-                                                    // Auto-scale carbs proportionally when ratio exists
-                                                    if let ratio = item.carbsPerG,
-                                                       let amt = newAmount, amt > 0 {
-                                                        let scaled = ratio * min(amt, 10000)
-                                                        if abs(scaled - item.carbsG) > 0.5 {
-                                                            item.carbsG = scaled
-                                                        }
-                                                    }
-                                                }
-                                            Text("g")
-                                                .font(DOSTypography.caption)
-                                                .foregroundStyle(AmberTheme.amberDark)
-                                        }
-                                    }
-
-                                    HStack {
-                                        Text("Carbs")
-                                            .font(DOSTypography.caption)
-                                            .foregroundStyle(item.carbsPerG == nil && item.currentAmountG != nil
-                                                ? AmberTheme.amber : AmberTheme.amberDark)
-                                        TextField("0", value: $item.carbsG, format: .number)
-                                            .keyboardType(.decimalPad)
-                                            .multilineTextAlignment(.trailing)
-                                            .frame(width: 80)
-                                            .onChange(of: item.carbsG) {
-                                                // Manual carb edit breaks proportional link
-                                                if item.carbsPerG != nil && item.currentAmountG != nil {
-                                                    // Only break if user actually typed (not auto-scaled)
-                                                    // Check if current carbs match the ratio
-                                                    if let ratio = item.carbsPerG,
-                                                       let amt = item.currentAmountG {
-                                                        let expected = ratio * amt
-                                                        if abs(item.carbsG - expected) > 0.5 {
-                                                            item.carbsPerG = nil // manual override
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        Text("g")
-                                            .font(DOSTypography.caption)
-                                            .foregroundStyle(AmberTheme.amberDark)
-                                        if item.carbsPerG == nil && item.currentAmountG != nil {
-                                            Text("manual")
-                                                .font(DOSTypography.caption)
-                                                .foregroundStyle(AmberTheme.amberDark)
-                                        }
-                                    }
-                                }
-                                .padding(.leading, DOSSpacing.md)
-                            }
-                        }
+                        )
                     }
                     .onDelete { offsets in
                         focusedItemID = nil
@@ -721,12 +630,6 @@ struct FoodPhotoAnalysisView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             focusedItemID = newItem.id
         }
-    }
-
-    private func macroTag(_ text: String, color: Color) -> some View {
-        Text(text)
-            .font(DOSTypography.caption)
-            .foregroundStyle(color)
     }
 
     private func confidenceRow(_ confidence: NutritionEstimate.Confidence) -> some View {

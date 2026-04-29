@@ -13,16 +13,53 @@ enum ReportType: String, CaseIterable {
     case statistics = "STATISTICS"
 }
 
-// MARK: - ChartToolbarView
+// MARK: - Shared visual primitives
 
-struct ChartToolbarView: View {
+/// A tab-like text row with bottom underline, used by both the report-type
+/// selector (above the chart) and the time-range / day-window zoom row
+/// (below the chart). Both rows share the same font, padding, and accent
+/// treatment so the chart sits in a visually balanced sandwich.
+private struct ChartTabButton: View {
+    let label: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(label)
+                .font(isSelected ? DOSTypography.bodySmall.weight(.bold) : DOSTypography.bodySmall)
+                .foregroundColor(isSelected ? AmberTheme.amber : AmberTheme.amberDark)
+                .padding(.vertical, DOSSpacing.sm)
+                .padding(.horizontal, DOSSpacing.xs)
+                .overlay(alignment: .bottom) {
+                    Rectangle()
+                        .fill(AmberTheme.amber)
+                        .frame(height: 2)
+                        .opacity(isSelected ? 1 : 0)
+                }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
+    }
+}
+
+// MARK: - ChartReportTypeRow
+
+/// Top selector: GLUCOSE · TIME IN RANGE · STATISTICS. Sits above the chart.
+struct ChartReportTypeRow: View {
     @EnvironmentObject var store: DirectStore
     @Binding var selectedReportType: ReportType
 
     var body: some View {
-        VStack(spacing: DOSSpacing.xs) {
-            reportTypeRow
-            zoomRow
+        HStack(spacing: DOSSpacing.md) {
+            ForEach(ReportType.allCases, id: \.self) { type in
+                ChartTabButton(
+                    label: type.rawValue,
+                    isSelected: selectedReportType == type,
+                    action: { selectedReportType = type }
+                )
+            }
         }
         .padding(.vertical, DOSSpacing.xs)
         .background(AmberTheme.dosBlack)
@@ -31,100 +68,61 @@ struct ChartToolbarView: View {
     }
 
     /// When the user switches to TIR or STATISTICS and the persisted `statisticsDays`
-    /// is not one of the day chips exposed here (e.g. user previously picked `3d`
-    /// in the Lists → Statistics picker), bump it to `30d` so a chip always
-    /// reflects the active aggregation window.
+    /// is not one of the day chips exposed by `ChartZoomRow`, bump it to `30d` so a
+    /// chip always reflects the active aggregation window.
     private func normaliseDaysIfNeeded() {
         guard selectedReportType != .glucose else { return }
         let validDays: Set<Int> = Set(DaysZoom.allCases.map(\.days))
         guard !validDays.contains(store.state.statisticsDays) else { return }
         store.dispatch(.setStatisticsDays(days: 30))
     }
+}
 
-    private var reportTypeRow: some View {
-        HStack(spacing: DOSSpacing.md) {
-            ForEach(ReportType.allCases, id: \.self) { type in
-                Button {
-                    selectedReportType = type
-                } label: {
-                    Text(type.rawValue)
-                        .font(selectedReportType == type ? DOSTypography.bodySmall.weight(.bold) : DOSTypography.bodySmall)
-                        .foregroundColor(selectedReportType == type ? AmberTheme.amber : AmberTheme.amberDark)
-                        .padding(.vertical, DOSSpacing.md)
-                        .overlay(alignment: .bottom) {
-                            Rectangle()
-                                .fill(AmberTheme.amber)
-                                .frame(height: 2)
-                                .opacity(selectedReportType == type ? 1 : 0)
-                        }
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(type.rawValue)
-                .accessibilityAddTraits(selectedReportType == type ? [.isSelected, .isButton] : .isButton)
+// MARK: - ChartZoomRow
+
+/// Bottom selector: hours zoom (3h · 6h · 12h · 24h) for the GLUCOSE tab,
+/// or day window (7d · 30d · 90d · ALL) for TIME IN RANGE / STATISTICS.
+/// Sits below the chart for natural reading order: pick a view, see the
+/// chart, then pick a window.
+struct ChartZoomRow: View {
+    @EnvironmentObject var store: DirectStore
+    let selectedReportType: ReportType
+
+    var body: some View {
+        Group {
+            switch selectedReportType {
+            case .glucose:
+                hoursRow
+            case .timeInRange, .statistics:
+                daysRow
             }
         }
+        .padding(.vertical, DOSSpacing.xs)
+        .background(AmberTheme.dosBlack)
     }
 
-    @ViewBuilder
-    private var zoomRow: some View {
-        switch selectedReportType {
-        case .glucose:
-            hoursZoomRow
-        case .timeInRange, .statistics:
-            daysZoomRow
-        }
-    }
-
-    private var hoursZoomRow: some View {
+    private var hoursRow: some View {
         HStack(spacing: DOSSpacing.md) {
             ForEach(HoursZoom.allCases, id: \.self) { zoom in
-                Button {
-                    store.dispatch(.setChartZoomLevel(level: zoom.level))
-                } label: {
-                    zoomLabel(text: zoom.label, selected: isSelectedHours(zoom))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(zoom.label)
-                .accessibilityAddTraits(isSelectedHours(zoom) ? [.isSelected, .isButton] : .isButton)
+                ChartTabButton(
+                    label: zoom.label,
+                    isSelected: store.state.chartZoomLevel == zoom.level,
+                    action: { store.dispatch(.setChartZoomLevel(level: zoom.level)) }
+                )
             }
         }
     }
 
-    private var daysZoomRow: some View {
+    private var daysRow: some View {
         HStack(spacing: DOSSpacing.md) {
             ForEach(DaysZoom.allCases, id: \.self) { zoom in
-                Button {
-                    store.dispatch(.setStatisticsDays(days: zoom.days))
-                } label: {
-                    zoomLabel(text: zoom.label, selected: isSelectedDays(zoom))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(zoom.label)
-                .accessibilityAddTraits(isSelectedDays(zoom) ? [.isSelected, .isButton] : .isButton)
+                ChartTabButton(
+                    label: zoom.label,
+                    isSelected: store.state.statisticsDays == zoom.days,
+                    action: { store.dispatch(.setStatisticsDays(days: zoom.days)) }
+                )
             }
         }
-    }
-
-    private func zoomLabel(text: String, selected: Bool) -> some View {
-        Text(text)
-            .font(selected ? DOSTypography.caption.weight(.bold) : DOSTypography.caption)
-            .foregroundColor(selected ? AmberTheme.amber : AmberTheme.amberDark)
-            .padding(.vertical, DOSSpacing.sm)
-            .padding(.horizontal, DOSSpacing.xs)
-            .overlay(alignment: .bottom) {
-                Rectangle()
-                    .fill(AmberTheme.amber)
-                    .frame(height: 2)
-                    .opacity(selected ? 1 : 0)
-            }
-    }
-
-    private func isSelectedHours(_ zoom: HoursZoom) -> Bool {
-        store.state.chartZoomLevel == zoom.level
-    }
-
-    private func isSelectedDays(_ zoom: DaysZoom) -> Bool {
-        store.state.statisticsDays == zoom.days
     }
 }
 
@@ -151,7 +149,6 @@ private enum DaysZoom: CaseIterable {
     case seven, thirty, ninety, all
 
     /// Sentinel for "All" — large enough that the stats SQL window covers every available reading.
-    /// `getSensorGlucoseStatistics` clamps naturally via `MIN/MAX(timestamp)` against the actual table range.
     static let allDays = 9999
 
     var days: Int {
@@ -175,14 +172,15 @@ private enum DaysZoom: CaseIterable {
 
 // MARK: - Preview
 
-struct ChartToolbarView_Previews: PreviewProvider {
+struct ChartToolbar_Previews: PreviewProvider {
     static var previews: some View {
         VStack {
-            ChartToolbarView(selectedReportType: .constant(.timeInRange))
-                .environmentObject(DirectStore(initialState: AppState(), reducer: directReducer, middlewares: []))
+            ChartReportTypeRow(selectedReportType: .constant(.glucose))
             Spacer()
+            ChartZoomRow(selectedReportType: .glucose)
         }
         .background(AmberTheme.dosBlack)
         .preferredColorScheme(.dark)
+        .environmentObject(DirectStore(initialState: AppState(), reducer: directReducer, middlewares: []))
     }
 }

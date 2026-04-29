@@ -28,6 +28,14 @@ func directReducer(state: inout DirectState, action: DirectAction) {
         
     case .addInsulinDelivery(insulinDeliveryValues: let insulinDeliveryValues):
         state.latestInsulinDelivery = insulinDeliveryValues.last
+        // Optimistic append — the marker shows on the chart immediately.
+        // The middleware-triggered .loadInsulinDeliveryValues round-trip
+        // will subsequently replace this with the canonical DB state.
+        state.insulinDeliveryValues.append(contentsOf: insulinDeliveryValues)
+
+    case .addMealEntry(mealEntryValues: let mealEntryValues):
+        // Optimistic append — same rationale as .addInsulinDelivery above.
+        state.mealEntryValues.append(contentsOf: mealEntryValues)
 
     case .addSensorGlucose(glucoseValues: let glucoseValues):
         state.latestSensorGlucose = glucoseValues.last
@@ -425,6 +433,14 @@ func directReducer(state: inout DirectState, action: DirectAction) {
     case .setPredictiveLowAlarmFired(fired: let fired):
         state.predictiveLowAlarmFired = fired
 
+    // MARK: Heart Rate Overlay (DMNC-848)
+    case .setShowHeartRateOverlay(enabled: let enabled):
+        state.showHeartRateOverlay = enabled
+
+    // MARK: Marker Lane Position (DMNC-848 D7)
+    case .setMarkerLanePosition(position: let position):
+        state.markerLanePosition = position
+
     // MARK: IOB
     case .setBolusInsulinPreset(preset: let preset):
         state.bolusInsulinPreset = preset
@@ -469,6 +485,10 @@ func directReducer(state: inout DirectState, action: DirectAction) {
 
     case .setAIConsentDailyDigest(enabled: let enabled):
         state.aiConsentDailyDigest = enabled
+
+    // MARK: Update Actions (DMNC-848)
+    case .updateMealEntry, .updateInsulinDelivery:
+        break  // no-op; middleware persists and triggers .load*Values round-trip
 
     default:
         break

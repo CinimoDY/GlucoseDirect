@@ -76,30 +76,39 @@ struct DigestView: View {
             GridItem(.flexible(), spacing: DOSSpacing.sm),
             GridItem(.flexible(), spacing: DOSSpacing.sm),
         ], spacing: DOSSpacing.sm) {
-            statTile(label: "TIR", value: "\(Int(digest.tir))%", color: tirColor(digest.tir))
-            statTile(label: "LOWS", value: "\(digest.lowCount)", color: digest.lowCount > 0 ? AmberTheme.cgaRed : AmberTheme.cgaGreen)
-            statTile(label: "HIGHS", value: "\(digest.highCount)", color: digest.highCount > 0 ? Color(red: 1.0, green: 1.0, blue: 1.0/3.0) : AmberTheme.cgaGreen)
-            statTile(label: "AVG", value: "\(Int(digest.avg))", color: AmberTheme.amber)
-            statTile(label: "CARBS", value: "\(Int(digest.totalCarbsGrams))g", color: AmberTheme.amber)
-            statTile(label: "INSULIN", value: String(format: "%.1fU", digest.totalInsulinUnits), color: AmberTheme.amber)
+            StatCard(
+                label: "TIR",
+                value: "\(Int(digest.tir))%",
+                valueColor: tirColor(digest.tir),
+                help: tirHelp(digest.tir)
+            )
+            StatCard(
+                label: "LOWS",
+                value: "\(digest.lowCount)",
+                valueColor: digest.lowCount > 0 ? AmberTheme.cgaRed : AmberTheme.cgaGreen
+            )
+            StatCard(
+                label: "HIGHS",
+                value: "\(digest.highCount)",
+                valueColor: digest.highCount > 0 ? AmberTheme.amber : AmberTheme.cgaGreen
+            )
+            StatCard(
+                label: "AVG",
+                value: "\(Int(digest.avg))",
+                valueColor: AmberTheme.amber,
+                help: store.state.glucoseUnit.localizedDescription
+            )
+            StatCard(
+                label: "CARBS",
+                value: "\(Int(digest.totalCarbsGrams))g",
+                valueColor: AmberTheme.amber
+            )
+            StatCard(
+                label: "INSULIN",
+                value: String(format: "%.1fU", digest.totalInsulinUnits),
+                valueColor: AmberTheme.amber
+            )
         }
-    }
-
-    private func statTile(label: String, value: String, color: Color) -> some View {
-        VStack(spacing: 4) {
-            Text(label)
-                .font(DOSTypography.caption)
-                .foregroundColor(AmberTheme.amberDark)
-            Text(value)
-                .font(DOSTypography.bodyLarge)
-                .foregroundColor(color)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, DOSSpacing.sm)
-        .overlay(
-            RoundedRectangle(cornerRadius: 0)
-                .stroke(AmberTheme.amberDark, lineWidth: 1)
-        )
     }
 
     // MARK: - AI Insight Card
@@ -128,9 +137,7 @@ struct DigestView: View {
                     .foregroundColor(AmberTheme.amberDark)
                     .opacity(0.7)
             } else if let insight = digest.aiInsight, !insight.isEmpty {
-                Text(insight)
-                    .font(DOSTypography.body)
-                    .foregroundColor(AmberTheme.amberLight)
+                AIInsightContent(text: insight)
             } else if !store.state.aiConsentDailyDigest {
                 Text("ENABLE AI INSIGHTS IN SETTINGS")
                     .font(DOSTypography.caption)
@@ -236,10 +243,77 @@ struct DigestView: View {
         store.dispatch(.loadDailyDigest(date: newDate))
     }
 
-    private func tirColor(_ tir: Double) -> Color {
-        if tir >= 70 { return AmberTheme.cgaGreen }
-        if tir >= 50 { return AmberTheme.amber }
-        return AmberTheme.cgaRed
+}
+
+// MARK: - AI Insight Content
+
+/// Renders the daily-digest insight text with paragraph + bullet structure.
+/// The AI prompt asks for a short opening paragraph followed by 2–4
+/// bullet points starting with `- `; this view splits the response
+/// accordingly and renders bullets with a cgaCyan glyph.
+///
+/// Falls back gracefully: if the response has no bullets, it renders as
+/// a single paragraph; old cached insights from previous prompt
+/// versions still display correctly.
+private struct AIInsightContent: View {
+    let text: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(blocks.indices, id: \.self) { idx in
+                switch blocks[idx] {
+                case .paragraph(let s):
+                    Text(LocalizedStringKey(s))
+                        .font(DOSTypography.body)
+                        .foregroundStyle(AmberTheme.amberLight)
+                        .fixedSize(horizontal: false, vertical: true)
+                case .bullet(let s):
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text("•")
+                            .font(DOSTypography.body)
+                            .foregroundStyle(AmberTheme.cgaCyan)
+                        Text(LocalizedStringKey(s))
+                            .font(DOSTypography.body)
+                            .foregroundStyle(AmberTheme.amberLight)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+        }
+    }
+
+    private var blocks: [Block] {
+        var result: [Block] = []
+        var paragraphLines: [String] = []
+
+        func flushParagraph() {
+            if !paragraphLines.isEmpty {
+                result.append(.paragraph(paragraphLines.joined(separator: " ")))
+                paragraphLines = []
+            }
+        }
+
+        for line in text.components(separatedBy: "\n") {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.isEmpty {
+                flushParagraph()
+            } else if trimmed.hasPrefix("- ") {
+                flushParagraph()
+                result.append(.bullet(String(trimmed.dropFirst(2))))
+            } else if trimmed.hasPrefix("• ") {
+                flushParagraph()
+                result.append(.bullet(String(trimmed.dropFirst(2))))
+            } else {
+                paragraphLines.append(trimmed)
+            }
+        }
+        flushParagraph()
+        return result
+    }
+
+    private enum Block: Hashable {
+        case paragraph(String)
+        case bullet(String)
     }
 }
 

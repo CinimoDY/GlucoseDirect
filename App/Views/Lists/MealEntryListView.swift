@@ -15,7 +15,11 @@ struct MealEntryListView: View {
             CollapsableSection(
                 teaser: Text(getTeaser(mealEntryValues.count)),
                 header: HStack {
-                    Label("Meals", systemImage: "fork.knife")
+                    Label {
+                        Text("Meals")
+                    } icon: {
+                        AppleIcon().frame(width: 16, height: 16)
+                    }
                     Spacer()
                     SelectedDatePager().padding(.trailing)
                 }.buttonStyle(.plain),

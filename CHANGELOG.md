@@ -7,6 +7,137 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 84] — 2026-04-26
+
+### Fixed
+- Correction boluses are no longer counted as basal IOB. Previously the IOB calculator put `.correctionBolus` in the same bucket as `.basal`, so a 3U correction bolus showed up as "BASAL" in the chart legend and stack. The bucketing now follows insulin pharmacology: meal / snack / correction boluses are all rapid-acting and go into the bolus bucket; only `.basal` is in the basal bucket. The IOB header label, the chart's split-IOB stack, and the `mealSnackIOB` / `correctionBasalIOB` returned values all reflect this correctly now.
+
+### Changed
+- Marker flag poles dropped. The lane sits beneath the chart so the poles weren't anchored to anything semantically meaningful — just the bottom of the lane. Lane height shrinks 90 → 60pt.
+- `IOBCalculatorTests/splitIOB()` updated to assert the new bucketing (`mealSnackIOB == 4.0` for meal + correction together, not split).
+
+## [Build 83] — 2026-04-26
+
+### Changed
+- Chart event markers redesigned to match the locked Q2-final-lock brainstorm spec (`.superpowers/brainstorm/35252-1777068283/content/q2-marker-overlap-v15-final-lock.html`). Each event renders as a small black chip with an amber-dim border, containing one row per event type — `<icon> <value>` — stacked top-to-bottom in the order `insulin → meal → exercise`. A 22pt amber-dim "pole" drops from the chip's bottom centre to the lane baseline so the marker visually anchors at the event time. Single events with one type show a one-row chip (e.g. `🍎 30g`); multi-event groups stack rows (e.g. `💉 5U / 🍎 45g`). Multi-entries-within-a-type collapse to a sum with a count suffix (`5U×2`, `45g×3`).
+- Marker consolidation rewritten from a fixed time-window (e.g. 30 min at 24h zoom) to overlap-driven: walk left-to-right, merge if the next chip would land within 4pt of the previous one's right edge. Chip widths therefore drive consolidation, not arbitrary minute counts — and you no longer get "all 7am entries collapsed into one icon" at 24h zoom even when their absolute distance would have rendered them separately.
+- Touch target stays 88pt × 48pt centred on each chip; iOS resolves overlapping touch targets by centroid distance.
+- Marker lane height bumped 48pt → 90pt to fit chip + pole. Chips with up to three stacked rows fit comfortably; the chart pane shrinks slightly to accommodate.
+- Replaces the previous bare-icon-with-circle-border design which hid event values, conflated counts of different types, and overlapped messily in dense windows.
+
+## [Build 82] — 2026-04-25
+
+### Changed
+- Split-IOB stacking order flipped: basal+correction now sits at the floor (sky blue baseline) and bolus stacks on top (warm green peaks). Matches the semantic — basal is the constant background insulin, bolus is the variable on-top dose. Visually you can see the basal "floor" stay roughly steady while bolus spikes ride above it.
+
+## [Build 81] — 2026-04-25
+
+### Fixed
+- Split-IOB basal layer is now actually visible on the chart. Both AreaMark layers (bolus + basal) now declare an explicit `series:` argument so SwiftUI Charts treats them as two independent stacked series. Without it, the two `ForEach` loops were silently auto-grouped into a single series and the second layer never rendered — that's why the previous "make basal more visible" passes didn't help even at 0.85 opacity. Sky blue retained from Build 80.
+
+## [Build 80] — 2026-04-25
+
+### Changed
+- Split-IOB basal layer color swapped from cool green (#40B38C) to bright sky blue (#5DD0F3). The previous green was too close to the warm-green bolus layer in saturation and value, so on a 24h chart with substantial bolus IOB the basal contribution was visually swallowed. Sky blue at 0.85 opacity reads cleanly above the warm-green bolus area.
+- IOB area chart sampling resolution: 5-min → 1-min. The chart was showing visible step "cuts" when a new bolus delivery happened between two adjacent samples; finer sampling smooths the curve so deliveries integrate as a smooth ramp instead of a vertical step. Also makes DIA expirations fade gracefully.
+
+## [Build 79] — 2026-04-25
+
+### Changed
+- Insulin entry stepper now uses 1-unit steps (was 0.5U). Pen users with whole-unit-only doses no longer have to tap twice per click. Help caption updated accordingly. Tap-to-type still works for fractional doses if needed.
+
+### Fixed
+- New meal and insulin entries now show on the chart immediately. Previously the reducer only updated the `latest*` reference and waited for the GRDB-write-then-load middleware round-trip before the marker appeared. Reducer now appends to `mealEntryValues` / `insulinDeliveryValues` optimistically; the load round-trip subsequently replaces with the canonical DB state, and the marker stays in place.
+
+## [Build 78] — 2026-04-25
+
+### Changed
+- Daily Digest AI insight is now structured: a short opening paragraph (1–2 sentences naming the day's pattern) followed by 2–4 bullet points referencing specific times and values. Bullets render with a cgaCyan glyph so they pop visually against the amber prose. The Claude prompt was updated accordingly; old cached insights without bullets still render gracefully as a single paragraph. Inline markdown (italics, bold) is now interpreted via SwiftUI's LocalizedStringKey path. No headlines, no asterisks, no markdown headers — keeps the wall-of-text feeling at bay without adding heavy structure.
+
+## [Build 77] — 2026-04-25
+
+### Fixed
+- Tapping a combined food + insulin marker on the chart now reliably shows BOTH the meal AND the insulin row in the read overlay. When the entity lookup transiently failed for one of them, the row was rendering with empty Texts (looking like blank space) — primary text and value text now fall back to a generic type label + the marker's pre-computed `label` so the row always has visible content. Subline falls back to a "paired w/ meal" / "paired w/ insulin" hint when the entity lookup fails.
+- Bolus / insulin markers and row icons swap from the dim brown `amberDark` to the brighter primary `amber`. The previous brown was readable against the chart's amber-tinted background but nearly invisible on the read overlay's pure-black sheet.
+
+## [Build 76] — 2026-04-25
+
+### Changed
+- Lists tab → Statistics section redesigned to match the Overview chart's STATISTICS tab vocabulary: hero AVG number with unit, 2×2 stat grid (GMI · TIR / SD · CV) with interpretive helpers ("Stable" / "Variable", "On target" / "Close" / "Off target"), stacked TBR/TIR/TAR distribution bar with three-up numeric breakdown, target range + readings/days footer, period chips (3d/7d/30d/90d) styled to match other AmberChip selections. Annotations toggle (double-tap) keeps the long-form GMI/TIR/SD/CV definitions for first-time readers.
+- Lists tab → Usage section: views/day, total views, sensor uptime now render as 3-up `StatCard` row matching the rest of the stats vocabulary. Sensor uptime is colour-coded by clinical thresholds (≥90% green, ≥70% amber, otherwise red).
+- Settings main list dropped iOS `.grouped` chrome: `.listStyle(.plain)`, hidden scroll background, dosBlack background, amber-dim row separators. Per-section sub-views still render their own iOS `Section` content; main-list visual is closer to a flat CGA list.
+- Daily Digest 3-column stat grid uses the same `StatCard` primitive (TIR/LOWS/HIGHS/AVG/CARBS/INSULIN). TIR card now shows on-target/close/off-target hint; HIGHS amber colour matches the chart palette instead of the previous one-off RGB literal.
+- Overview hero IOB label is bigger and easier to read: 14pt monospaced numeric values vs the old 12pt at 50% opacity, "BOLUS" / "BASAL" subscript labels (in the matching warm/cool green from the chart's split-IOB layers) replace the cryptic `M`/`B` suffixes. Color disambiguation matches the chart so the eye carries one mapping across both surfaces.
+
+### Added
+- `Library/DesignSystem/Components/StatsComponents.swift` extracts the shared stats primitives (`HeroStatView`, `StatCard`, `StackedTIRBar`, `TIRBreakdownRow`, `tirColor`, `tirHelp`) so the Overview chart, Lists tab, and Daily Digest all use the same vocabulary. Reduces drift if any one of these surfaces changes.
+
+## [Build 75] — 2026-04-25
+
+### Changed
+- TIME IN RANGE tab on the Overview chart redesigned. Hero `TIR%` number large + colour-coded by clinical thresholds (≥70% green, ≥50% amber, otherwise red). Single horizontal stacked TBR/TIR/TAR distribution bar replaces the three separate bars. Three-up numeric breakdown below ("BELOW · IN RANGE · ABOVE"). Target range and days-covered footer.
+- STATISTICS tab on the Overview chart redesigned. Hero AVG glucose with unit. 2×2 grid of stat cards: GMI (with "≈ A1C" hint), TIR (with on-target / close / off-target hint, colour-coded), SD (with unit), CV (with "Stable" / "Variable" hint, colour-coded against the 33% clinical threshold). Footer shows readings count + days covered.
+
+## [Build 74] — 2026-04-25
+
+### Changed
+- Custom `AppleIcon` now used everywhere previously rendered Apple Inc.'s `apple.logo` SF Symbol: sticky [MEAL] action button, Lists tab → Meals header, Food photo analysis section header, Meal-from-photo result-edit section header, and the home-screen widget's last-meal row. `QuickActionButton` was generalised to accept a `@ViewBuilder icon` closure so callers can pass any icon view (SF Symbol, custom shape, composite). No more Apple Inc. logo anywhere user-facing.
+
+## [Build 73] — 2026-04-25
+
+### Added
+- Custom `AppleIcon` (Path-based fruit silhouette with leaf) replaces Apple Inc.'s `apple.logo` SF Symbol for chart markers, the read-overlay row icon, and the combined-edit modal's FOOD section header. Distinct visual, no App Store identity-guidelines risk. Sticky [MEAL] action button + iOS Form `Label`s still use `apple.logo` for now (less prominent surfaces; harder to swap without a Label refactor).
+- `CombinedFoodInsulinIcon` — a single statically-composed visual (apple bottom-left + syringe top-right) used for chart-marker batches that mix food + insulin entries.
+
+### Changed
+- Chart marker batches now show **one icon per batch type** with a circular border indicating multi-entry, instead of stacked icons + count badge:
+  - 1 meal → bare apple icon
+  - 2+ meals → apple icon + green circle border
+  - 1 insulin → bare syringe icon
+  - 2+ insulin → syringe icon + amber circle border
+  - Mixed food + insulin (any count) → CombinedFoodInsulinIcon + amber border (or bare if both counts are 1)
+  88×48pt touch target preserved.
+- Bolus IOB area mark opacity bumped from 0.45 → 0.7. The warm-green bottom layer is now clearly readable underneath the cool-green basal+correction layer.
+- Read overlay opens as a half-screen sheet (`.presentationDetents([.medium, .large])` with a visible drag indicator) instead of a full-screen modal. Combined edit modal is also half-screen by default, can be dragged up to full.
+- Read overlay's "Edit" affordance is now lowercase text-only ("edit") — drops the pencil glyph.
+
+## [Build 72] — 2026-04-25
+
+### Changed
+- Split-IOB colors changed: bolus (meal/snack) is now warm green (#8CBF40, yellow-leaning), basal+correction is cool green (#40B38C, blue-leaning). Both clearly green so they read as "two flavours of IOB" but distinguishable at a glance. Replaces the previous brown amber-dark for basal which was nearly invisible against the dark chart background.
+- Removed the IOB legend chips from the chart header — the warm/cool green split is self-explanatory and the labels added clutter for nothing. HR legend chip kept since magenta-on-amber-chart isn't obvious without it.
+
+## [Build 71] — 2026-04-25
+
+### Changed
+- Split IOB area marks now stack instead of overlapping. Meal/snack IOB (cyan) sits at the bottom, basal/correction IOB (amber-dark) stacks above it, so total area at any point equals the running total IOB and you can read both components at a glance.
+- Chart legend chips for IOB and HR overlay components — small swatch + label pairs in the chart header row (e.g. `MEAL/SNACK` cyan + `BASAL/CORR` amber when split IOB is on). Color-to-component mapping is now visible without remembering which is which.
+- Chart toolbar split into two consistent strips with matching font + underline treatment: report-type tabs (GLUCOSE / TIME IN RANGE / STATISTICS) above the chart, time-range / day-window tabs (3h…24h or 7d…ALL) **below** the chart. Both rows are now the same visual size — previously the zoom row was a notch smaller than the report-type row.
+- Marker-lane position picker in Settings → Additional gets a label and a one-line description ("Where the meal/insulin/exercise icons sit relative to the glucose chart") so it's clear what the segmented control does.
+
+## [Build 70] — 2026-04-25
+
+### Changed
+- `AddInsulinView` rebuilt to match the original brainstorm mockup. Drops iOS `Form`/`Section` (which was rendering gray rounded card backgrounds that broke the CGA aesthetic). New layout: flat black background, custom nav bar (Cancel · ADD INSULIN · Add), all-caps amber-dim form labels, full-width chips, big 56pt-tall stepper with separated value/unit display, IOB warning gets its own bordered amber-tint card.
+- `AmberChip` selected state is now solid amber background + black semibold text (was: barely-visible 8%-opacity tint that disappeared against the dark background). Type chips are 44pt tall, preset chips 40pt; both fill available width.
+- `StepperField` redesigned: 56pt tall body, 60pt-wide tinted +/- buttons, 24pt amber value with separate dimmed unit suffix (e.g. `4.5` + `U`). Optional caption underneath ("tap value to type · ±0.5U steps"). Tap-to-type still works.
+- Meal/carbs icon swapped from `fork.knife` to `apple.logo` everywhere: chart markers, sticky [MEAL] action button, food-photo / meal-entry section headers, meals list tab, home-screen widget last-meal row.
+
+## [Build 69] — 2026-04-25
+
+### Added
+- Unified marker → read overlay → edit flow (DMNC-848). Tapping any chart marker opens a Libre-style list overlay with chronological rows showing IN PROGRESS state, post-meal delta (mg/dL or mmol/L per user setting), confounder icons, PersonalFood glycemic average + observation count, and IOB-at-dose-time. Edit opens a single combined modal with shared time and edit-only semantics; both meal and insulin updates use id-preserving constructors and route through GRDB load-after-write so the chart re-renders cleanly.
+- `AmberChip`, `StepperField`, `QuickTimeChips` design-system primitives for chip rows, numeric steppers, and quick-time selectors used in the redesigned insulin entry surface and combined edit modal.
+- `StagingPlateRowView` extraction shared between `FoodPhotoAnalysisView` and the new `CombinedEntryEditView` — single ratio-link auto-scale + manual override implementation.
+- End-of-line numeric BPM readout on the heart-rate chart overlay (when enabled and HR data is fresh within the last 10 minutes). DMNC-848 D6.
+- Chart customisation: marker lane position toggle in Settings → Additional settings (above or below the glucose chart). Default is "above" — no change for existing users unless they opt into below. DMNC-848 D7.
+
+### Changed
+- `AddInsulinView` replaces the type `Picker` with an `AmberChip` row, the units `TextField` with a `StepperField`, and the time `DatePicker` with `QuickTimeChips` (NOW / −15m / −30m / −1h plus a `⋯` chip opening a custom DatePicker popover). Basal entries still show an `Ends` `DatePicker`. The IOB stacking warning for correction boluses is preserved.
+- Chart marker visual: bare type-coloured icons (22pt) replace the bordered chips with text labels. Cross-type clusters consolidate with stacked icons (max 3) and a count badge in the dominant type's colour. Marker lane height bumped from 32pt to 48pt to honour the larger touch target.
+- Insulin marker tap no longer shows a bare `confirmationDialog` with a Delete option. Delete now requires opening Edit; the read-overlay surface keeps the action gesture light.
+- Heart-rate overlay on the glucose chart is now toggleable (Settings → Apple Health import → "HR overlay on chart"). Default is **off** to give users explicit control. Builds ≤ 62 rendered the magenta HR line whenever HealthKit import was active; users who want that back must enable the toggle. DMNC-848 D6.
+
 ## [Build 68] — 2026-04-24
 
 ### Changed

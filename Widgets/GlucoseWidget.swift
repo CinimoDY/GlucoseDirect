@@ -336,8 +336,8 @@ struct GlucoseView: View {
 
                 if let meal = entry.lastMealDescription {
                     HStack(spacing: 4) {
-                        Image(systemName: "fork.knife")
-                            .font(.system(size: 10))
+                        AppleIcon()
+                            .frame(width: 10, height: 10)
                             .foregroundColor(WidgetColors.amberDark)
                         VStack(alignment: .leading, spacing: 0) {
                             Text(meal)

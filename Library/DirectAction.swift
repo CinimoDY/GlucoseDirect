@@ -137,6 +137,8 @@ enum DirectAction {
     case setServingPresets(servingPresets: [ServingPreset])
     case setRecentFoodCorrections(recentFoodCorrections: [FoodCorrection])
     case updateFavoriteFood(favoriteFood: FavoriteFood)
+    case updateInsulinDelivery(insulinDelivery: InsulinDelivery)
+    case updateMealEntry(mealEntry: MealEntry)
     case validateClaudeAPIKey
 
     // MARK: Treatment Cycle
@@ -153,6 +155,12 @@ enum DirectAction {
     // MARK: Predictive Low Alarm
     case setShowPredictiveLowAlarm(enabled: Bool)
     case setPredictiveLowAlarmFired(fired: Bool)
+
+    // MARK: Heart Rate Overlay (DMNC-848)
+    case setShowHeartRateOverlay(enabled: Bool)
+
+    // MARK: Marker Lane Position (DMNC-848 D7)
+    case setMarkerLanePosition(position: MarkerLanePosition)
 
     // MARK: IOB
     case setBolusInsulinPreset(preset: InsulinPreset)

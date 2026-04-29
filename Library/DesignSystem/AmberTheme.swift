@@ -56,6 +56,19 @@ public enum AmberTheme {
     /// Warm near-black for card backgrounds: #1B1917
     public static let cardBackground = Color(red: 27.0 / 255.0, green: 25.0 / 255.0, blue: 23.0 / 255.0)
 
+    // MARK: - IOB component colors (split-IOB chart layers)
+
+    /// Warm green (yellow-leaning) for meal/snack bolus IOB: ~#8CBF40.
+    /// Distinct from `iobBasal` so split-IOB layers read as related-but-different greens
+    /// without needing a legend.
+    public static let iobBolus = Color(red: 140.0 / 255.0, green: 191.0 / 255.0, blue: 64.0 / 255.0)
+
+    /// Bright sky-blue for basal + correction IOB: ~#5DD0F3. Distinct from
+    /// the warm-green `iobBolus` so the two layers in the split-IOB stack
+    /// are unambiguous. Avoids cgaCyan (used by the dim exercise band) and
+    /// cgaMagenta (used by the HR overlay).
+    public static let iobBasal = Color(red: 93.0 / 255.0, green: 208.0 / 255.0, blue: 243.0 / 255.0)
+
     // MARK: - Glucose Color Functions
 
     /// Raw RGB tuples for interpolation (avoids UIKit dependency)

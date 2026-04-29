@@ -26,6 +26,12 @@
 		TE0100010000000A000A000A /* HasSeenBGRelocationHintReducerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TE0100020000000A000A000A /* HasSeenBGRelocationHintReducerTests.swift */; };
 		TE0100010000000B000A000B /* FavoriteFoodTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TE0100020000000B000A000B /* FavoriteFoodTests.swift */; };
 		TE0100010000000C000A000C /* AppOpenCountReducerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TE0100020000000C000A000C /* AppOpenCountReducerTests.swift */; };
+		TE0100010000000D000A000D /* AmberChipTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TE0100020000000D000A000D /* AmberChipTests.swift */; };
+		1DA4B45CFC6E42E78B81BFD8 /* EntryGroupListOverlayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9309BBC9D1A45039D88243C /* EntryGroupListOverlayTests.swift */; };
+		014BC5267E0D43B3B9F2B6F9 /* InsulinImpactTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DF0395D4E22484C9E6488BD /* InsulinImpactTests.swift */; };
+		TE0100010000000F000A000F /* QuickTimeChipsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TE0100020000000F000A000F /* QuickTimeChipsTests.swift */; };
+		940B4124F95646FBA4691020 /* StagingPlateRowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDBC4B4C2D774E90898BED6B /* StagingPlateRowTests.swift */; };
+		TE0100010000000E000A000E /* StepperFieldTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TE0100020000000E000A000E /* StepperFieldTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -80,6 +86,12 @@
 		TE0100020000000A000A000A /* HasSeenBGRelocationHintReducerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HasSeenBGRelocationHintReducerTests.swift; sourceTree = "<group>"; };
 		TE0100020000000B000A000B /* FavoriteFoodTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteFoodTests.swift; sourceTree = "<group>"; };
 		TE0100020000000C000A000C /* AppOpenCountReducerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppOpenCountReducerTests.swift; sourceTree = "<group>"; };
+		TE0100020000000D000A000D /* AmberChipTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmberChipTests.swift; sourceTree = "<group>"; };
+		D9309BBC9D1A45039D88243C /* EntryGroupListOverlayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntryGroupListOverlayTests.swift; sourceTree = "<group>"; };
+		2DF0395D4E22484C9E6488BD /* InsulinImpactTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsulinImpactTests.swift; sourceTree = "<group>"; };
+		TE0100020000000F000A000F /* QuickTimeChipsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickTimeChipsTests.swift; sourceTree = "<group>"; };
+		FDBC4B4C2D774E90898BED6B /* StagingPlateRowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StagingPlateRowTests.swift; sourceTree = "<group>"; };
+		TE0100020000000E000A000E /* StepperFieldTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepperFieldTests.swift; sourceTree = "<group>"; };
 		TE01000400000001000A0001 /* DOSBTSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DOSBTSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -210,6 +222,12 @@
 				TE0100020000000A000A000A /* HasSeenBGRelocationHintReducerTests.swift */,
 				TE0100020000000B000A000B /* FavoriteFoodTests.swift */,
 				TE0100020000000C000A000C /* AppOpenCountReducerTests.swift */,
+				TE0100020000000D000A000D /* AmberChipTests.swift */,
+				D9309BBC9D1A45039D88243C /* EntryGroupListOverlayTests.swift */,
+				2DF0395D4E22484C9E6488BD /* InsulinImpactTests.swift */,
+				TE0100020000000F000A000F /* QuickTimeChipsTests.swift */,
+				FDBC4B4C2D774E90898BED6B /* StagingPlateRowTests.swift */,
+				TE0100020000000E000A000E /* StepperFieldTests.swift */,
 			);
 			path = DOSBTSTests;
 			sourceTree = "<group>";
@@ -393,6 +411,12 @@
 				TE0100010000000A000A000A /* HasSeenBGRelocationHintReducerTests.swift in Sources */,
 				TE0100010000000B000A000B /* FavoriteFoodTests.swift in Sources */,
 				TE0100010000000C000A000C /* AppOpenCountReducerTests.swift in Sources */,
+				TE0100010000000D000A000D /* AmberChipTests.swift in Sources */,
+				1DA4B45CFC6E42E78B81BFD8 /* EntryGroupListOverlayTests.swift in Sources */,
+				014BC5267E0D43B3B9F2B6F9 /* InsulinImpactTests.swift in Sources */,
+				TE0100010000000F000A000F /* QuickTimeChipsTests.swift in Sources */,
+				940B4124F95646FBA4691020 /* StagingPlateRowTests.swift in Sources */,
+				TE0100010000000E000A000E /* StepperFieldTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -543,7 +567,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 68;
+				CURRENT_PROJECT_VERSION = 84;
 				DEVELOPMENT_ASSET_PATHS = "\"App/Preview Content\"";
 				DEVELOPMENT_TEAM = "${DEVELOPMENT_TEAM}";
 				ENABLE_PREVIEWS = YES;
@@ -574,7 +598,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 68;
+				CURRENT_PROJECT_VERSION = 84;
 				DEVELOPMENT_ASSET_PATHS = "\"App/Preview Content\"";
 				DEVELOPMENT_TEAM = "${DEVELOPMENT_TEAM}";
 				ENABLE_PREVIEWS = YES;
@@ -607,7 +631,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
 				CODE_SIGN_ENTITLEMENTS = Widgets/Widgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 68;
+				CURRENT_PROJECT_VERSION = 84;
 				DEVELOPMENT_TEAM = "${DEVELOPMENT_TEAM}";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Widgets/Info.plist;
@@ -640,7 +664,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
 				CODE_SIGN_ENTITLEMENTS = Widgets/Widgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 68;
+				CURRENT_PROJECT_VERSION = 84;
 				DEVELOPMENT_TEAM = "${DEVELOPMENT_TEAM}";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Widgets/Info.plist;

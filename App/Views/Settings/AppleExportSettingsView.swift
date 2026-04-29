@@ -46,6 +46,17 @@ struct AppleExportSettingsView: View {
                         HealthImportSourcesView()
                             .environmentObject(store)
                     }
+
+                    Toggle(isOn: showHeartRateOverlay) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("HR overlay on chart")
+                                .font(DOSTypography.body)
+                            Text("Magenta dashed line + current bpm")
+                                .font(DOSTypography.caption)
+                                .foregroundStyle(AmberTheme.amberDark)
+                        }
+                    }
+                    .toggleStyle(SwitchToggleStyle(tint: AmberTheme.amber))
                 }
             },
             header: {
@@ -81,6 +92,13 @@ struct AppleExportSettingsView: View {
         Binding(
             get: { store.state.appleHealthImport },
             set: { store.dispatch(.requestAppleHealthImportAccess(enabled: $0)) }
+        )
+    }
+
+    private var showHeartRateOverlay: Binding<Bool> {
+        Binding(
+            get: { store.state.showHeartRateOverlay },
+            set: { store.dispatch(.setShowHeartRateOverlay(enabled: $0)) }
         )
     }
 

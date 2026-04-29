@@ -116,10 +116,16 @@ func computeIOB(
             iob = delivery.units * bolusModel.percentEffectRemaining(at: elapsed)
         }
 
+        // Bucketing reflects insulin TYPE (rapid-acting vs long-acting), not
+        // the user's intent for the dose. Meal/snack/correction boluses are
+        // all rapid-acting and belong in the bolus IOB bucket; only basal is
+        // long-acting. The previous bucketing put correction-bolus into the
+        // basal bucket which was misleading — a 3U correction bolus would
+        // appear as "basal IOB" in the chart.
         switch delivery.type {
-        case .mealBolus, .snackBolus:
+        case .mealBolus, .snackBolus, .correctionBolus:
             mealSnackIOB += iob
-        case .correctionBolus, .basal:
+        case .basal:
             correctionBasalIOB += iob
         }
     }
