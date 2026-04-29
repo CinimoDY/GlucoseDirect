@@ -367,11 +367,7 @@ struct UnifiedFoodEntryView: View {
         showToast(for: newEntry)
     }
 
-    /// Pre-hydrate the staging plate so the navigation push lands directly on
-    /// the results screen — no flash of the empty photo picker.
     private func openOnStagingPlate(_ meal: MealEntry) {
-        let estimate = meal.toNutritionEstimate(personalFoods: store.state.personalFoodValues)
-        store.dispatch(.setFoodAnalysisResult(result: estimate))
         relogMeal = meal
     }
 
