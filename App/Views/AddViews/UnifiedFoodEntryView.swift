@@ -15,6 +15,7 @@ struct UnifiedFoodEntryView: View {
     @State private var showingFavoriteManagement = false
     @State private var toastMealEntry: MealEntry?
     @State private var toastWorkItem: DispatchWorkItem?
+    @State private var relogMeal: MealEntry?
 
     private var displayedFavorites: [FavoriteFood] {
         if filterToHypoTreatments {
@@ -70,6 +71,11 @@ struct UnifiedFoodEntryView: View {
                 if let meal = toastMealEntry {
                     toastView(meal: meal)
                 }
+            }
+            .navigationDestination(item: $relogMeal) { meal in
+                FoodPhotoAnalysisView(relogMeal: meal)
+                    .environmentObject(store)
+                    .navigationBarHidden(true)
             }
         }
         .sheet(isPresented: $showingFavoriteManagement) {
@@ -146,7 +152,7 @@ struct UnifiedFoodEntryView: View {
             } else {
                 ForEach(filteredRecents) { meal in
                     Button {
-                        logRecent(meal)
+                        openOnStagingPlate(meal)
                     } label: {
                         HStack {
                             Text("> ")
@@ -167,7 +173,20 @@ struct UnifiedFoodEntryView: View {
                             }
                         }
                     }
+                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                        Button {
+                            logRecent(meal)
+                        } label: {
+                            Label("Log Now", systemImage: "bolt.fill")
+                        }
+                        .tint(AmberTheme.cgaGreen)
+                    }
                     .contextMenu {
+                        Button {
+                            logRecent(meal)
+                        } label: {
+                            Label("Log Now", systemImage: "bolt.fill")
+                        }
                         Button {
                             addToFavorites(meal)
                         } label: {
@@ -334,6 +353,10 @@ struct UnifiedFoodEntryView: View {
         let newEntry = FavoriteFood.from(mealEntry: meal).toMealEntry()
         store.dispatch(.addMealEntry(mealEntryValues: [newEntry]))
         showToast(for: newEntry)
+    }
+
+    private func openOnStagingPlate(_ meal: MealEntry) {
+        relogMeal = meal
     }
 
     private func addToFavorites(_ meal: MealEntry) {

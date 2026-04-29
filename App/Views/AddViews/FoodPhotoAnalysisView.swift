@@ -14,72 +14,91 @@ struct FoodPhotoAnalysisView: View {
     @EnvironmentObject var store: DirectStore
     @Environment(\.dismiss) var dismiss
 
+    /// When set, the staging plate opens in "relog" mode: it hydrates from
+    /// this past meal on first appear, preserves its `analysisSessionId`,
+    /// and skips correction tracking on save (the user is repeating a known
+    /// meal with a tweaked portion, not correcting an AI estimate).
+    var relogMeal: MealEntry?
+
     var body: some View {
-        NavigationView {
-            Form {
-                if !store.state.aiConsentFoodPhoto {
-                    consentSection
-                } else if store.state.foodAnalysisLoading {
-                    loadingSection
-                } else if let result = store.state.foodAnalysisResult {
-                    resultsSection(result)
-                } else if let error = store.state.foodAnalysisError {
-                    errorSection(error)
-                } else {
-                    photoPickerSection
-                }
+        // When pushed via NavigationLink (relog path), the caller owns the nav stack.
+        // Wrapping in a second NavigationView here would create nested nav stacks.
+        if relogMeal != nil {
+            formContent
+        } else {
+            NavigationView { formContent }
+        }
+    }
+
+    private var formContent: some View {
+        Form {
+            if !store.state.aiConsentFoodPhoto, relogMeal == nil {
+                consentSection
+            } else if store.state.foodAnalysisLoading {
+                loadingSection
+            } else if let result = store.state.foodAnalysisResult {
+                resultsSection(result)
+            } else if let error = store.state.foodAnalysisError {
+                errorSection(error)
+            } else if relogMeal != nil {
+                loadingSection // brief placeholder until hydrateRelogIfNeeded() runs on onAppear
+            } else {
+                photoPickerSection
             }
-            .navigationDestination(isPresented: Binding(
-                get: { scanTargetIndex != nil },
-                set: { active in if !active { scanTargetIndex = nil } }
-            )) {
-                if let idx = scanTargetIndex, idx < stagedItems.count {
-                    let itemID = stagedItems[idx].id
-                    ItemBarcodeScannerView { scannedEstimate in
-                        isItemScanActive = false
-                        if let currentIdx = stagedItems.firstIndex(where: { $0.id == itemID }),
-                           let scannedItem = scannedEstimate.items.first {
-                            let amount = parseBaseServingG(scannedItem.servingSize)
-                            let ratio: Double? = amount.flatMap { $0 > 0 ? scannedItem.carbsG / $0 : nil }
-                            // Update in-place (preserve ID so ForEach doesn't re-render)
-                            stagedItems[currentIdx].name = scannedItem.name
-                            stagedItems[currentIdx].carbsG = scannedItem.carbsG
-                            stagedItems[currentIdx].baseServingG = amount
-                            stagedItems[currentIdx].currentAmountG = amount
-                            stagedItems[currentIdx].carbsPerG = ratio
-                        }
-                    }
-                    .navigationBarHidden(true)
-                    .onAppear { isItemScanActive = true }
-                    .onDisappear { isItemScanActive = false }
-                }
-            }
-            .navigationTitle("AI Meal Analysis")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        store.dispatch(.setFoodAnalysisResult(result: nil))
-                        store.dispatch(.setFoodAnalysisLoading(isLoading: false))
-                        dismiss()
+        }
+        .onAppear { hydrateRelogIfNeeded() }
+        .navigationDestination(isPresented: Binding(
+            get: { scanTargetIndex != nil },
+            set: { active in if !active { scanTargetIndex = nil } }
+        )) {
+            if let idx = scanTargetIndex, idx < stagedItems.count {
+                let itemID = stagedItems[idx].id
+                ItemBarcodeScannerView { scannedEstimate in
+                    isItemScanActive = false
+                    if let currentIdx = stagedItems.firstIndex(where: { $0.id == itemID }),
+                       let scannedItem = scannedEstimate.items.first {
+                        let amount = parseBaseServingG(scannedItem.servingSize)
+                        let ratio: Double? = amount.flatMap { $0 > 0 ? scannedItem.carbsG / $0 : nil }
+                        // Update in-place (preserve ID so ForEach doesn't re-render)
+                        stagedItems[currentIdx].name = scannedItem.name
+                        stagedItems[currentIdx].carbsG = scannedItem.carbsG
+                        stagedItems[currentIdx].baseServingG = amount
+                        stagedItems[currentIdx].currentAmountG = amount
+                        stagedItems[currentIdx].carbsPerG = ratio
                     }
                 }
+                .navigationBarHidden(true)
+                .onAppear { isItemScanActive = true }
+                .onDisappear { isItemScanActive = false }
             }
-            .onDisappear {
-                // Don't clear state when a child NavigationLink (item barcode scan) is active
-                guard !isItemScanActive else { return }
-                // Clear stale state when view is truly popped (back swipe or cancel)
-                stopProgressTimer()
-                stagedItems = []
-                editDescription = ""
-                followUpHistory = []
-                followUpText = ""
-                followUpRoundsUsed = 0
-                isFollowingUp = false
-                followUpError = nil
-                portionMultiplier = 1.0
-                baseStagedItems = []
-                customPortionText = ""
+        }
+        .navigationTitle("AI Meal Analysis")
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("Cancel") {
+                    store.dispatch(.setFoodAnalysisResult(result: nil))
+                    store.dispatch(.setFoodAnalysisLoading(isLoading: false))
+                    dismiss()
+                }
             }
+        }
+        .onDisappear {
+            // Don't clear state when a child NavigationLink (item barcode scan) is active
+            guard !isItemScanActive else { return }
+            // Clear stale state when view is truly popped (back swipe or cancel)
+            stopProgressTimer()
+            store.dispatch(.setFoodAnalysisResult(result: nil))
+            store.dispatch(.setFoodAnalysisLoading(isLoading: false))
+            stagedItems = []
+            editDescription = ""
+            followUpHistory = []
+            followUpText = ""
+            followUpRoundsUsed = 0
+            isFollowingUp = false
+            followUpError = nil
+            portionMultiplier = 1.0
+            baseStagedItems = []
+            customPortionText = ""
         }
     }
 
@@ -94,6 +113,7 @@ struct FoodPhotoAnalysisView: View {
     @State private var stagedItems: [EditableFoodItem] = []
     @State private var editDescription = ""
     @State private var editTimestamp = Date()
+    @State private var didHydrateRelog = false
     @FocusState private var focusedItemID: UUID?
 
     // Inline item barcode scan
@@ -687,23 +707,48 @@ struct FoodPhotoAnalysisView: View {
             value.flatMap { $0 >= 0 && $0 <= 10000 ? $0 : nil }
         }
 
-        // View creates the MealEntry (UUID ownership per learning)
-        let sessionId = UUID()
+        // For relog mode: preserve the original analysisSessionId (so the new
+        // entry stays linked to the same PersonalFood cluster) and skip
+        // correction tracking — the user is repeating a known meal with a
+        // tweaked portion, not correcting an AI estimate.
+        let sessionId: UUID?
+        let corrections: [FoodCorrection]
+        if let original = relogMeal {
+            sessionId = original.analysisSessionId
+            corrections = []
+        } else {
+            // View creates the MealEntry (UUID ownership per learning)
+            sessionId = UUID()
+            corrections = computeCorrections()
+        }
+
+        // In relog mode carry forward the original meal's non-carb macros (the staging
+        // plate only edits carbs, so protein/fat/calories/fiber would otherwise be lost).
         let meal = MealEntry(
             id: UUID(),
             timestamp: editTimestamp,
             mealDescription: clampedDescription,
             carbsGrams: clamp(computedCarbs),
+            proteinGrams: clamp(relogMeal?.proteinGrams),
+            fatGrams: clamp(relogMeal?.fatGrams),
+            calories: clamp(relogMeal?.calories),
+            fiberGrams: clamp(relogMeal?.fiberGrams),
             analysisSessionId: sessionId
         )
-
-        // Compute corrections by diffing staged items against original AI result
-        let corrections = computeCorrections()
 
         // Single dispatch — middleware chains to .addMealEntry
         store.dispatch(.saveMealWithCorrections(meal: meal, corrections: corrections))
         store.dispatch(.setFoodAnalysisResult(result: nil))
         dismiss()
+    }
+
+    private func hydrateRelogIfNeeded() {
+        guard let meal = relogMeal, !didHydrateRelog else { return }
+        didHydrateRelog = true
+        editTimestamp = Date() // log "now", not the original meal time
+        guard store.state.foodAnalysisResult == nil else { return }
+        let estimate = meal.toNutritionEstimate(personalFoods: store.state.personalFoodValues)
+        store.dispatch(.setFoodAnalysisResult(result: estimate))
     }
 
     // MARK: - Correction Computation

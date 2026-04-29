@@ -7,6 +7,9 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+### Changed
+- Tapping a recent meal in the Log Meal sheet now reopens it on the staging plate so you can adjust the portion (or items) before saving as a new entry — instead of immediately re-logging the meal verbatim. Quick "log now" is preserved as a leading swipe-action and as a context-menu item on each row. Meals that were originally logged via AI analysis carry their `analysisSessionId` through the relog so the new entry still links to the same PersonalFood cluster (no spurious "correction" written) — DMNC-761, PR #46.
+
 ## [Build 84] — 2026-04-26
 
 ### Fixed
