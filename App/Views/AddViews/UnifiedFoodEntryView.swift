@@ -72,23 +72,11 @@ struct UnifiedFoodEntryView: View {
                     toastView(meal: meal)
                 }
             }
-            .background(
-                NavigationLink(
-                    isActive: Binding(
-                        get: { relogMeal != nil },
-                        set: { active in if !active { relogMeal = nil } }
-                    )
-                ) {
-                    if let meal = relogMeal {
-                        FoodPhotoAnalysisView(relogMeal: meal)
-                            .environmentObject(store)
-                            .navigationBarHidden(true)
-                    }
-                } label: {
-                    EmptyView()
-                }
-                .hidden()
-            )
+            .navigationDestination(item: $relogMeal) { meal in
+                FoodPhotoAnalysisView(relogMeal: meal)
+                    .environmentObject(store)
+                    .navigationBarHidden(true)
+            }
         }
         .sheet(isPresented: $showingFavoriteManagement) {
             FavoriteManagementView()

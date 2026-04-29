@@ -87,6 +87,8 @@ struct FoodPhotoAnalysisView: View {
             guard !isItemScanActive else { return }
             // Clear stale state when view is truly popped (back swipe or cancel)
             stopProgressTimer()
+            store.dispatch(.setFoodAnalysisResult(result: nil))
+            store.dispatch(.setFoodAnalysisLoading(isLoading: false))
             stagedItems = []
             editDescription = ""
             followUpHistory = []
