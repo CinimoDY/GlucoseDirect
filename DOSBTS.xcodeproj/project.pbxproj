@@ -32,6 +32,7 @@
 		TE0100010000000F000A000F /* QuickTimeChipsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TE0100020000000F000A000F /* QuickTimeChipsTests.swift */; };
 		940B4124F95646FBA4691020 /* StagingPlateRowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDBC4B4C2D774E90898BED6B /* StagingPlateRowTests.swift */; };
 		TE0100010000000E000A000E /* StepperFieldTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TE0100020000000E000A000E /* StepperFieldTests.swift */; };
+		D3AB0CA7B9E864900B041E08 /* MealEntryRelogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 893A1393300A1AE8362876C1 /* MealEntryRelogTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -92,6 +93,7 @@
 		TE0100020000000F000A000F /* QuickTimeChipsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickTimeChipsTests.swift; sourceTree = "<group>"; };
 		FDBC4B4C2D774E90898BED6B /* StagingPlateRowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StagingPlateRowTests.swift; sourceTree = "<group>"; };
 		TE0100020000000E000A000E /* StepperFieldTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepperFieldTests.swift; sourceTree = "<group>"; };
+		893A1393300A1AE8362876C1 /* MealEntryRelogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealEntryRelogTests.swift; sourceTree = "<group>"; };
 		TE01000400000001000A0001 /* DOSBTSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DOSBTSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -228,6 +230,7 @@
 				TE0100020000000F000A000F /* QuickTimeChipsTests.swift */,
 				FDBC4B4C2D774E90898BED6B /* StagingPlateRowTests.swift */,
 				TE0100020000000E000A000E /* StepperFieldTests.swift */,
+				893A1393300A1AE8362876C1 /* MealEntryRelogTests.swift */,
 			);
 			path = DOSBTSTests;
 			sourceTree = "<group>";
@@ -417,6 +420,7 @@
 				TE0100010000000F000A000F /* QuickTimeChipsTests.swift in Sources */,
 				940B4124F95646FBA4691020 /* StagingPlateRowTests.swift in Sources */,
 				TE0100010000000E000A000E /* StepperFieldTests.swift in Sources */,
+				D3AB0CA7B9E864900B041E08 /* MealEntryRelogTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

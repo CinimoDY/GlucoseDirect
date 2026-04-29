@@ -18,7 +18,7 @@ struct FoodPhotoAnalysisView: View {
     /// this past meal on first appear, preserves its `analysisSessionId`,
     /// and skips correction tracking on save (the user is repeating a known
     /// meal with a tweaked portion, not correcting an AI estimate).
-    var relogMeal: MealEntry? = nil
+    var relogMeal: MealEntry?
 
     var body: some View {
         NavigationView {
@@ -729,9 +729,9 @@ struct FoodPhotoAnalysisView: View {
     private func hydrateRelogIfNeeded() {
         guard let meal = relogMeal, !didHydrateRelog else { return }
         didHydrateRelog = true
+        editTimestamp = Date() // log "now", not the original meal time
         guard store.state.foodAnalysisResult == nil else { return }
         let estimate = meal.toNutritionEstimate(personalFoods: store.state.personalFoodValues)
-        editTimestamp = Date() // log "now", not the original meal time
         store.dispatch(.setFoodAnalysisResult(result: estimate))
     }
 
