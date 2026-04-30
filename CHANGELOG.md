@@ -7,6 +7,8 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 86] — 2026-04-30
+
 ### Changed
 - IOB readouts now react to settings changes mid-flight. The treatment-cycle banner picks up basal-DIA and bolus-preset changes immediately (previously only refreshed on new deliveries / appear). The "Add Insulin" sheet's stacking warning recomputes IOB on every body evaluation, so adjusting basal DIA while the sheet is open updates the warning live (previously it captured IOB once at sheet construction). Pre-existing reactivity gaps; no new functionality, just consistency — DMNC-879, PR #48.
 
