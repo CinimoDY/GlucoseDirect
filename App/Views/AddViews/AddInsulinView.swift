@@ -7,6 +7,7 @@ import SwiftUI
 
 struct AddInsulinView: View {
     @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var store: DirectStore
 
     @State var starts: Date = .init()
     @State var ends: Date = .init()
@@ -14,7 +15,16 @@ struct AddInsulinView: View {
     @State var insulinType: InsulinType = .snackBolus
 
     var addCallback: (_ starts: Date, _ ends: Date, _ units: Double, _ insulinType: InsulinType) -> Void
-    var currentIOB: Double? = nil
+
+    private var currentIOB: Double {
+        let bolusModel = ExponentialInsulinModel.bolus(preset: store.state.bolusInsulinPreset)
+        let basalModel = ExponentialInsulinModel.basal(diaMinutes: store.state.basalDIAMinutes)
+        return computeIOB(
+            deliveries: store.state.iobDeliveries,
+            bolusModel: bolusModel,
+            basalModel: basalModel
+        ).total
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -30,7 +40,7 @@ struct AddInsulinView: View {
                         endsRow
                     }
 
-                    if insulinType == .correctionBolus, (currentIOB ?? 0) > 0.05 {
+                    if insulinType == .correctionBolus, currentIOB > 0.05 {
                         iobWarning
                     }
                 }
@@ -135,7 +145,7 @@ struct AddInsulinView: View {
         HStack(spacing: 8) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(AmberTheme.amber)
-            Text("ACTIVE IOB: \(String(format: "%.1f", currentIOB ?? 0))U")
+            Text("ACTIVE IOB: \(String(format: "%.1f", currentIOB))U")
                 .font(.system(size: 12, design: .monospaced))
                 .foregroundStyle(AmberTheme.amber)
             Spacer()
@@ -164,6 +174,7 @@ struct AddInsulinView_Previews: PreviewProvider {
         Button("Modal always shown") {}
             .sheet(isPresented: .constant(true)) {
                 AddInsulinView(addCallback: { _, _, _, _ in })
+                    .environmentObject(DirectStore(initialState: AppState(), reducer: directReducer, middlewares: []))
             }
     }
 }

@@ -7,6 +7,12 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+### Changed
+- IOB readouts now react to settings changes mid-flight. The treatment-cycle banner picks up basal-DIA and bolus-preset changes immediately (previously only refreshed on new deliveries / appear). The "Add Insulin" sheet's stacking warning recomputes IOB on every body evaluation, so adjusting basal DIA while the sheet is open updates the warning live (previously it captured IOB once at sheet construction). Pre-existing reactivity gaps; no new functionality, just consistency — DMNC-879, PR #48.
+
+### Removed
+- Three deprecated-API warnings cleaned up at build time: SwiftUI Charts `plotAreaFrame` → `plotFrame` (with the new optional handled via `guard`, no force unwrap), ActivityKit `Activity.update(using:)` / `.end(using:)` / `.request(...:contentState:...)` → the `ActivityContent`-based variants, and `BarcodeScannerView`'s `NavigationLink(isActive:)` → `.navigationDestination(isPresented:)`. No behavior change; build log is quieter.
+
 ## [Build 85] — 2026-04-30
 
 ### Fixed

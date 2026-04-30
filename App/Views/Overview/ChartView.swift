@@ -668,7 +668,8 @@ struct ChartView: View {
                 Rectangle().fill(.clear).contentShape(Rectangle())
                     .gesture(DragGesture(minimumDistance: 0)
                         .onChanged { value in
-                            let currentX = value.location.x - geometryProxy[overlayProxy.plotAreaFrame].origin.x
+                            guard let plotFrame = overlayProxy.plotFrame else { return }
+                            let currentX = value.location.x - geometryProxy[plotFrame].origin.x
 
                             if let currentDate: Date = overlayProxy.value(atX: currentX) {
                                 let rounded = currentDate.toRounded(on: 1, .minute)
@@ -926,22 +927,30 @@ private var startMarker: Date? {
     private func updateSensorSeries() {
         DirectLog.info("updateSensorSeries()")
 
+        // Snapshot store.state on the main actor before crossing the queue
+        // boundary. Reading @Published state from a background queue is not
+        // strict-concurrency-clean and would surface as a Sendable warning
+        // under Swift 6 strict mode.
+        let showSmoothedGlucose = store.state.showSmoothedGlucose
+        let sensorGlucoseValues = store.state.sensorGlucoseValues
+        let smoothThreshold = store.state.smoothThreshold
+
         calculationQueue.async {
             var smoothSensorPointInfos: [Date: GlucoseDatapoint] = [:]
             var rawSensorPointInfos: [Date: GlucoseDatapoint] = [:]
 
-            let smoothSensorGlucoseSeries = DirectConfig.showSmoothedGlucose && store.state.showSmoothedGlucose
-                ? populateSmoothValues(glucoseValues: store.state.sensorGlucoseValues)
-                : populateValues(glucoseValues: store.state.sensorGlucoseValues)
+            let smoothSensorGlucoseSeries = DirectConfig.showSmoothedGlucose && showSmoothedGlucose
+                ? populateSmoothValues(glucoseValues: sensorGlucoseValues)
+                : populateValues(glucoseValues: sensorGlucoseValues)
             smoothSensorGlucoseSeries.forEach { value in
                 if smoothSensorPointInfos[value.time] == nil {
                     smoothSensorPointInfos[value.time] = value
                 }
             }
 
-            let rawSensorGlucoseSeries = store.state.showSmoothedGlucose
-                ? populateValues(glucoseValues: store.state.sensorGlucoseValues.filter {
-                    $0.timestamp < store.state.smoothThreshold
+            let rawSensorGlucoseSeries = showSmoothedGlucose
+                ? populateValues(glucoseValues: sensorGlucoseValues.filter {
+                    $0.timestamp < smoothThreshold
                 })
                 : []
             rawSensorGlucoseSeries.forEach { value in
@@ -966,9 +975,11 @@ private var startMarker: Date? {
     private func updateBloodSeries() {
         DirectLog.info("updateBloodSeries()")
 
+        let bloodGlucoseValues = store.state.bloodGlucoseValues
+
         calculationQueue.async {
             var bloodPointInfos: [Date: GlucoseDatapoint] = [:]
-            let bloodGlucoseSeries = populateValues(glucoseValues: store.state.bloodGlucoseValues)
+            let bloodGlucoseSeries = populateValues(glucoseValues: bloodGlucoseValues)
             bloodGlucoseSeries.forEach { value in
                 if bloodPointInfos[value.time] == nil {
                     bloodPointInfos[value.time] = value
@@ -985,17 +996,24 @@ private var startMarker: Date? {
     private func updateInsulinSeries() {
         DirectLog.info("updateInsulinSeries()")
 
-        calculationQueue.async {
-            let insulinSeries = populateValues(glucoseValues: store.state.insulinDeliveryValues)
+        // Snapshot all needed state up front. Building the bolus/basal
+        // models on the main actor keeps the factory (which reads enum +
+        // Int values) off the background queue too.
+        let insulinDeliveryValues = store.state.insulinDeliveryValues
+        let bolusModel = ExponentialInsulinModel.bolus(preset: store.state.bolusInsulinPreset)
+        let basalModel = ExponentialInsulinModel.basal(diaMinutes: store.state.basalDIAMinutes)
+        let iobDeliveries = store.state.iobDeliveries
+        let firstTS = firstTimestamp
+        let lastTS = lastTimestamp
+        let startDate = startMarker ?? Date()
+        let endDate = endMarker ?? Date()
 
-            // Compute IOB decay curve
-            let bolusModel = store.state.bolusInsulinPreset.model
-            let basalModel = ExponentialInsulinModel.basal(diaMinutes: store.state.basalDIAMinutes)
-            let iobDeliveries = store.state.iobDeliveries
+        calculationQueue.async {
+            let insulinSeries = insulinDeliveryValues.map { $0.toDatapoint(minDate: startDate, maxDate: endDate) }.compactMap { $0 }
 
             var iobPoints: [(date: Date, total: Double, mealSnack: Double, corrBasal: Double)] = []
 
-            if !iobDeliveries.isEmpty, let first = firstTimestamp, let last = lastTimestamp {
+            if !iobDeliveries.isEmpty, let first = firstTS, let last = lastTS {
                 // 1-minute sampling smooths visible step transitions when a
                 // new bolus is delivered between two adjacent samples
                 // (5-min sampling produced visible "cuts" in the area chart).
