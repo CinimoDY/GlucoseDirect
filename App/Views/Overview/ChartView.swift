@@ -1005,9 +1005,11 @@ private var startMarker: Date? {
         let iobDeliveries = store.state.iobDeliveries
         let firstTS = firstTimestamp
         let lastTS = lastTimestamp
+        let startDate = startMarker ?? Date()
+        let endDate = endMarker ?? Date()
 
         calculationQueue.async {
-            let insulinSeries = populateValues(glucoseValues: insulinDeliveryValues)
+            let insulinSeries = insulinDeliveryValues.map { $0.toDatapoint(minDate: startDate, maxDate: endDate) }.compactMap { $0 }
 
             var iobPoints: [(date: Date, total: Double, mealSnack: Double, corrBasal: Double)] = []
 
