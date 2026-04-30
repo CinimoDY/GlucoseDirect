@@ -80,20 +80,55 @@ struct ExponentialInsulinModel {
         return max(0, min(1, iob))
     }
 
-    /// Build a long-acting basal model from the user's configured DIA. The
-    /// peak activity time scales with DIA (≈ DIA/2.5) so the curve stays
-    /// roughly flat across the full duration — long DIAs no longer behave
-    /// like a rapid-acting bolus that happens to last longer. Floored at the
-    /// rapid-acting peak (75 min) so very short basal DIAs degrade
-    /// gracefully, and held strictly below DIA/2 to keep the Maksimovic
-    /// model's constants well-defined.
+    /// Build a long-acting basal model from the user's configured DIA.
+    ///
+    /// The peak activity time scales with DIA (≈ DIA × `peakDIARatio`) so the
+    /// curve stays roughly flat across the full duration — long DIAs no
+    /// longer behave like a rapid-acting bolus that happens to last longer.
+    ///
+    /// Three guards apply, in this order:
+    /// 1. DIA is floored at `minDIAMinutes` so degenerate inputs (zero,
+    ///    negative) clamp to a defined minimum.
+    /// 2. Peak is floored at `rapidActingPeakSeconds` (75 min) so very short
+    ///    basal DIAs degrade to a rapid-acting profile rather than producing
+    ///    a sub-bolus peak.
+    /// 3. Peak is then capped at `peakSafetyCeilingRatio × DIA` (just below
+    ///    DIA/2) so the Maksimovic model's denominator `(1 - 2·tp/td)` stays
+    ///    strictly positive and `tau`, `a`, `S` remain well-defined. Without
+    ///    this cap the floor in (2) silently violates the invariant when
+    ///    DIA < 150 min.
     static func basal(diaMinutes: Int) -> ExponentialInsulinModel {
-        let dia = TimeInterval(max(60, diaMinutes)) * 60
-        let minPeak: TimeInterval = 75 * 60
-        let scaledPeak = dia / 2.5
-        let peak = max(minPeak, scaledPeak)
+        let dia = TimeInterval(max(minDIAMinutes, diaMinutes)) * 60
+        let scaledPeak = dia * peakDIARatio
+        let flooredPeak = max(rapidActingPeakSeconds, scaledPeak)
+        let peak = min(flooredPeak, dia * peakSafetyCeilingRatio)
         return ExponentialInsulinModel(actionDuration: dia, peakActivityTime: peak)
     }
+
+    // MARK: Constants
+
+    /// Smallest DIA the basal factory will accept. Below this, callers are
+    /// passing degenerate input (zero, negative) — clamp rather than crash.
+    private static let minDIAMinutes: Int = 60
+
+    /// Rapid-acting bolus peak time (matches `InsulinPreset.rapidActing`).
+    /// The basal peak is floored at this so a misconfigured short DIA still
+    /// produces a recognizable rapid-acting curve rather than a meaningless
+    /// sub-bolus peak.
+    private static let rapidActingPeakSeconds: TimeInterval = 75 * 60
+
+    /// Heuristic peak/DIA ratio for long-acting basals. 0.4 (≈ DIA/2.5)
+    /// produces a roughly flat curve across the full duration — closer to
+    /// real-world Lantus / Levemir / Tresiba pharmacokinetics than a
+    /// front-loaded bolus shape would be.
+    private static let peakDIARatio: Double = 0.4
+
+    /// Hard ceiling for `peak / DIA` so the Maksimovic constants stay
+    /// well-defined: the model's denominator `(1 - 2·tp/td)` goes to zero
+    /// at `peak = DIA/2` and negative beyond it, breaking `tau`, `a`, `S`.
+    /// 0.49 keeps a small safety margin without pushing peak much below
+    /// DIA/2 in cases (long DIAs) where the heuristic doesn't need clamping.
+    private static let peakSafetyCeilingRatio: Double = 0.49
 }
 
 // MARK: - IOBResult
