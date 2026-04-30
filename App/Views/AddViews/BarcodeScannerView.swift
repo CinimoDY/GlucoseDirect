@@ -31,16 +31,12 @@ struct BarcodeScannerView: View {
             } else {
                 scannerView
             }
-
-            // Auto-push to staging plate when result arrives
-            NavigationLink(isActive: shouldShowStagingPlate) {
-                FoodPhotoAnalysisView()
-                    .environmentObject(store)
-                    .navigationBarHidden(true)
-            } label: {
-                EmptyView()
-            }
-            .hidden()
+        }
+        // Auto-push to staging plate when the OFF lookup populates a result.
+        .navigationDestination(isPresented: shouldShowStagingPlate) {
+            FoodPhotoAnalysisView()
+                .environmentObject(store)
+                .navigationBarHidden(true)
         }
         .navigationTitle("Scan Barcode")
         .navigationBarTitleDisplayMode(.inline)

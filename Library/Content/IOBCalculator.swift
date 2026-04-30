@@ -23,12 +23,7 @@ enum InsulinPreset: String, Codable, CaseIterable {
     }
 
     var model: ExponentialInsulinModel {
-        switch self {
-        case .rapidActing:
-            return ExponentialInsulinModel(actionDuration: 6 * 60 * 60, peakActivityTime: 75 * 60)
-        case .ultraRapid:
-            return ExponentialInsulinModel(actionDuration: 6 * 60 * 60, peakActivityTime: 55 * 60)
-        }
+        ExponentialInsulinModel.bolus(preset: self)
     }
 
     var diaMinutes: Int {
@@ -55,7 +50,20 @@ struct ExponentialInsulinModel {
     let a: Double
     let S: Double
 
+    /// Direct construction is intentionally awkward — use one of the
+    /// factories (`.basal(diaMinutes:)` for long-acting basals,
+    /// `.bolus(preset:)` for rapid-acting boluses) instead. Those bake in
+    /// the curve-shape calibration and the safety constraints that keep the
+    /// Maksimovic constants well-defined; passing raw `actionDuration` and
+    /// `peakActivityTime` makes it too easy to introduce a bug like the one
+    /// PR #47 fixed.
+    @available(*, deprecated, message: "Use ExponentialInsulinModel.basal(diaMinutes:) or .bolus(preset:) — direct construction skips the safety constraints on the Maksimovic constants.")
     init(actionDuration: TimeInterval, peakActivityTime: TimeInterval) {
+        self.init(_actionDuration: actionDuration, peakActivityTime: peakActivityTime)
+    }
+
+    /// Internal initializer used by the factory methods. Not deprecated.
+    private init(_actionDuration actionDuration: TimeInterval, peakActivityTime: TimeInterval) {
         self.actionDuration = max(actionDuration, 60) // Guard: minimum 1 minute to prevent division by zero
         self.peakActivityTime = peakActivityTime
 
@@ -102,7 +110,20 @@ struct ExponentialInsulinModel {
         let scaledPeak = dia * peakDIARatio
         let flooredPeak = max(rapidActingPeakSeconds, scaledPeak)
         let peak = min(flooredPeak, dia * peakSafetyCeilingRatio)
-        return ExponentialInsulinModel(actionDuration: dia, peakActivityTime: peak)
+        return ExponentialInsulinModel(_actionDuration: dia, peakActivityTime: peak)
+    }
+
+    /// Build a rapid-acting bolus model from one of the bundled presets.
+    /// Bolus presets have empirically-calibrated peaks and a fixed 6h DIA;
+    /// the factory exists to give callers a single named entry point that
+    /// mirrors `.basal(diaMinutes:)`.
+    static func bolus(preset: InsulinPreset) -> ExponentialInsulinModel {
+        switch preset {
+        case .rapidActing:
+            return ExponentialInsulinModel(_actionDuration: 6 * 60 * 60, peakActivityTime: 75 * 60)
+        case .ultraRapid:
+            return ExponentialInsulinModel(_actionDuration: 6 * 60 * 60, peakActivityTime: 55 * 60)
+        }
     }
 
     // MARK: Constants

@@ -89,6 +89,8 @@ struct TreatmentBannerView: View {
             timer?.cancel()
         }
         .onChange(of: store.state.iobDeliveries.count) { refreshBannerIOB() }
+        .onChange(of: store.state.basalDIAMinutes) { refreshBannerIOB() }
+        .onChange(of: store.state.bolusInsulinPreset) { refreshBannerIOB() }
     }
 
     // MARK: - Banner Content
