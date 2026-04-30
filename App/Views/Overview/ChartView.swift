@@ -1003,13 +1003,15 @@ private var startMarker: Date? {
         let bolusModel = ExponentialInsulinModel.bolus(preset: store.state.bolusInsulinPreset)
         let basalModel = ExponentialInsulinModel.basal(diaMinutes: store.state.basalDIAMinutes)
         let iobDeliveries = store.state.iobDeliveries
+        let firstTS = firstTimestamp
+        let lastTS = lastTimestamp
 
         calculationQueue.async {
             let insulinSeries = populateValues(glucoseValues: insulinDeliveryValues)
 
             var iobPoints: [(date: Date, total: Double, mealSnack: Double, corrBasal: Double)] = []
 
-            if !iobDeliveries.isEmpty, let first = firstTimestamp, let last = lastTimestamp {
+            if !iobDeliveries.isEmpty, let first = firstTS, let last = lastTS {
                 // 1-minute sampling smooths visible step transitions when a
                 // new bolus is delivered between two adjacent samples
                 // (5-min sampling produced visible "cuts" in the area chart).

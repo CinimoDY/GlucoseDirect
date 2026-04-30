@@ -177,6 +177,7 @@ struct AddInsulinView_Previews: PreviewProvider {
         Button("Modal always shown") {}
             .sheet(isPresented: .constant(true)) {
                 AddInsulinView(addCallback: { _, _, _, _ in })
+                    .environmentObject(DirectStore(initialState: AppState(), reducer: directReducer, middlewares: []))
             }
     }
 }
