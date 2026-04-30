@@ -77,11 +77,7 @@ extension MealEntry: Hashable {
 // MARK: - Staging Plate Hydration
 
 extension MealEntry {
-    /// Build a `NutritionEstimate` to seed the staging plate when relogging
-    /// this meal. When the meal carries an `analysisSessionId` and matching
-    /// `PersonalFood` rows exist, the per-item breakdown is restored;
-    /// otherwise we fall back to a single aggregate item carrying the meal's
-    /// description and totals.
+    /// Build a `NutritionEstimate` for the staging plate: per-item breakdown if a matching `PersonalFood` cluster exists, otherwise a single aggregate item.
     func toNutritionEstimate(personalFoods: [PersonalFood]) -> NutritionEstimate {
         let linked = analysisSessionId.map { id in
             personalFoods.filter { $0.analysisSessionId == id }

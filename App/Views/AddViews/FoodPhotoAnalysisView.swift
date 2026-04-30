@@ -14,15 +14,11 @@ struct FoodPhotoAnalysisView: View {
     @EnvironmentObject var store: DirectStore
     @Environment(\.dismiss) var dismiss
 
-    /// When set, the staging plate opens in "relog" mode: it hydrates from
-    /// this past meal on first appear, preserves its `analysisSessionId`,
-    /// and skips correction tracking on save (the user is repeating a known
-    /// meal with a tweaked portion, not correcting an AI estimate).
+    /// Relog mode: hydrates staging plate from this past meal, preserves `analysisSessionId`, skips correction tracking.
     var relogMeal: MealEntry?
 
     var body: some View {
-        // When pushed via NavigationLink (relog path), the caller owns the nav stack.
-        // Wrapping in a second NavigationView here would create nested nav stacks.
+        // Relog path: caller owns the nav stack — don't double-wrap in NavigationView.
         if relogMeal != nil {
             formContent
         } else {
