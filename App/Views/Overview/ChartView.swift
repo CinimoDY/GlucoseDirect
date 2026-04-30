@@ -990,10 +990,7 @@ private var startMarker: Date? {
 
             // Compute IOB decay curve
             let bolusModel = store.state.bolusInsulinPreset.model
-            let basalModel = ExponentialInsulinModel(
-                actionDuration: Double(store.state.basalDIAMinutes) * 60,
-                peakActivityTime: 75 * 60
-            )
+            let basalModel = ExponentialInsulinModel.basal(diaMinutes: store.state.basalDIAMinutes)
             let iobDeliveries = store.state.iobDeliveries
 
             var iobPoints: [(date: Date, total: Double, mealSnack: Double, corrBasal: Double)] = []

@@ -79,6 +79,21 @@ struct ExponentialInsulinModel {
         let iob = 1 - S * (1 - a) * ((pow(t, 2) / (tau * actionDuration * (1 - a)) - t / tau - 1) * exp(-t / tau) + 1)
         return max(0, min(1, iob))
     }
+
+    /// Build a long-acting basal model from the user's configured DIA. The
+    /// peak activity time scales with DIA (≈ DIA/2.5) so the curve stays
+    /// roughly flat across the full duration — long DIAs no longer behave
+    /// like a rapid-acting bolus that happens to last longer. Floored at the
+    /// rapid-acting peak (75 min) so very short basal DIAs degrade
+    /// gracefully, and held strictly below DIA/2 to keep the Maksimovic
+    /// model's constants well-defined.
+    static func basal(diaMinutes: Int) -> ExponentialInsulinModel {
+        let dia = TimeInterval(max(60, diaMinutes)) * 60
+        let minPeak: TimeInterval = 75 * 60
+        let scaledPeak = dia / 2.5
+        let peak = max(minPeak, scaledPeak)
+        return ExponentialInsulinModel(actionDuration: dia, peakActivityTime: peak)
+    }
 }
 
 // MARK: - IOBResult

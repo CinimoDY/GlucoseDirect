@@ -7,6 +7,9 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+### Fixed
+- Basal IOB no longer decays at the rapid-acting rate when a long basal DIA is configured. Previously the basal model was constructed with the bolus's 75-minute peak even at 24h DIA, so a 24h-DIA basal dose dumped most of its activity in the first ~5 hours and read near-zero by hour 6 — visually indistinguishable from a bolus on the chart. The basal model now scales its peak with DIA (≈ DIA/2.5, floored at the bolus 75-minute peak so short DIAs degrade gracefully and held strictly below DIA/2 to keep the Maksimovic constants well-defined). At 24h DIA you'll now see basal IOB stay above ~60% at hour 6 and around ~20–30% at hour 12, which matches a long-acting profile (Lantus / Levemir / Tresiba). Affects every IOB display: chart area, hero header, treatment banner, AddInsulinView's stacking warning, and the entry-group overlay.
+
 ### Changed
 - Tapping a recent meal in the Log Meal sheet now reopens it on the staging plate so you can adjust the portion (or items) before saving as a new entry — instead of immediately re-logging the meal verbatim. Quick "log now" is preserved as a leading swipe-action and as a context-menu item on each row. Meals that were originally logged via AI analysis carry their `analysisSessionId` through the relog so the new entry still links to the same PersonalFood cluster (no spurious "correction" written) — DMNC-761, PR #46.
 

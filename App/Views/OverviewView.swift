@@ -114,10 +114,7 @@ struct OverviewView: View {
                 },
                 currentIOB: {
                     let bolusModel = store.state.bolusInsulinPreset.model
-                    let basalModel = ExponentialInsulinModel(
-                        actionDuration: Double(store.state.basalDIAMinutes) * 60,
-                        peakActivityTime: 75 * 60
-                    )
+                    let basalModel = ExponentialInsulinModel.basal(diaMinutes: store.state.basalDIAMinutes)
                     let result = computeIOB(
                         deliveries: store.state.iobDeliveries,
                         bolusModel: bolusModel,
@@ -175,10 +172,7 @@ struct OverviewView: View {
                 glucoseUnit: store.state.glucoseUnit,
                 iobAtTime: { date in
                     let bolusModel = store.state.bolusInsulinPreset.model
-                    let basalModel = ExponentialInsulinModel(
-                        actionDuration: Double(store.state.basalDIAMinutes) * 60,
-                        peakActivityTime: 75 * 60
-                    )
+                    let basalModel = ExponentialInsulinModel.basal(diaMinutes: store.state.basalDIAMinutes)
                     let result = computeIOB(
                         deliveries: store.state.iobDeliveries,
                         bolusModel: bolusModel,

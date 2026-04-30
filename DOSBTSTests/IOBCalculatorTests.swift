@@ -51,6 +51,44 @@ struct ExponentialInsulinModelTests {
         #expect(ultraIOB < rapidIOB)
     }
 
+    @Test("Basal factory: 24h-DIA basal stays substantially active past the bolus 6h boundary")
+    func basal24hStaysActivePastBolusDIA() {
+        // The Maksimovic model with the rapid-acting 75-min peak would dump
+        // most of a 24h basal's activity in the first ~5 hours. The basal
+        // factory must scale the peak with DIA so the curve stays roughly
+        // flat — that's the whole point of long-acting insulin.
+        let basal24h = ExponentialInsulinModel.basal(diaMinutes: 24 * 60)
+        let iobAt6h = basal24h.percentEffectRemaining(at: 6 * 60 * 60)
+        let iobAt12h = basal24h.percentEffectRemaining(at: 12 * 60 * 60)
+        // At 6h, well over half should still be on board (a 75-min-peak
+        // curve would have dropped under 5% by here).
+        #expect(iobAt6h > 0.6)
+        // At the half-life of the action, IOB should still be meaningfully
+        // above zero — long-acting basals decay slowly across the full DIA.
+        #expect(iobAt12h > 0.2)
+    }
+
+    @Test("Basal factory: short DIAs floor at the rapid-acting peak (75 min)")
+    func basalShortDIAFloors() {
+        // A 2h "basal" DIA should not produce a sub-bolus peak — clamp to
+        // 75 min so the model stays well-defined.
+        let shortBasal = ExponentialInsulinModel.basal(diaMinutes: 120)
+        #expect(shortBasal.peakActivityTime == 75 * 60)
+        #expect(shortBasal.actionDuration == 120 * 60)
+    }
+
+    @Test("Basal factory: peak scales linearly with DIA above the floor")
+    func basalPeakScalesWithDIA() {
+        let basal12h = ExponentialInsulinModel.basal(diaMinutes: 12 * 60)
+        let basal24h = ExponentialInsulinModel.basal(diaMinutes: 24 * 60)
+        // 24h DIA should put its peak roughly twice as late as a 12h DIA.
+        #expect(basal24h.peakActivityTime > basal12h.peakActivityTime * 1.8)
+        // And both peaks must stay strictly below DIA/2 so the Maksimovic
+        // constants remain well-defined.
+        #expect(basal12h.peakActivityTime < basal12h.actionDuration / 2)
+        #expect(basal24h.peakActivityTime < basal24h.actionDuration / 2)
+    }
+
     @Test("IOB is monotonically decreasing over time")
     func monotonicallyDecreasing() {
         var previous = 1.0
