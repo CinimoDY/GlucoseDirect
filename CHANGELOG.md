@@ -7,6 +7,8 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 85] — 2026-04-30
+
 ### Fixed
 - Basal IOB no longer decays at the rapid-acting rate when a long basal DIA is configured. Previously the basal model was constructed with the bolus's 75-minute peak even at 24h DIA, so a 24h-DIA basal dose dumped most of its activity in the first ~5 hours and read near-zero by hour 6 — visually indistinguishable from a bolus on the chart. The basal model now scales its peak with DIA (≈ DIA × 0.4, floored at the bolus 75-minute peak so short DIAs degrade gracefully, and capped at 0.49 × DIA so the Maksimovic model's constants remain well-defined for every DIA in the UI's range). At 24h DIA you'll now see basal IOB stay around ~80% at hour 6 and ~42% at hour 12, which matches a long-acting profile (Lantus / Levemir / Tresiba). Affects every IOB display: chart area, hero header, treatment banner, AddInsulinView's stacking warning, and the entry-group overlay — PR #47.
 
