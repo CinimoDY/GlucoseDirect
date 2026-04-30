@@ -16,9 +16,6 @@ struct AddInsulinView: View {
 
     var addCallback: (_ starts: Date, _ ends: Date, _ units: Double, _ insulinType: InsulinType) -> Void
 
-    /// Live IOB total. Recomputes on every body evaluation, so the stacking
-    /// warning stays accurate if the user adjusts basal DIA or a new
-    /// delivery lands while this sheet is open.
     private var currentIOB: Double {
         let bolusModel = ExponentialInsulinModel.bolus(preset: store.state.bolusInsulinPreset)
         let basalModel = ExponentialInsulinModel.basal(diaMinutes: store.state.basalDIAMinutes)
