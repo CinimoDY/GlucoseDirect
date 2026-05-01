@@ -64,10 +64,11 @@ struct OverviewView: View {
             } else {
                 Spacer()
             }
-
-            StickyQuickActions()
         }
         .background(AmberTheme.dosBlack)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            StickyQuickActions()
+        }
         .sheet(item: $activeSheet, onDismiss: {
             // Present pending sheet after current one fully dismisses (avoids asyncAfter timing hack)
             if let pending = pendingSheet {

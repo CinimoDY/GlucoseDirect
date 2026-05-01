@@ -7,6 +7,11 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 87] — 2026-05-01
+
+### Fixed
+- INSULIN and MEAL quick-action buttons no longer get clipped by the tab bar at the bottom of the Overview tab. The sticky action row is now anchored above the tab bar via `.safeAreaInset(edge: .bottom)` instead of riding the bottom of a VStack whose final element extended into the tab bar's footprint, so the button labels render in full on every device size.
+
 ## [Build 86] — 2026-04-30
 
 ### Changed
