@@ -54,6 +54,12 @@ struct SensorLineView: View {
 
     private var dotAndLabel: some View {
         HStack(spacing: 6) {
+            if store.state.activeAlarmProfile == .night {
+                Image(systemName: "moon.fill")
+                    .font(DOSTypography.caption)
+                    .foregroundStyle(AmberTheme.amberDark)
+                    .accessibilityHidden(true)
+            }
             Circle()
                 .fill(dotColor)
                 .frame(width: 7, height: 7)
@@ -212,19 +218,23 @@ struct SensorLineView: View {
     // MARK: - Accessibility
 
     private var accessibilityLabelString: String {
+        let nightPrefix = store.state.activeAlarmProfile == .night ? "Night profile active. " : ""
+        let core: String
         switch currentState {
         case .connected:
             if let sensor = store.state.sensor {
-                return "Sensor connected, \(sensor.remainingLifetime.inTime) remaining"
+                core = "Sensor connected, \(sensor.remainingLifetime.inTime) remaining"
+            } else {
+                core = "Sensor connected"
             }
-            return "Sensor connected"
-        case .transient: return labelText.lowercased().capitalized
-        case .disconnected: return "Sensor disconnected"
-        case .noSensor: return "No sensor set up"
-        case .error: return "Connection error"
-        case .bluetoothOff: return "Bluetooth is off"
-        case .unknown: return "Sensor state unknown"
+        case .transient: core = labelText.lowercased().capitalized
+        case .disconnected: core = "Sensor disconnected"
+        case .noSensor: core = "No sensor set up"
+        case .error: core = "Connection error"
+        case .bluetoothOff: core = "Bluetooth is off"
+        case .unknown: core = "Sensor state unknown"
         }
+        return nightPrefix + core
     }
 
     private var accessibilityHintString: String {

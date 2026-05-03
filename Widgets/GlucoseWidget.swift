@@ -19,6 +19,7 @@ struct GlucoseEntry: TimelineEntry {
     let glucoseUnit: GlucoseUnit?
     let alarmLow: Int
     let alarmHigh: Int
+    let activeAlarmProfile: AlarmProfile
     let tir: Double?
     let iob: Double?
     let lastMealDescription: String?
@@ -32,6 +33,7 @@ struct GlucoseEntry: TimelineEntry {
         self.glucoseUnit = nil
         self.alarmLow = 70
         self.alarmHigh = 180
+        self.activeAlarmProfile = .day
         self.tir = nil
         self.iob = nil
         self.lastMealDescription = nil
@@ -46,6 +48,7 @@ struct GlucoseEntry: TimelineEntry {
         self.glucoseUnit = glucoseUnit
         self.alarmLow = 70
         self.alarmHigh = 180
+        self.activeAlarmProfile = .day
         self.tir = nil
         self.iob = nil
         self.lastMealDescription = nil
@@ -67,20 +70,44 @@ struct GlucoseUpdateProvider: TimelineProvider {
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> ()) {
-        let entry = buildEntry()
-        let reloadDate = Calendar.current.date(byAdding: .minute, value: 15, to: Date())!
-        let timeline = Timeline(entries: [entry], policy: .after(reloadDate))
-        completion(timeline)
+        // Build entries for now AND for the next day/night profile boundary if
+        // it falls within the 15-minute reload window. Without the boundary
+        // entry, the widget would render stale day/night thresholds for up to
+        // 15 minutes after the schedule flips, contradicting the plan's
+        // "render-time profile resolution" guarantee for R9.
+        let now = Date()
+        let reloadDate = now.addingTimeInterval(15 * 60)
+
+        var entries = [buildEntry(at: now)]
+
+        let defaults = UserDefaults.shared
+        if defaults.object(forKey: AppGroupAlarmProfileKeys.nightStartHour) != nil {
+            let boundary = nextAlarmProfileBoundary(
+                from: now,
+                nightStartHour: defaults.integer(forKey: AppGroupAlarmProfileKeys.nightStartHour),
+                nightStartMinute: defaults.integer(forKey: AppGroupAlarmProfileKeys.nightStartMinute),
+                nightEndHour: defaults.integer(forKey: AppGroupAlarmProfileKeys.nightEndHour),
+                nightEndMinute: defaults.integer(forKey: AppGroupAlarmProfileKeys.nightEndMinute),
+                lookaheadSeconds: 15 * 60
+            )
+            if let boundary {
+                entries.append(buildEntry(at: boundary))
+            }
+        }
+
+        completion(Timeline(entries: entries, policy: .after(reloadDate)))
     }
 
-    private func buildEntry() -> GlucoseEntry {
+    private func buildEntry(at date: Date = Date()) -> GlucoseEntry {
         let defaults = UserDefaults.shared
+        let resolved = WidgetAlarmProfileSnapshot.resolve(at: date)
         return GlucoseEntry(
-            date: Date(),
+            date: date,
             glucose: defaults.latestSensorGlucose,
             glucoseUnit: defaults.glucoseUnit,
-            alarmLow: defaults.alarmLow,
-            alarmHigh: defaults.alarmHigh,
+            alarmLow: resolved?.alarmLow ?? defaults.alarmLow,
+            alarmHigh: resolved?.alarmHigh ?? defaults.alarmHigh,
+            activeAlarmProfile: resolved?.profile ?? .day,
             tir: defaults.sharedTIR,
             iob: defaults.sharedIOB,
             lastMealDescription: defaults.sharedLastMealDescription,
@@ -91,13 +118,31 @@ struct GlucoseUpdateProvider: TimelineProvider {
     }
 }
 
+/// Reads the day/night alarm profile from `UserDefaults.shared` (App Group)
+/// and resolves the active profile for the given clock time. Thin wrapper
+/// over the shared `resolveActiveProfileThresholds(at:intReader:)` helper
+/// in `Library/Content/AlarmProfile.swift`.
+enum WidgetAlarmProfileSnapshot {
+    static func resolve(at date: Date) -> ResolvedAlarmThresholds? {
+        let defaults = UserDefaults.shared
+        return resolveActiveProfileThresholds(at: date) { key in
+            // UserDefaults.object returns nil for missing keys.
+            // .integer returns 0 for missing keys, which is a valid clock value,
+            // so we must guard against missing-vs-actually-zero with `.object`.
+            guard defaults.object(forKey: key) != nil else { return nil }
+            return defaults.integer(forKey: key)
+        }
+    }
+}
+
 private extension GlucoseEntry {
-    init(date: Date, glucose: SensorGlucose?, glucoseUnit: GlucoseUnit?, alarmLow: Int, alarmHigh: Int, tir: Double?, iob: Double?, lastMealDescription: String?, lastMealCarbs: Double?, lastMealTimestamp: Date?, sparkline: [Int]?) {
+    init(date: Date, glucose: SensorGlucose?, glucoseUnit: GlucoseUnit?, alarmLow: Int, alarmHigh: Int, activeAlarmProfile: AlarmProfile, tir: Double?, iob: Double?, lastMealDescription: String?, lastMealCarbs: Double?, lastMealTimestamp: Date?, sparkline: [Int]?) {
         self.date = date
         self.glucose = glucose
         self.glucoseUnit = glucoseUnit
         self.alarmLow = alarmLow
         self.alarmHigh = alarmHigh
+        self.activeAlarmProfile = activeAlarmProfile
         self.tir = tir
         self.iob = iob
         self.lastMealDescription = lastMealDescription
@@ -137,30 +182,41 @@ struct GlucoseView: View {
     }
 
     var body: some View {
-        if let glucose, let glucoseUnit {
-            switch size {
-            case .accessoryCircular:
-                circularView(glucose: glucose, glucoseUnit: glucoseUnit)
+        Group {
+            if let glucose, let glucoseUnit {
+                switch size {
+                case .accessoryCircular:
+                    circularView(glucose: glucose, glucoseUnit: glucoseUnit)
 
-            case .accessoryRectangular:
-                rectangularView(glucose: glucose, glucoseUnit: glucoseUnit)
+                case .accessoryRectangular:
+                    rectangularView(glucose: glucose, glucoseUnit: glucoseUnit)
 
-            case .systemSmall:
-                smallView(glucose: glucose, glucoseUnit: glucoseUnit)
+                case .systemSmall:
+                    smallView(glucose: glucose, glucoseUnit: glucoseUnit)
 
-            case .systemMedium:
-                mediumView(glucose: glucose, glucoseUnit: glucoseUnit)
+                case .systemMedium:
+                    mediumView(glucose: glucose, glucoseUnit: glucoseUnit)
 
-            case .systemLarge:
-                largeView(glucose: glucose, glucoseUnit: glucoseUnit)
+                case .systemLarge:
+                    largeView(glucose: glucose, glucoseUnit: glucoseUnit)
 
-            default:
-                Text("---")
-                    .font(WidgetFonts.body)
-                    .foregroundColor(WidgetColors.amberDark)
+                default:
+                    Text("---")
+                        .font(WidgetFonts.body)
+                        .foregroundColor(WidgetColors.amberDark)
+                }
+            } else {
+                noDataView
             }
-        } else {
-            noDataView
+        }
+        .overlay(alignment: .topTrailing) {
+            if entry.activeAlarmProfile == .night {
+                Image(systemName: "moon.fill")
+                    .font(.system(size: 10))
+                    .foregroundStyle(WidgetColors.amberDark)
+                    .padding(4)
+                    .accessibilityLabel("Night profile active")
+            }
         }
     }
 

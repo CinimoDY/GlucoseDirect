@@ -34,15 +34,19 @@ private func expiringNotificationMiddelware(service: LazyService<ExpiringNotific
 
             DirectLog.info("Sensor expiring alert check, age: \(sensorAge)")
 
+            // Floor sensor end-of-life alerts against night silencing: a user who set
+            // nightAlarmVolume = 0 still needs to hear an overnight sensor failure.
+            let expiringVolume = max(state.dayAlarmVolume, state.nightAlarmVolume)
+
             if sensor.state == .expired { // expired
                 DirectLog.info("Sensor is expired")
 
-                service.value.setSensorExpiredAlarm(sound: state.expiringAlarmSound, volume: state.alarmVolume, ignoreMute: state.ignoreMute)
+                service.value.setSensorExpiredAlarm(sound: state.expiringAlarmSound, volume: expiringVolume, ignoreMute: state.ignoreMute)
 
             } else if sensor.remainingLifetime <= (24 * 60) { // less than 24 hours
                 DirectLog.info("Sensor is expiring in less than 24 hours")
-                
-                service.value.setSensorExpiringAlarm(body: String(format: LocalizedString("Your sensor is about to expire. Replace sensor in %1$@."), sensor.remainingLifetime.inTimeSummary), sound: .none, volume: state.alarmVolume, ignoreMute: state.ignoreMute)
+
+                service.value.setSensorExpiringAlarm(body: String(format: LocalizedString("Your sensor is about to expire. Replace sensor in %1$@."), sensor.remainingLifetime.inTimeSummary), sound: .none, volume: expiringVolume, ignoreMute: state.ignoreMute)
             }
 
         default:

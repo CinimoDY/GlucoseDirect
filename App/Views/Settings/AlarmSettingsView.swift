@@ -13,6 +13,134 @@ struct AlarmSettingsView: View {
     @EnvironmentObject var store: DirectStore
 
     var body: some View {
+        Group {
+            daySection
+            nightSection
+            sleepScheduleSection
+            globalSection
+        }
+    }
+
+    // MARK: Private
+
+    @ViewBuilder
+    private var daySection: some View {
+        Section(
+            content: {
+                NumberSelectorView(
+                    key: LocalizedString("Lower limit"),
+                    value: store.state.dayAlarmLow,
+                    step: 5,
+                    max: store.state.dayAlarmHigh,
+                    displayValue: store.state.dayAlarmLow.asGlucose(glucoseUnit: store.state.glucoseUnit, withUnit: true)
+                ) { value in
+                    store.dispatch(.setDayAlarmLow(value: value))
+                }
+
+                NumberSelectorView(
+                    key: LocalizedString("Upper limit"),
+                    value: store.state.dayAlarmHigh,
+                    step: 5,
+                    min: store.state.dayAlarmLow,
+                    displayValue: store.state.dayAlarmHigh.asGlucose(glucoseUnit: store.state.glucoseUnit, withUnit: true)
+                ) { value in
+                    store.dispatch(.setDayAlarmHigh(value: value))
+                }
+
+                VStack(alignment: .leading) {
+                    HStack {
+                        Text("Volume")
+                        Spacer()
+                        Text((store.state.dayAlarmVolume * 100).asPercent())
+                    }
+                    Slider(value: dayAlarmVolume, in: 0...1, step: 0.05)
+                }
+            },
+            header: { Label("Day profile", systemImage: "sun.max") }
+        )
+    }
+
+    @ViewBuilder
+    private var nightSection: some View {
+        Section(
+            content: {
+                NumberSelectorView(
+                    key: LocalizedString("Lower limit"),
+                    value: store.state.nightAlarmLow,
+                    step: 5,
+                    max: store.state.nightAlarmHigh,
+                    displayValue: store.state.nightAlarmLow.asGlucose(glucoseUnit: store.state.glucoseUnit, withUnit: true)
+                ) { value in
+                    store.dispatch(.setNightAlarmLow(value: value))
+                }
+
+                if store.state.nightAlarmLow < store.state.dayAlarmLow {
+                    let delta = store.state.dayAlarmLow - store.state.nightAlarmLow
+                    Text("Lows will need to drop \(delta.asGlucose(glucoseUnit: store.state.glucoseUnit, withUnit: true)) further before alarming at night. Less margin to react if you're asleep.")
+                        .font(.caption)
+                        .foregroundStyle(AmberTheme.amber)
+                }
+
+                NumberSelectorView(
+                    key: LocalizedString("Upper limit"),
+                    value: store.state.nightAlarmHigh,
+                    step: 5,
+                    min: store.state.nightAlarmLow,
+                    displayValue: store.state.nightAlarmHigh.asGlucose(glucoseUnit: store.state.glucoseUnit, withUnit: true)
+                ) { value in
+                    store.dispatch(.setNightAlarmHigh(value: value))
+                }
+
+                if store.state.nightAlarmHigh > store.state.dayAlarmHigh {
+                    let delta = store.state.nightAlarmHigh - store.state.dayAlarmHigh
+                    Text("Highs will need to rise \(delta.asGlucose(glucoseUnit: store.state.glucoseUnit, withUnit: true)) further before alarming at night.")
+                        .font(.caption)
+                        .foregroundStyle(AmberTheme.amber)
+                }
+
+                // Catch absurdly tight night ranges: night high so close to (or below) the
+                // day low that nearly every reading would fire a high alarm at night.
+                // Threshold of dayAlarmLow + 30 mg/dL captures the dangerous case while
+                // tolerating reasonable conservative ranges (e.g., 100-130 over a 80-180 day).
+                if store.state.nightAlarmHigh <= store.state.dayAlarmLow + 30 {
+                    Text("Night high is unusually close to your low threshold — most readings will fire a high alarm at night.")
+                        .font(.caption)
+                        .foregroundStyle(AmberTheme.cgaRed)
+                }
+
+                VStack(alignment: .leading) {
+                    HStack {
+                        Text("Volume")
+                        Spacer()
+                        Text((store.state.nightAlarmVolume * 100).asPercent())
+                    }
+                    Slider(value: nightAlarmVolume, in: 0...1, step: 0.05)
+                }
+            },
+            header: { Label("Night profile", systemImage: "moon.fill") }
+        )
+    }
+
+    @ViewBuilder
+    private var sleepScheduleSection: some View {
+        Section(
+            content: {
+                DatePicker("Start", selection: nightStart, displayedComponents: .hourAndMinute)
+                DatePicker("End", selection: nightEnd, displayedComponents: .hourAndMinute)
+
+                if store.state.nightStartHour == store.state.nightEndHour
+                    && store.state.nightStartMinute == store.state.nightEndMinute {
+                    Text("Night profile inactive — start and end times are equal.")
+                        .font(.caption)
+                        .foregroundStyle(AmberTheme.amber)
+                }
+            },
+            header: { Label("Sleep schedule", systemImage: "clock") }
+        )
+    }
+
+    @ViewBuilder
+    private var globalSection: some View {
         Section(
             content: {
                 Picker("Low glucose alarm", selection: selectedLowGlucoseAlarmSound) {
@@ -38,16 +166,10 @@ struct AlarmSettingsView: View {
                         Text(info.localizedDescription)
                     }
                 }.pickerStyle(.menu)
-                
-                VStack(alignment: .leading) {
-                    HStack {
-                        Text("Alarm volume")
-                        Spacer()
-                        Text((store.state.alarmVolume * 100).asPercent())
-                    }
-                    
-                    Slider(value: alarmVolume, in: 0...1, step: 0.05)
-                }
+
+                Text("Previews play at day volume.")
+                    .font(.caption)
+                    .foregroundStyle(AmberTheme.amber)
 
                 Toggle("Ignore mute", isOn: ignoreMute).toggleStyle(SwitchToggleStyle(tint: AmberTheme.amber))
 
@@ -60,16 +182,12 @@ struct AlarmSettingsView: View {
                 Toggle("Predictive low alarm", isOn: showPredictiveLowAlarm)
                     .toggleStyle(SwitchToggleStyle(tint: AmberTheme.amber))
             },
-            header: {
-                Label("Alarm settings", systemImage: "alarm")
-            },
-            footer: {
-                Text("Predictive low alarm: warns before glucose is predicted to drop below your low threshold")
-            }
+            header: { Label("Alarm settings", systemImage: "alarm") },
+            footer: { Text("Predictive low alarm: warns before glucose is predicted to drop below your low threshold") }
         )
     }
 
-    // MARK: Private
+    // MARK: Bindings
 
     private var ignoreMute: Binding<Bool> {
         Binding(
@@ -77,18 +195,63 @@ struct AlarmSettingsView: View {
             set: { store.dispatch(.setIgnoreMute(enabled: $0)) }
         )
     }
-    
-    private var alarmVolume: Binding<Float> {
+
+    private var dayAlarmVolume: Binding<Float> {
         Binding(
-            get: { store.state.alarmVolume },
+            get: { store.state.dayAlarmVolume },
             set: {
-                store.dispatch(.setAlarmVolume(volume: $0))
-                
+                store.dispatch(.setDayAlarmVolume(value: $0))
+
                 if DirectNotifications.shared.isPlaying() {
                     DirectNotifications.shared.setVolume(volume: $0)
                 } else {
                     DirectNotifications.shared.testSound(sound: .alarm, volume: $0)
                 }
+            }
+        )
+    }
+
+    private var nightAlarmVolume: Binding<Float> {
+        Binding(
+            get: { store.state.nightAlarmVolume },
+            set: {
+                store.dispatch(.setNightAlarmVolume(value: $0))
+
+                if DirectNotifications.shared.isPlaying() {
+                    DirectNotifications.shared.setVolume(volume: $0)
+                } else {
+                    DirectNotifications.shared.testSound(sound: .alarm, volume: $0)
+                }
+            }
+        )
+    }
+
+    private var nightStart: Binding<Date> {
+        Binding(
+            get: {
+                var components = DateComponents()
+                components.hour = store.state.nightStartHour
+                components.minute = store.state.nightStartMinute
+                return Calendar.current.date(from: components) ?? Date()
+            },
+            set: {
+                let comps = Calendar.current.dateComponents([.hour, .minute], from: $0)
+                store.dispatch(.setNightScheduleStart(hour: comps.hour ?? 22, minute: comps.minute ?? 0))
+            }
+        )
+    }
+
+    private var nightEnd: Binding<Date> {
+        Binding(
+            get: {
+                var components = DateComponents()
+                components.hour = store.state.nightEndHour
+                components.minute = store.state.nightEndMinute
+                return Calendar.current.date(from: components) ?? Date()
+            },
+            set: {
+                let comps = Calendar.current.dateComponents([.hour, .minute], from: $0)
+                store.dispatch(.setNightScheduleEnd(hour: comps.hour ?? 7, minute: comps.minute ?? 0))
             }
         )
     }
@@ -114,7 +277,7 @@ struct AlarmSettingsView: View {
                 let sound = NotificationSound(rawValue: $0)!
 
                 store.dispatch(.setLowGlucoseAlarmSound(sound: sound))
-                DirectNotifications.shared.testSound(sound: sound, volume: store.state.alarmVolume)
+                DirectNotifications.shared.testSound(sound: sound, volume: store.state.dayAlarmVolume)
             }
         )
     }
@@ -126,7 +289,7 @@ struct AlarmSettingsView: View {
                 let sound = NotificationSound(rawValue: $0)!
 
                 store.dispatch(.setHighGlucoseAlarmSound(sound: sound))
-                DirectNotifications.shared.testSound(sound: sound, volume: store.state.alarmVolume)
+                DirectNotifications.shared.testSound(sound: sound, volume: store.state.dayAlarmVolume)
             }
         )
     }
@@ -138,7 +301,7 @@ struct AlarmSettingsView: View {
                 let sound = NotificationSound(rawValue: $0)!
 
                 store.dispatch(.setConnectionAlarmSound(sound: sound))
-                DirectNotifications.shared.testSound(sound: sound, volume: store.state.alarmVolume)
+                DirectNotifications.shared.testSound(sound: sound, volume: store.state.dayAlarmVolume)
             }
         )
     }
@@ -150,7 +313,7 @@ struct AlarmSettingsView: View {
                 let sound = NotificationSound(rawValue: $0)!
 
                 store.dispatch(.setExpiringAlarmSound(sound: sound))
-                DirectNotifications.shared.testSound(sound: sound, volume: store.state.alarmVolume)
+                DirectNotifications.shared.testSound(sound: sound, volume: store.state.dayAlarmVolume)
             }
         )
     }

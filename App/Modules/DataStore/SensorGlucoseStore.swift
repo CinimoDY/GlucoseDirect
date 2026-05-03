@@ -17,12 +17,10 @@ func glucoseStatisticsMiddleware() -> Middleware<DirectState, DirectAction> {
                 .setFailureType(to: DirectError.self)
                 .eraseToAnyPublisher()
 
-        case .setAlarmLow(lowerLimit: _):
-            return Just(DirectAction.loadSensorGlucoseStatistics)
-                .setFailureType(to: DirectError.self)
-                .eraseToAnyPublisher()
-
-        case .setAlarmHigh(upperLimit: _):
+        case .setDayAlarmLow, .setDayAlarmHigh, .setNightAlarmLow, .setNightAlarmHigh:
+            // Statistics are threshold-relative (TIR/TBR/TAR depend on alarm thresholds), and
+            // the active threshold can flip at the day/night boundary, so any threshold change
+            // in either profile must trigger a recompute.
             return Just(DirectAction.loadSensorGlucoseStatistics)
                 .setFailureType(to: DirectError.self)
                 .eraseToAnyPublisher()

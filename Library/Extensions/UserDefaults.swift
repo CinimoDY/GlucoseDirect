@@ -79,6 +79,18 @@ private enum Keys: String {
     case basalDIAMinutes = "libre-direct.settings.basal-dia-minutes"
     case showSplitIOB = "libre-direct.settings.show-split-iob"
 
+    // Day/Night alarm profiles
+    case dayAlarmHigh = "libre-direct.settings.day-alarm-high"
+    case dayAlarmLow = "libre-direct.settings.day-alarm-low"
+    case dayAlarmVolume = "libre-direct.settings.day-alarm-volume"
+    case nightAlarmHigh = "libre-direct.settings.night-alarm-high"
+    case nightAlarmLow = "libre-direct.settings.night-alarm-low"
+    case nightAlarmVolume = "libre-direct.settings.night-alarm-volume"
+    case nightStartHour = "libre-direct.settings.night-start-hour"
+    case nightStartMinute = "libre-direct.settings.night-start-minute"
+    case nightEndHour = "libre-direct.settings.night-end-hour"
+    case nightEndMinute = "libre-direct.settings.night-end-minute"
+
     // Widget shared data (App Group)
     case sharedTIR = "glucosedirect--tir"
     case sharedIOB = "glucosedirect--iob"
@@ -1032,6 +1044,140 @@ extension UserDefaults {
             set(newValue, forKey: Keys.showSplitIOB.rawValue)
         }
     }
+
+    // MARK: Day/Night alarm profiles
+
+    var dayAlarmHigh: Int {
+        get {
+            if object(forKey: Keys.dayAlarmHigh.rawValue) != nil {
+                return integer(forKey: Keys.dayAlarmHigh.rawValue)
+            }
+            return 180
+        }
+        set {
+            set(newValue, forKey: Keys.dayAlarmHigh.rawValue)
+        }
+    }
+
+    var dayAlarmLow: Int {
+        get {
+            if object(forKey: Keys.dayAlarmLow.rawValue) != nil {
+                return integer(forKey: Keys.dayAlarmLow.rawValue)
+            }
+            return 80
+        }
+        set {
+            set(newValue, forKey: Keys.dayAlarmLow.rawValue)
+        }
+    }
+
+    var dayAlarmVolume: Float {
+        get {
+            if object(forKey: Keys.dayAlarmVolume.rawValue) != nil {
+                return float(forKey: Keys.dayAlarmVolume.rawValue)
+            }
+            return 0.2
+        }
+        set {
+            set(newValue, forKey: Keys.dayAlarmVolume.rawValue)
+        }
+    }
+
+    var nightAlarmHigh: Int {
+        get {
+            if object(forKey: Keys.nightAlarmHigh.rawValue) != nil {
+                return integer(forKey: Keys.nightAlarmHigh.rawValue)
+            }
+            return 180
+        }
+        set {
+            set(newValue, forKey: Keys.nightAlarmHigh.rawValue)
+        }
+    }
+
+    var nightAlarmLow: Int {
+        get {
+            if object(forKey: Keys.nightAlarmLow.rawValue) != nil {
+                return integer(forKey: Keys.nightAlarmLow.rawValue)
+            }
+            return 80
+        }
+        set {
+            set(newValue, forKey: Keys.nightAlarmLow.rawValue)
+        }
+    }
+
+    var nightAlarmVolume: Float {
+        get {
+            if object(forKey: Keys.nightAlarmVolume.rawValue) != nil {
+                return float(forKey: Keys.nightAlarmVolume.rawValue)
+            }
+            return 0.2
+        }
+        set {
+            set(newValue, forKey: Keys.nightAlarmVolume.rawValue)
+        }
+    }
+
+    var nightStartHour: Int {
+        get {
+            if object(forKey: Keys.nightStartHour.rawValue) != nil {
+                return integer(forKey: Keys.nightStartHour.rawValue)
+            }
+            return 22
+        }
+        set {
+            set(newValue, forKey: Keys.nightStartHour.rawValue)
+        }
+    }
+
+    var nightStartMinute: Int {
+        get {
+            if object(forKey: Keys.nightStartMinute.rawValue) != nil {
+                return integer(forKey: Keys.nightStartMinute.rawValue)
+            }
+            return 0
+        }
+        set {
+            set(newValue, forKey: Keys.nightStartMinute.rawValue)
+        }
+    }
+
+    var nightEndHour: Int {
+        get {
+            if object(forKey: Keys.nightEndHour.rawValue) != nil {
+                return integer(forKey: Keys.nightEndHour.rawValue)
+            }
+            return 7
+        }
+        set {
+            set(newValue, forKey: Keys.nightEndHour.rawValue)
+        }
+    }
+
+    var nightEndMinute: Int {
+        get {
+            if object(forKey: Keys.nightEndMinute.rawValue) != nil {
+                return integer(forKey: Keys.nightEndMinute.rawValue)
+            }
+            return 0
+        }
+        set {
+            set(newValue, forKey: Keys.nightEndMinute.rawValue)
+        }
+    }
+
+    // MARK: Migration helpers
+
+    /// True iff the day/night alarm profile migration has already run.
+    /// Used by `AppState.init` to decide whether to seed per-profile keys.
+    var hasMigratedAlarmProfiles: Bool {
+        object(forKey: Keys.dayAlarmHigh.rawValue) != nil
+    }
+
+    var hasLegacyAlarmHigh: Bool { object(forKey: Keys.alarmHigh.rawValue) != nil }
+    var hasLegacyAlarmLow: Bool { object(forKey: Keys.alarmLow.rawValue) != nil }
+    var hasLegacyAlarmVolume: Bool { object(forKey: Keys.alarmVolume.rawValue) != nil }
 }
 
 extension UserDefaults {

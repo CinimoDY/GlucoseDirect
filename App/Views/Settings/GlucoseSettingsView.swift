@@ -20,14 +20,6 @@ struct GlucoseSettingsView: View {
                     Text(GlucoseUnit.mmolL.localizedDescription).tag(GlucoseUnit.mmolL.rawValue)
                 }.pickerStyle(.menu)
 
-                NumberSelectorView(key: LocalizedString("Lower limit"), value: store.state.alarmLow, step: 5, max: store.state.alarmHigh, displayValue: store.state.alarmLow.asGlucose(glucoseUnit: store.state.glucoseUnit, withUnit: true)) { value in
-                    store.dispatch(.setAlarmLow(lowerLimit: value))
-                }
-
-                NumberSelectorView(key: LocalizedString("Upper limit"), value: store.state.alarmHigh, step: 5, min: store.state.alarmLow, displayValue: store.state.alarmHigh.asGlucose(glucoseUnit: store.state.glucoseUnit, withUnit: true)) { value in
-                    store.dispatch(.setAlarmHigh(upperLimit: value))
-                }
-
                 Toggle("Normal glucose notification", isOn: normalGlucoseNotification).toggleStyle(SwitchToggleStyle(tint: AmberTheme.amber))
                 Toggle("Alarm glucose notification", isOn: alarmGlucoseNotification).toggleStyle(SwitchToggleStyle(tint: AmberTheme.amber))
 

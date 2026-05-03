@@ -42,9 +42,44 @@ struct AppState: DirectState {
             UserDefaults.shared.transmitter = transmitter
         }
 
-        self.alarmHigh = UserDefaults.standard.alarmHigh
-        self.alarmLow = UserDefaults.standard.alarmLow
-        self.alarmVolume = UserDefaults.standard.alarmVolume
+        // Day/Night alarm profile migration. Runs once when per-profile keys are absent.
+        // Trigger condition: `hasMigratedAlarmProfiles` (i.e. dayAlarmHigh present) only —
+        // sufficient because dual-write keeps the legacy `alarmHigh` key present forever
+        // after the first day-side edit, so adding `&& alarmHigh != nil` would always be
+        // true and break re-run protection.
+        if !UserDefaults.standard.hasMigratedAlarmProfiles {
+            // If a legacy install exists, copy its values into both profiles. Otherwise the
+            // UserDefaults computed accessors will return their built-in defaults (180/80/0.2)
+            // when we read below.
+            let legacyHigh = UserDefaults.standard.hasLegacyAlarmHigh ? UserDefaults.standard.alarmHigh : nil
+            let legacyLow = UserDefaults.standard.hasLegacyAlarmLow ? UserDefaults.standard.alarmLow : nil
+            let legacyVolume = UserDefaults.standard.hasLegacyAlarmVolume ? UserDefaults.standard.alarmVolume : nil
+
+            UserDefaults.standard.dayAlarmHigh = legacyHigh ?? 180
+            UserDefaults.standard.nightAlarmHigh = legacyHigh ?? 180
+            UserDefaults.standard.dayAlarmLow = legacyLow ?? 80
+            UserDefaults.standard.nightAlarmLow = legacyLow ?? 80
+            // Match the legacy implicit default (0.2) so users who never customised
+            // volume don't experience a 2.5x volume jump after upgrade. Plan promised
+            // "observable behavior unchanged"; the migration must preserve that.
+            UserDefaults.standard.dayAlarmVolume = legacyVolume ?? 0.2
+            UserDefaults.standard.nightAlarmVolume = legacyVolume ?? 0.2
+            UserDefaults.standard.nightStartHour = 22
+            UserDefaults.standard.nightStartMinute = 0
+            UserDefaults.standard.nightEndHour = 7
+            UserDefaults.standard.nightEndMinute = 0
+        }
+
+        self.dayAlarmHigh = UserDefaults.standard.dayAlarmHigh
+        self.dayAlarmLow = UserDefaults.standard.dayAlarmLow
+        self.dayAlarmVolume = UserDefaults.standard.dayAlarmVolume
+        self.nightAlarmHigh = UserDefaults.standard.nightAlarmHigh
+        self.nightAlarmLow = UserDefaults.standard.nightAlarmLow
+        self.nightAlarmVolume = UserDefaults.standard.nightAlarmVolume
+        self.nightStartHour = UserDefaults.standard.nightStartHour
+        self.nightStartMinute = UserDefaults.standard.nightStartMinute
+        self.nightEndHour = UserDefaults.standard.nightEndHour
+        self.nightEndMinute = UserDefaults.standard.nightEndMinute
         self.appleCalendarExport = UserDefaults.standard.appleCalendarExport
         self.appleHealthExport = UserDefaults.standard.appleHealthExport
         self.appleHealthImport = UserDefaults.standard.appleHealthImport
@@ -146,9 +181,36 @@ struct AppState: DirectState {
         UserDefaults.shared.appSerial
     }
 
-    var alarmHigh: Int { didSet { UserDefaults.standard.alarmHigh = alarmHigh } }
-    var alarmLow: Int { didSet { UserDefaults.standard.alarmLow = alarmLow } }
-    var alarmVolume: Float { didSet { UserDefaults.standard.alarmVolume = alarmVolume } }
+    // Day setters dual-write to legacy keys so a rollback to the prior binary
+    // recovers to the user's day configuration. Night setters do not dual-write.
+    var dayAlarmHigh: Int {
+        didSet {
+            UserDefaults.standard.dayAlarmHigh = dayAlarmHigh
+            UserDefaults.standard.alarmHigh = dayAlarmHigh
+        }
+    }
+
+    var dayAlarmLow: Int {
+        didSet {
+            UserDefaults.standard.dayAlarmLow = dayAlarmLow
+            UserDefaults.standard.alarmLow = dayAlarmLow
+        }
+    }
+
+    var dayAlarmVolume: Float {
+        didSet {
+            UserDefaults.standard.dayAlarmVolume = dayAlarmVolume
+            UserDefaults.standard.alarmVolume = dayAlarmVolume
+        }
+    }
+
+    var nightAlarmHigh: Int { didSet { UserDefaults.standard.nightAlarmHigh = nightAlarmHigh } }
+    var nightAlarmLow: Int { didSet { UserDefaults.standard.nightAlarmLow = nightAlarmLow } }
+    var nightAlarmVolume: Float { didSet { UserDefaults.standard.nightAlarmVolume = nightAlarmVolume } }
+    var nightStartHour: Int { didSet { UserDefaults.standard.nightStartHour = nightStartHour } }
+    var nightStartMinute: Int { didSet { UserDefaults.standard.nightStartMinute = nightStartMinute } }
+    var nightEndHour: Int { didSet { UserDefaults.standard.nightEndHour = nightEndHour } }
+    var nightEndMinute: Int { didSet { UserDefaults.standard.nightEndMinute = nightEndMinute } }
     var appleCalendarExport: Bool { didSet { UserDefaults.standard.appleCalendarExport = appleCalendarExport } }
     var appleHealthExport: Bool { didSet { UserDefaults.standard.appleHealthExport = appleHealthExport } }
     var appleHealthImport: Bool { didSet { UserDefaults.standard.appleHealthImport = appleHealthImport } }

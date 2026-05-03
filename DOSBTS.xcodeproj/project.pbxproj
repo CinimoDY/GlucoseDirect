@@ -33,6 +33,13 @@
 		940B4124F95646FBA4691020 /* StagingPlateRowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDBC4B4C2D774E90898BED6B /* StagingPlateRowTests.swift */; };
 		TE0100010000000E000A000E /* StepperFieldTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TE0100020000000E000A000E /* StepperFieldTests.swift */; };
 		D3AB0CA7B9E864900B041E08 /* MealEntryRelogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 893A1393300A1AE8362876C1 /* MealEntryRelogTests.swift */; };
+		TE0100010000001000A00010 /* AlarmProfileTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TE0100020000001000A00010 /* AlarmProfileTests.swift */; };
+		TE0100010000001100A00011 /* AlarmProfileMigrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TE0100020000001100A00011 /* AlarmProfileMigrationTests.swift */; };
+		TE0100010000001200A00012 /* AlarmThresholdProfileTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TE0100020000001200A00012 /* AlarmThresholdProfileTests.swift */; };
+		TE0100010000001300A00013 /* AppGroupSharingProfileTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TE0100020000001300A00013 /* AppGroupSharingProfileTests.swift */; };
+		TE0100010000001400A00014 /* ActivityContentStateProfileTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TE0100020000001400A00014 /* ActivityContentStateProfileTests.swift */; };
+		TE0100010000001500A00015 /* AlarmProfileResolutionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TE0100020000001500A00015 /* AlarmProfileResolutionTests.swift */; };
+		TE0100010000001600A00016 /* AppGroupMiddlewareDispatchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TE0100020000001600A00016 /* AppGroupMiddlewareDispatchTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -94,6 +101,13 @@
 		FDBC4B4C2D774E90898BED6B /* StagingPlateRowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StagingPlateRowTests.swift; sourceTree = "<group>"; };
 		TE0100020000000E000A000E /* StepperFieldTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepperFieldTests.swift; sourceTree = "<group>"; };
 		893A1393300A1AE8362876C1 /* MealEntryRelogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealEntryRelogTests.swift; sourceTree = "<group>"; };
+		TE0100020000001000A00010 /* AlarmProfileTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmProfileTests.swift; sourceTree = "<group>"; };
+		TE0100020000001100A00011 /* AlarmProfileMigrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmProfileMigrationTests.swift; sourceTree = "<group>"; };
+		TE0100020000001200A00012 /* AlarmThresholdProfileTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmThresholdProfileTests.swift; sourceTree = "<group>"; };
+		TE0100020000001300A00013 /* AppGroupSharingProfileTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppGroupSharingProfileTests.swift; sourceTree = "<group>"; };
+		TE0100020000001400A00014 /* ActivityContentStateProfileTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityContentStateProfileTests.swift; sourceTree = "<group>"; };
+		TE0100020000001500A00015 /* AlarmProfileResolutionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmProfileResolutionTests.swift; sourceTree = "<group>"; };
+		TE0100020000001600A00016 /* AppGroupMiddlewareDispatchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppGroupMiddlewareDispatchTests.swift; sourceTree = "<group>"; };
 		TE01000400000001000A0001 /* DOSBTSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DOSBTSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -231,6 +245,13 @@
 				FDBC4B4C2D774E90898BED6B /* StagingPlateRowTests.swift */,
 				TE0100020000000E000A000E /* StepperFieldTests.swift */,
 				893A1393300A1AE8362876C1 /* MealEntryRelogTests.swift */,
+				TE0100020000001000A00010 /* AlarmProfileTests.swift */,
+				TE0100020000001100A00011 /* AlarmProfileMigrationTests.swift */,
+				TE0100020000001200A00012 /* AlarmThresholdProfileTests.swift */,
+				TE0100020000001300A00013 /* AppGroupSharingProfileTests.swift */,
+				TE0100020000001400A00014 /* ActivityContentStateProfileTests.swift */,
+				TE0100020000001500A00015 /* AlarmProfileResolutionTests.swift */,
+				TE0100020000001600A00016 /* AppGroupMiddlewareDispatchTests.swift */,
 			);
 			path = DOSBTSTests;
 			sourceTree = "<group>";
@@ -421,6 +442,13 @@
 				940B4124F95646FBA4691020 /* StagingPlateRowTests.swift in Sources */,
 				TE0100010000000E000A000E /* StepperFieldTests.swift in Sources */,
 				D3AB0CA7B9E864900B041E08 /* MealEntryRelogTests.swift in Sources */,
+				TE0100010000001000A00010 /* AlarmProfileTests.swift in Sources */,
+				TE0100010000001100A00011 /* AlarmProfileMigrationTests.swift in Sources */,
+				TE0100010000001200A00012 /* AlarmThresholdProfileTests.swift in Sources */,
+				TE0100010000001300A00013 /* AppGroupSharingProfileTests.swift in Sources */,
+				TE0100010000001400A00014 /* ActivityContentStateProfileTests.swift in Sources */,
+				TE0100010000001500A00015 /* AlarmProfileResolutionTests.swift in Sources */,
+				TE0100010000001600A00016 /* AppGroupMiddlewareDispatchTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

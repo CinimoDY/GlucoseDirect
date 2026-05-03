@@ -5,6 +5,7 @@
 
 import Combine
 import Foundation
+import WidgetKit
 
 func appGroupSharingMiddleware() -> Middleware<DirectState, DirectAction> {
     return appGroupSharingMiddleware(service: LazyService<AppGroupSharingService>(initialization: {
@@ -18,6 +19,13 @@ private func appGroupSharingMiddleware(service: LazyService<AppGroupSharingServi
         case .startup:
             service.value.clearAll()
             service.value.setApp(app: DirectConfig.appName, appVersion: "\(DirectConfig.appVersion) (\(DirectConfig.appBuild))")
+            // Seed alarm profile data into the App Group on launch so the widget
+            // resolves against the user's configured thresholds before the first
+            // sensor tick lands. Without this, WidgetAlarmProfileSnapshot.resolve()
+            // would hit its 8-key all-or-nothing guard and fall back to legacy
+            // shared keys (which are never written, so render against hardcoded
+            // 80/180 defaults).
+            service.value.writeAlarmProfileData(state: state)
 
         case .selectConnection(id: _, connection: _):
             service.value.clearAll()
@@ -96,6 +104,24 @@ private func appGroupSharingMiddleware(service: LazyService<AppGroupSharingServi
                     glucoseValues: glucoseValues
                 )
             }
+
+            service.value.writeAlarmProfileData(state: state)
+
+        case .setDayAlarmHigh, .setDayAlarmLow,
+             .setNightAlarmHigh, .setNightAlarmLow,
+             .setNightScheduleStart, .setNightScheduleEnd:
+            // Mirror profile data to the App Group suite so widget + Live Activity
+            // see settings changes without waiting for the next 5-min sensor tick.
+            // Reload widget timelines explicitly — GlucoseWidget's TimelineProvider
+            // schedules a 15-minute reload by default; without an explicit kick the
+            // user wouldn't see threshold/schedule edits until that interval expires.
+            //
+            // Volume setters (.setDay/NightAlarmVolume) are intentionally excluded:
+            // volume is not rendered on the widget or Live Activity, and slider drags
+            // dispatch many setter calls per second — mirroring on volume changes
+            // burns the ActivityKit push budget without any user-visible benefit.
+            service.value.writeAlarmProfileData(state: state)
+            WidgetCenter.shared.reloadAllTimelines()
 
         default:
             break
@@ -213,6 +239,23 @@ private class AppGroupSharingService {
         }
 
         UserDefaults.shared.sharedGlucose = sharedValuesJson
+    }
+
+    /// Mirrors the day/night alarm profile schedule and per-profile thresholds to
+    /// `UserDefaults.shared` (App Group). Widget and Live Activity duplicate the
+    /// resolution algorithm so they stay in sync without per-tick push churn.
+    /// Uses raw key strings: the `UserDefaults` computed properties in
+    /// `Library/Extensions/UserDefaults.swift` target `UserDefaults.standard`,
+    /// and the App Group suite is a different store.
+    func writeAlarmProfileData(state: DirectState) {
+        UserDefaults.shared.set(state.dayAlarmHigh, forKey: AppGroupAlarmProfileKeys.dayAlarmHigh)
+        UserDefaults.shared.set(state.dayAlarmLow, forKey: AppGroupAlarmProfileKeys.dayAlarmLow)
+        UserDefaults.shared.set(state.nightAlarmHigh, forKey: AppGroupAlarmProfileKeys.nightAlarmHigh)
+        UserDefaults.shared.set(state.nightAlarmLow, forKey: AppGroupAlarmProfileKeys.nightAlarmLow)
+        UserDefaults.shared.set(state.nightStartHour, forKey: AppGroupAlarmProfileKeys.nightStartHour)
+        UserDefaults.shared.set(state.nightStartMinute, forKey: AppGroupAlarmProfileKeys.nightStartMinute)
+        UserDefaults.shared.set(state.nightEndHour, forKey: AppGroupAlarmProfileKeys.nightEndHour)
+        UserDefaults.shared.set(state.nightEndMinute, forKey: AppGroupAlarmProfileKeys.nightEndMinute)
     }
 
     func addSensorGlucose(glucoseValues: [SensorGlucose]) {

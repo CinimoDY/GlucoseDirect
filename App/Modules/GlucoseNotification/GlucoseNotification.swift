@@ -112,8 +112,10 @@ private func glucoseNotificationMiddelware(service: LazyService<GlucoseNotificat
                 }
 
                 // Critical-low floor: if glucose is more than 15 mg/dL below alarmLow,
-                // break through treatment snooze (safety override).
-                let isCriticalLow = glucose.glucoseValue < (state.alarmLow - 15)
+                // break through treatment snooze (safety override). Helper lives in
+                // Library/Content/AlarmProfile.swift so tests can verify the
+                // decision directly without re-asserting the arithmetic inline.
+                let isCriticalLow = isCriticalLow(glucoseValue: glucose.glucoseValue, alarmLow: state.alarmLow)
 
                 if !isSnoozed && (!isTreatmentSnoozed || isCriticalLow) {
                     if state.hasLowGlucoseAlarm {

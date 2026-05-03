@@ -79,8 +79,43 @@ extension GlucoseStatusContext {
         return nil
     }
 
+    /// Resolves the active-profile thresholds via the shared helper in
+    /// `Library/Content/AlarmProfile.swift`. All-or-nothing fallback: if any
+    /// of the 8 ContentState profile fields is nil, returns the legacy
+    /// `alarmLow`/`alarmHigh` (a stable day-anchored fallback for pre-upgrade
+    /// in-flight activities). Mixing a per-profile field with a legacy field
+    /// would yield a threshold pair that exists in neither profile.
+    func effectiveAlarmThresholds(at date: Date) -> (low: Int, high: Int, profile: AlarmProfile) {
+        let resolved = resolveActiveProfileThresholds(at: date) { key in
+            switch key {
+            case AppGroupAlarmProfileKeys.dayAlarmHigh: return context.dayAlarmHigh
+            case AppGroupAlarmProfileKeys.dayAlarmLow: return context.dayAlarmLow
+            case AppGroupAlarmProfileKeys.nightAlarmHigh: return context.nightAlarmHigh
+            case AppGroupAlarmProfileKeys.nightAlarmLow: return context.nightAlarmLow
+            case AppGroupAlarmProfileKeys.nightStartHour: return context.nightStartHour
+            case AppGroupAlarmProfileKeys.nightStartMinute: return context.nightStartMinute
+            case AppGroupAlarmProfileKeys.nightEndHour: return context.nightEndHour
+            case AppGroupAlarmProfileKeys.nightEndMinute: return context.nightEndMinute
+            default: return nil
+            }
+        }
+        if let resolved {
+            return (resolved.alarmLow, resolved.alarmHigh, resolved.profile)
+        }
+        return (context.alarmLow, context.alarmHigh, .day)
+    }
+
+    /// True only when the active profile is night AND the new per-profile data
+    /// is present (so we don't show a moon glyph on legacy-fallback activities
+    /// whose schedule data we don't have).
+    var nightProfileActive: Bool {
+        let resolved = effectiveAlarmThresholds(at: Date())
+        return resolved.profile == .night && context.nightStartHour != nil
+    }
+
     func isAlarm(glucose: any Glucose) -> Bool {
-        glucose.glucoseValue < context.alarmLow || glucose.glucoseValue > context.alarmHigh
+        let resolved = effectiveAlarmThresholds(at: Date())
+        return glucose.glucoseValue < resolved.low || glucose.glucoseValue > resolved.high
     }
 
     func getGlucoseColor(glucose: any Glucose) -> Color {
@@ -254,6 +289,15 @@ struct GlucoseActivityView: View, GlucoseStatusContext {
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .widgetBackground(backgroundView: WidgetColors.dosBlack)
+        .overlay(alignment: .topTrailing) {
+            if nightProfileActive {
+                Image(systemName: "moon.fill")
+                    .font(.system(size: 10))
+                    .foregroundStyle(WidgetColors.amberDark)
+                    .padding(6)
+                    .accessibilityLabel("Night profile active")
+            }
+        }
     }
 }
 

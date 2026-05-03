@@ -309,39 +309,81 @@ struct ConnectionStateTests {
 @Suite("Alarm Thresholds")
 struct AlarmThresholdTests {
 
-    @Test("setAlarmHigh updates upper limit")
+    @Test("setDayAlarmHigh updates day upper limit only")
     func setHigh() {
         var state: DirectState = makeState()
-        reduce(&state, .setAlarmHigh(upperLimit: 200))
-        #expect(state.alarmHigh == 200)
+        let originalNight = state.nightAlarmHigh
+        reduce(&state, .setDayAlarmHigh(value: 200))
+        #expect(state.dayAlarmHigh == 200)
+        #expect(state.nightAlarmHigh == originalNight)
     }
 
-    @Test("setAlarmLow updates lower limit")
+    @Test("setDayAlarmLow updates day lower limit only")
     func setLow() {
         var state: DirectState = makeState()
-        reduce(&state, .setAlarmLow(lowerLimit: 60))
-        #expect(state.alarmLow == 60)
+        let originalNight = state.nightAlarmLow
+        reduce(&state, .setDayAlarmLow(value: 60))
+        #expect(state.dayAlarmLow == 60)
+        #expect(state.nightAlarmLow == originalNight)
+    }
+
+    @Test("setNightAlarmHigh updates night upper limit only")
+    func setNightHigh() {
+        var state: DirectState = makeState()
+        let originalDay = state.dayAlarmHigh
+        reduce(&state, .setNightAlarmHigh(value: 220))
+        #expect(state.nightAlarmHigh == 220)
+        #expect(state.dayAlarmHigh == originalDay)
+    }
+
+    @Test("setNightAlarmLow updates night lower limit only")
+    func setNightLow() {
+        var state: DirectState = makeState()
+        let originalDay = state.dayAlarmLow
+        reduce(&state, .setNightAlarmLow(value: 75))
+        #expect(state.nightAlarmLow == 75)
+        #expect(state.dayAlarmLow == originalDay)
+    }
+
+    @Test("setNightScheduleStart mutates both hour and minute atomically")
+    func setNightScheduleStart() {
+        var state: DirectState = makeState()
+        reduce(&state, .setNightScheduleStart(hour: 23, minute: 30))
+        #expect(state.nightStartHour == 23)
+        #expect(state.nightStartMinute == 30)
+    }
+
+    @Test("setNightScheduleEnd mutates both hour and minute atomically")
+    func setNightScheduleEnd() {
+        var state: DirectState = makeState()
+        reduce(&state, .setNightScheduleEnd(hour: 6, minute: 45))
+        #expect(state.nightEndHour == 6)
+        #expect(state.nightEndMinute == 45)
     }
 
     @Test("isAlarm returns lowAlarm when below alarmLow")
     func isAlarmLow() {
         var state: DirectState = makeState()
-        reduce(&state, .setAlarmLow(lowerLimit: 70))
+        reduce(&state, .setDayAlarmLow(value: 70))
+        reduce(&state, .setNightAlarmLow(value: 70))
         #expect(state.isAlarm(glucoseValue: 65) == .lowAlarm)
     }
 
     @Test("isAlarm returns highAlarm when above alarmHigh")
     func isAlarmHigh() {
         var state: DirectState = makeState()
-        reduce(&state, .setAlarmHigh(upperLimit: 180))
+        reduce(&state, .setDayAlarmHigh(value: 180))
+        reduce(&state, .setNightAlarmHigh(value: 180))
         #expect(state.isAlarm(glucoseValue: 200) == .highAlarm)
     }
 
     @Test("isAlarm returns none when in range")
     func isAlarmNone() {
         var state: DirectState = makeState()
-        reduce(&state, .setAlarmLow(lowerLimit: 70))
-        reduce(&state, .setAlarmHigh(upperLimit: 180))
+        reduce(&state, .setDayAlarmLow(value: 70))
+        reduce(&state, .setDayAlarmHigh(value: 180))
+        reduce(&state, .setNightAlarmLow(value: 70))
+        reduce(&state, .setNightAlarmHigh(value: 180))
         #expect(state.isAlarm(glucoseValue: 120) == .none)
     }
 }

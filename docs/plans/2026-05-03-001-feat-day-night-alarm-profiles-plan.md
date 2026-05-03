@@ -1,7 +1,7 @@
 ---
 title: "feat: Day/night alarm profiles"
 type: feat
-status: active
+status: completed
 date: 2026-05-03
 origin: docs/superpowers/specs/2026-05-02-day-night-alarm-profiles-design.md
 ---
