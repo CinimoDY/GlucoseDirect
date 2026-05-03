@@ -79,32 +79,30 @@ extension GlucoseStatusContext {
         return nil
     }
 
-    /// All-or-nothing: if any of the eight per-profile fields is nil, fall back
-    /// to the legacy `alarmLow`/`alarmHigh` (a stable day-anchored fallback for
-    /// pre-upgrade in-flight activities). Mixing a per-profile field with a
-    /// legacy field would yield a threshold pair that exists in neither profile.
+    /// Resolves the active-profile thresholds via the shared helper in
+    /// `Library/Content/AlarmProfile.swift`. All-or-nothing fallback: if any
+    /// of the 8 ContentState profile fields is nil, returns the legacy
+    /// `alarmLow`/`alarmHigh` (a stable day-anchored fallback for pre-upgrade
+    /// in-flight activities). Mixing a per-profile field with a legacy field
+    /// would yield a threshold pair that exists in neither profile.
     func effectiveAlarmThresholds(at date: Date) -> (low: Int, high: Int, profile: AlarmProfile) {
-        guard
-            let sH = context.nightStartHour,
-            let sM = context.nightStartMinute,
-            let eH = context.nightEndHour,
-            let eM = context.nightEndMinute,
-            let dHigh = context.dayAlarmHigh,
-            let dLow = context.dayAlarmLow,
-            let nHigh = context.nightAlarmHigh,
-            let nLow = context.nightAlarmLow
-        else {
-            return (context.alarmLow, context.alarmHigh, .day)
+        let resolved = resolveActiveProfileThresholds(at: date) { key in
+            switch key {
+            case AppGroupAlarmProfileKeys.dayAlarmHigh: return context.dayAlarmHigh
+            case AppGroupAlarmProfileKeys.dayAlarmLow: return context.dayAlarmLow
+            case AppGroupAlarmProfileKeys.nightAlarmHigh: return context.nightAlarmHigh
+            case AppGroupAlarmProfileKeys.nightAlarmLow: return context.nightAlarmLow
+            case AppGroupAlarmProfileKeys.nightStartHour: return context.nightStartHour
+            case AppGroupAlarmProfileKeys.nightStartMinute: return context.nightStartMinute
+            case AppGroupAlarmProfileKeys.nightEndHour: return context.nightEndHour
+            case AppGroupAlarmProfileKeys.nightEndMinute: return context.nightEndMinute
+            default: return nil
+            }
         }
-
-        let profile = resolveActiveAlarmProfile(
-            at: date,
-            nightStartHour: sH,
-            nightStartMinute: sM,
-            nightEndHour: eH,
-            nightEndMinute: eM
-        )
-        return profile == .night ? (nLow, nHigh, .night) : (dLow, dHigh, .day)
+        if let resolved {
+            return (resolved.alarmLow, resolved.alarmHigh, resolved.profile)
+        }
+        return (context.alarmLow, context.alarmHigh, .day)
     }
 
     /// True only when the active profile is night AND the new per-profile data

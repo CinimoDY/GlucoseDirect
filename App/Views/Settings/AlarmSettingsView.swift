@@ -98,6 +98,16 @@ struct AlarmSettingsView: View {
                         .foregroundStyle(AmberTheme.amber)
                 }
 
+                // Catch absurdly tight night ranges: night high so close to (or below) the
+                // day low that nearly every reading would fire a high alarm at night.
+                // Threshold of dayAlarmLow + 30 mg/dL captures the dangerous case while
+                // tolerating reasonable conservative ranges (e.g., 100-130 over a 80-180 day).
+                if store.state.nightAlarmHigh <= store.state.dayAlarmLow + 30 {
+                    Text("Night high is unusually close to your low threshold — most readings will fire a high alarm at night.")
+                        .font(.caption)
+                        .foregroundStyle(AmberTheme.cgaRed)
+                }
+
                 VStack(alignment: .leading) {
                     HStack {
                         Text("Volume")

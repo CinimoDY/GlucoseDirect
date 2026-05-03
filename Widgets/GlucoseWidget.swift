@@ -70,22 +70,44 @@ struct GlucoseUpdateProvider: TimelineProvider {
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> ()) {
-        let entry = buildEntry()
-        let reloadDate = Calendar.current.date(byAdding: .minute, value: 15, to: Date())!
-        let timeline = Timeline(entries: [entry], policy: .after(reloadDate))
-        completion(timeline)
+        // Build entries for now AND for the next day/night profile boundary if
+        // it falls within the 15-minute reload window. Without the boundary
+        // entry, the widget would render stale day/night thresholds for up to
+        // 15 minutes after the schedule flips, contradicting the plan's
+        // "render-time profile resolution" guarantee for R9.
+        let now = Date()
+        let reloadDate = now.addingTimeInterval(15 * 60)
+
+        var entries = [buildEntry(at: now)]
+
+        let defaults = UserDefaults.shared
+        if defaults.object(forKey: AppGroupAlarmProfileKeys.nightStartHour) != nil {
+            let boundary = nextAlarmProfileBoundary(
+                from: now,
+                nightStartHour: defaults.integer(forKey: AppGroupAlarmProfileKeys.nightStartHour),
+                nightStartMinute: defaults.integer(forKey: AppGroupAlarmProfileKeys.nightStartMinute),
+                nightEndHour: defaults.integer(forKey: AppGroupAlarmProfileKeys.nightEndHour),
+                nightEndMinute: defaults.integer(forKey: AppGroupAlarmProfileKeys.nightEndMinute),
+                lookaheadSeconds: 15 * 60
+            )
+            if let boundary {
+                entries.append(buildEntry(at: boundary))
+            }
+        }
+
+        completion(Timeline(entries: entries, policy: .after(reloadDate)))
     }
 
-    private func buildEntry() -> GlucoseEntry {
+    private func buildEntry(at date: Date = Date()) -> GlucoseEntry {
         let defaults = UserDefaults.shared
-        let resolved = WidgetAlarmProfileSnapshot.resolve(at: Date())
+        let resolved = WidgetAlarmProfileSnapshot.resolve(at: date)
         return GlucoseEntry(
-            date: Date(),
+            date: date,
             glucose: defaults.latestSensorGlucose,
             glucoseUnit: defaults.glucoseUnit,
-            alarmLow: resolved.alarmLow ?? defaults.alarmLow,
-            alarmHigh: resolved.alarmHigh ?? defaults.alarmHigh,
-            activeAlarmProfile: resolved.profile,
+            alarmLow: resolved?.alarmLow ?? defaults.alarmLow,
+            alarmHigh: resolved?.alarmHigh ?? defaults.alarmHigh,
+            activeAlarmProfile: resolved?.profile ?? .day,
             tir: defaults.sharedTIR,
             iob: defaults.sharedIOB,
             lastMealDescription: defaults.sharedLastMealDescription,
@@ -96,48 +118,20 @@ struct GlucoseUpdateProvider: TimelineProvider {
     }
 }
 
-/// Reads the day/night alarm profile schedule + per-profile thresholds from
-/// `UserDefaults.shared` and resolves the active profile for the given clock
-/// time. Returns nil thresholds when profile data is absent (pre-upgrade or
-/// fresh App Group), so callers can fall back to the legacy single-threshold
-/// keys without conflating sources.
-struct WidgetAlarmProfileSnapshot {
-    let profile: AlarmProfile
-    let alarmLow: Int?
-    let alarmHigh: Int?
-
-    static func resolve(at date: Date) -> WidgetAlarmProfileSnapshot {
+/// Reads the day/night alarm profile from `UserDefaults.shared` (App Group)
+/// and resolves the active profile for the given clock time. Thin wrapper
+/// over the shared `resolveActiveProfileThresholds(at:intReader:)` helper
+/// in `Library/Content/AlarmProfile.swift`.
+enum WidgetAlarmProfileSnapshot {
+    static func resolve(at date: Date) -> ResolvedAlarmThresholds? {
         let defaults = UserDefaults.shared
-        let keys = AppGroupAlarmProfileKeys.self
-        guard
-            defaults.object(forKey: keys.dayAlarmHigh) != nil,
-            defaults.object(forKey: keys.dayAlarmLow) != nil,
-            defaults.object(forKey: keys.nightAlarmHigh) != nil,
-            defaults.object(forKey: keys.nightAlarmLow) != nil,
-            defaults.object(forKey: keys.nightStartHour) != nil,
-            defaults.object(forKey: keys.nightStartMinute) != nil,
-            defaults.object(forKey: keys.nightEndHour) != nil,
-            defaults.object(forKey: keys.nightEndMinute) != nil
-        else {
-            return .init(profile: .day, alarmLow: nil, alarmHigh: nil)
+        return resolveActiveProfileThresholds(at: date) { key in
+            // UserDefaults.object returns nil for missing keys.
+            // .integer returns 0 for missing keys, which is a valid clock value,
+            // so we must guard against missing-vs-actually-zero with `.object`.
+            guard defaults.object(forKey: key) != nil else { return nil }
+            return defaults.integer(forKey: key)
         }
-
-        let profile = resolveActiveAlarmProfile(
-            at: date,
-            nightStartHour: defaults.integer(forKey: keys.nightStartHour),
-            nightStartMinute: defaults.integer(forKey: keys.nightStartMinute),
-            nightEndHour: defaults.integer(forKey: keys.nightEndHour),
-            nightEndMinute: defaults.integer(forKey: keys.nightEndMinute)
-        )
-
-        let low = profile == .night
-            ? defaults.integer(forKey: keys.nightAlarmLow)
-            : defaults.integer(forKey: keys.dayAlarmLow)
-        let high = profile == .night
-            ? defaults.integer(forKey: keys.nightAlarmHigh)
-            : defaults.integer(forKey: keys.dayAlarmHigh)
-
-        return .init(profile: profile, alarmLow: low, alarmHigh: high)
     }
 }
 

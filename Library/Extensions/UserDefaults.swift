@@ -1166,6 +1166,18 @@ extension UserDefaults {
             set(newValue, forKey: Keys.nightEndMinute.rawValue)
         }
     }
+
+    // MARK: Migration helpers
+
+    /// True iff the day/night alarm profile migration has already run.
+    /// Used by `AppState.init` to decide whether to seed per-profile keys.
+    var hasMigratedAlarmProfiles: Bool {
+        object(forKey: Keys.dayAlarmHigh.rawValue) != nil
+    }
+
+    var hasLegacyAlarmHigh: Bool { object(forKey: Keys.alarmHigh.rawValue) != nil }
+    var hasLegacyAlarmLow: Bool { object(forKey: Keys.alarmLow.rawValue) != nil }
+    var hasLegacyAlarmVolume: Bool { object(forKey: Keys.alarmVolume.rawValue) != nil }
 }
 
 extension UserDefaults {

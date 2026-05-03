@@ -43,19 +43,17 @@ struct AppState: DirectState {
         }
 
         // Day/Night alarm profile migration. Runs once when per-profile keys are absent.
-        // Trigger condition: `dayAlarmHigh == nil` only — sufficient because dual-write keeps
-        // the legacy `alarmHigh` key present forever after the first day-side edit, so adding
-        // `&& alarmHigh != nil` would always be true and break re-run protection.
-        if UserDefaults.standard.object(forKey: "libre-direct.settings.day-alarm-high") == nil {
+        // Trigger condition: `hasMigratedAlarmProfiles` (i.e. dayAlarmHigh present) only —
+        // sufficient because dual-write keeps the legacy `alarmHigh` key present forever
+        // after the first day-side edit, so adding `&& alarmHigh != nil` would always be
+        // true and break re-run protection.
+        if !UserDefaults.standard.hasMigratedAlarmProfiles {
             // If a legacy install exists, copy its values into both profiles. Otherwise the
-            // UserDefaults computed accessors will return their built-in defaults (180/80/0.5)
+            // UserDefaults computed accessors will return their built-in defaults (180/80/0.2)
             // when we read below.
-            let legacyHigh = UserDefaults.standard.object(forKey: "libre-direct.settings.alarm-high") != nil
-                ? UserDefaults.standard.alarmHigh : nil
-            let legacyLow = UserDefaults.standard.object(forKey: "libre-direct.settings.alarm-low") != nil
-                ? UserDefaults.standard.alarmLow : nil
-            let legacyVolume = UserDefaults.standard.object(forKey: "libre-direct.settings.alarm-volume") != nil
-                ? UserDefaults.standard.alarmVolume : nil
+            let legacyHigh = UserDefaults.standard.hasLegacyAlarmHigh ? UserDefaults.standard.alarmHigh : nil
+            let legacyLow = UserDefaults.standard.hasLegacyAlarmLow ? UserDefaults.standard.alarmLow : nil
+            let legacyVolume = UserDefaults.standard.hasLegacyAlarmVolume ? UserDefaults.standard.alarmVolume : nil
 
             UserDefaults.standard.dayAlarmHigh = legacyHigh ?? 180
             UserDefaults.standard.nightAlarmHigh = legacyHigh ?? 180
