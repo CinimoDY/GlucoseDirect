@@ -1,6 +1,7 @@
 ---
 title: "SwiftUI .onChange doesn't fire while the scene is backgrounded — don't rely on it for must-happen-in-background work"
 date: 2026-04-24
+last_refreshed: 2026-05-03
 category: logic-errors
 module: ui
 problem_type: bug
@@ -59,6 +60,7 @@ Paths 1 and 2 cover foreground transitions only. When the app sits in the backgr
 | Redux middleware (actions dispatched from BLE/NFC/URLSession callbacks) | **Yes** | Persistence, widget reloads, notifications, HK writes |
 | `AppDelegate` / `UIApplicationDelegate` lifecycle hooks | Yes (app-level, not scene-level) | Cross-scene work |
 | Background tasks registered via `BGTaskScheduler` | Yes | Longer work windows |
+| WidgetKit timeline entries (pre-resolved by `TimelineProvider`) | N/A — not "running" but **pre-baked at build time** | Time-of-day-dependent UI requires explicit boundary entries; see `widgetkit-timeline-time-of-day-boundary-entries-20260503.md` |
 
 The rule: **if the work must happen whenever a given Redux action fires, put it in the middleware for that action, not in a `.onChange` in the view that observes the action's state mutation.**
 
@@ -101,8 +103,10 @@ Quick audit targets in DOSBTS if more widget / Live Activity / HK symptoms appea
 - **Nightscout upload** — `NightscoutUpload` middleware. Matches.
 - **App Group writes from `AppGroupSharing`** — synchronous for `sharedGlucose` JSON; async for sparkline/TIR/IOB. Widget reloads from the middleware fire AFTER the middleware pipeline runs `AppGroupSharing`, so the sync writes are guaranteed landed. The async ones may lag by ≤ one reading, which is acceptable for non-critical widget chrome.
 - **Anything new that dispatches work off a `store.state` change via `.onChange`** — move it to a middleware unless it's truly foreground-only (animations, focus management, etc.).
+- **Time-of-day-dependent rendering on the home-screen widget** — middleware-driven reloads catch state changes, but the widget's `TimelineProvider` pre-resolves each entry at build time. A single-entry timeline that spans a day/night boundary, sleep-mode flip, or scheduled state change will silently render stale until the next reload tick. Emit a multi-entry timeline with an explicit boundary entry. Live Activity is naturally correct via render-time view-body evaluation; only the home-screen widget needs this. See `docs/solutions/best-practices/widgetkit-timeline-time-of-day-boundary-entries-20260503.md`.
 
 ## Related
 
+- `docs/solutions/best-practices/widgetkit-timeline-time-of-day-boundary-entries-20260503.md` — complementary on the WidgetKit side: this doc covers *when reloads fire* (middleware-driven), that one covers *what entries the timeline contains* (boundary-aware multi-entry timelines for time-of-day-dependent UI).
 - `docs/solutions/logic-errors/appstate-inactive-blocks-data-loading-20260317.md` — the other side of the lifecycle coin: don't run middleware side-effects while app is `.inactive`, but do run them on `.active`.
 - CLAUDE.md § *Architecture gotchas* — existing note on reducer running before middlewares explains why synchronous `AppState.didSet` writes are visible to subsequent middlewares in the pipeline.
