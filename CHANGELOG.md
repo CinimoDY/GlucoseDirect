@@ -7,6 +7,9 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+### Added
+- Day/night alarm profiles. Two separate threshold + volume profiles switched on a fixed user-configured time window (default 22:00–07:00). Solves nighttime alarm fatigue without changing day-time behavior for users who don't opt in. Settings → Alarms now has Day profile, Night profile, and Sleep schedule sections; the existing single threshold/volume controls migrate transparently into both profiles. A small moon glyph appears in the Overview tab, the Home Screen + Lock Screen widgets, and the Live Activity when night profile is active. Boundary transitions use a 5-min responsiveness floor (next sensor reading triggers re-evaluation); lock-screen surfaces stay correct in real time via render-time profile resolution. Treatment-cycle behavior, snooze, predictive low, and critical-low breakthrough all read the active profile transparently — no cycle pinning. Sensor end-of-life warnings always play at the louder of the two configured volumes so a silenced night profile cannot suppress an overnight sensor failure. **Rollback note:** day-side threshold and volume changes dual-write to legacy keys for safe rollback to the prior build; night-side changes are not mirrored, so a rollback after night customization recovers to the day configuration — DMNC-692.
+
 ## [Build 87] — 2026-05-01
 
 ### Fixed
