@@ -14,6 +14,23 @@ enum AlarmProfile {
     case night
 }
 
+// MARK: - App Group key constants
+
+/// Raw string keys for the day/night alarm profile data mirrored into
+/// `UserDefaults.shared` (App Group suite). Both the app's
+/// AppGroupSharing middleware and the widget targets read/write these
+/// keys directly via `UserDefaults.shared.set(_:forKey:)`.
+enum AppGroupAlarmProfileKeys {
+    static let dayAlarmHigh = "dayAlarmHigh"
+    static let dayAlarmLow = "dayAlarmLow"
+    static let nightAlarmHigh = "nightAlarmHigh"
+    static let nightAlarmLow = "nightAlarmLow"
+    static let nightStartHour = "nightStartHour"
+    static let nightStartMinute = "nightStartMinute"
+    static let nightEndHour = "nightEndHour"
+    static let nightEndMinute = "nightEndMinute"
+}
+
 // MARK: - Resolution
 
 /// Returns the active alarm profile for the given clock time and night-window schedule.

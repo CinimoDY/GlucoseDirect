@@ -19,6 +19,7 @@ struct GlucoseEntry: TimelineEntry {
     let glucoseUnit: GlucoseUnit?
     let alarmLow: Int
     let alarmHigh: Int
+    let activeAlarmProfile: AlarmProfile
     let tir: Double?
     let iob: Double?
     let lastMealDescription: String?
@@ -32,6 +33,7 @@ struct GlucoseEntry: TimelineEntry {
         self.glucoseUnit = nil
         self.alarmLow = 70
         self.alarmHigh = 180
+        self.activeAlarmProfile = .day
         self.tir = nil
         self.iob = nil
         self.lastMealDescription = nil
@@ -46,6 +48,7 @@ struct GlucoseEntry: TimelineEntry {
         self.glucoseUnit = glucoseUnit
         self.alarmLow = 70
         self.alarmHigh = 180
+        self.activeAlarmProfile = .day
         self.tir = nil
         self.iob = nil
         self.lastMealDescription = nil
@@ -75,12 +78,14 @@ struct GlucoseUpdateProvider: TimelineProvider {
 
     private func buildEntry() -> GlucoseEntry {
         let defaults = UserDefaults.shared
+        let resolved = WidgetAlarmProfileSnapshot.resolve(at: Date())
         return GlucoseEntry(
             date: Date(),
             glucose: defaults.latestSensorGlucose,
             glucoseUnit: defaults.glucoseUnit,
-            alarmLow: defaults.alarmLow,
-            alarmHigh: defaults.alarmHigh,
+            alarmLow: resolved.alarmLow ?? defaults.alarmLow,
+            alarmHigh: resolved.alarmHigh ?? defaults.alarmHigh,
+            activeAlarmProfile: resolved.profile,
             tir: defaults.sharedTIR,
             iob: defaults.sharedIOB,
             lastMealDescription: defaults.sharedLastMealDescription,
@@ -91,13 +96,59 @@ struct GlucoseUpdateProvider: TimelineProvider {
     }
 }
 
+/// Reads the day/night alarm profile schedule + per-profile thresholds from
+/// `UserDefaults.shared` and resolves the active profile for the given clock
+/// time. Returns nil thresholds when profile data is absent (pre-upgrade or
+/// fresh App Group), so callers can fall back to the legacy single-threshold
+/// keys without conflating sources.
+struct WidgetAlarmProfileSnapshot {
+    let profile: AlarmProfile
+    let alarmLow: Int?
+    let alarmHigh: Int?
+
+    static func resolve(at date: Date) -> WidgetAlarmProfileSnapshot {
+        let defaults = UserDefaults.shared
+        let keys = AppGroupAlarmProfileKeys.self
+        guard
+            defaults.object(forKey: keys.dayAlarmHigh) != nil,
+            defaults.object(forKey: keys.dayAlarmLow) != nil,
+            defaults.object(forKey: keys.nightAlarmHigh) != nil,
+            defaults.object(forKey: keys.nightAlarmLow) != nil,
+            defaults.object(forKey: keys.nightStartHour) != nil,
+            defaults.object(forKey: keys.nightStartMinute) != nil,
+            defaults.object(forKey: keys.nightEndHour) != nil,
+            defaults.object(forKey: keys.nightEndMinute) != nil
+        else {
+            return .init(profile: .day, alarmLow: nil, alarmHigh: nil)
+        }
+
+        let profile = resolveActiveAlarmProfile(
+            at: date,
+            nightStartHour: defaults.integer(forKey: keys.nightStartHour),
+            nightStartMinute: defaults.integer(forKey: keys.nightStartMinute),
+            nightEndHour: defaults.integer(forKey: keys.nightEndHour),
+            nightEndMinute: defaults.integer(forKey: keys.nightEndMinute)
+        )
+
+        let low = profile == .night
+            ? defaults.integer(forKey: keys.nightAlarmLow)
+            : defaults.integer(forKey: keys.dayAlarmLow)
+        let high = profile == .night
+            ? defaults.integer(forKey: keys.nightAlarmHigh)
+            : defaults.integer(forKey: keys.dayAlarmHigh)
+
+        return .init(profile: profile, alarmLow: low, alarmHigh: high)
+    }
+}
+
 private extension GlucoseEntry {
-    init(date: Date, glucose: SensorGlucose?, glucoseUnit: GlucoseUnit?, alarmLow: Int, alarmHigh: Int, tir: Double?, iob: Double?, lastMealDescription: String?, lastMealCarbs: Double?, lastMealTimestamp: Date?, sparkline: [Int]?) {
+    init(date: Date, glucose: SensorGlucose?, glucoseUnit: GlucoseUnit?, alarmLow: Int, alarmHigh: Int, activeAlarmProfile: AlarmProfile, tir: Double?, iob: Double?, lastMealDescription: String?, lastMealCarbs: Double?, lastMealTimestamp: Date?, sparkline: [Int]?) {
         self.date = date
         self.glucose = glucose
         self.glucoseUnit = glucoseUnit
         self.alarmLow = alarmLow
         self.alarmHigh = alarmHigh
+        self.activeAlarmProfile = activeAlarmProfile
         self.tir = tir
         self.iob = iob
         self.lastMealDescription = lastMealDescription
@@ -137,30 +188,41 @@ struct GlucoseView: View {
     }
 
     var body: some View {
-        if let glucose, let glucoseUnit {
-            switch size {
-            case .accessoryCircular:
-                circularView(glucose: glucose, glucoseUnit: glucoseUnit)
+        Group {
+            if let glucose, let glucoseUnit {
+                switch size {
+                case .accessoryCircular:
+                    circularView(glucose: glucose, glucoseUnit: glucoseUnit)
 
-            case .accessoryRectangular:
-                rectangularView(glucose: glucose, glucoseUnit: glucoseUnit)
+                case .accessoryRectangular:
+                    rectangularView(glucose: glucose, glucoseUnit: glucoseUnit)
 
-            case .systemSmall:
-                smallView(glucose: glucose, glucoseUnit: glucoseUnit)
+                case .systemSmall:
+                    smallView(glucose: glucose, glucoseUnit: glucoseUnit)
 
-            case .systemMedium:
-                mediumView(glucose: glucose, glucoseUnit: glucoseUnit)
+                case .systemMedium:
+                    mediumView(glucose: glucose, glucoseUnit: glucoseUnit)
 
-            case .systemLarge:
-                largeView(glucose: glucose, glucoseUnit: glucoseUnit)
+                case .systemLarge:
+                    largeView(glucose: glucose, glucoseUnit: glucoseUnit)
 
-            default:
-                Text("---")
-                    .font(WidgetFonts.body)
-                    .foregroundColor(WidgetColors.amberDark)
+                default:
+                    Text("---")
+                        .font(WidgetFonts.body)
+                        .foregroundColor(WidgetColors.amberDark)
+                }
+            } else {
+                noDataView
             }
-        } else {
-            noDataView
+        }
+        .overlay(alignment: .topTrailing) {
+            if entry.activeAlarmProfile == .night {
+                Image(systemName: "moon.fill")
+                    .font(.system(size: 10))
+                    .foregroundStyle(WidgetColors.amberDark)
+                    .padding(4)
+                    .accessibilityHidden(true)
+            }
         }
     }
 

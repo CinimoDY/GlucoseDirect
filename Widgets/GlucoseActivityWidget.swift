@@ -79,8 +79,45 @@ extension GlucoseStatusContext {
         return nil
     }
 
+    /// All-or-nothing: if any of the eight per-profile fields is nil, fall back
+    /// to the legacy `alarmLow`/`alarmHigh` (a stable day-anchored fallback for
+    /// pre-upgrade in-flight activities). Mixing a per-profile field with a
+    /// legacy field would yield a threshold pair that exists in neither profile.
+    func effectiveAlarmThresholds(at date: Date) -> (low: Int, high: Int, profile: AlarmProfile) {
+        guard
+            let sH = context.nightStartHour,
+            let sM = context.nightStartMinute,
+            let eH = context.nightEndHour,
+            let eM = context.nightEndMinute,
+            let dHigh = context.dayAlarmHigh,
+            let dLow = context.dayAlarmLow,
+            let nHigh = context.nightAlarmHigh,
+            let nLow = context.nightAlarmLow
+        else {
+            return (context.alarmLow, context.alarmHigh, .day)
+        }
+
+        let profile = resolveActiveAlarmProfile(
+            at: date,
+            nightStartHour: sH,
+            nightStartMinute: sM,
+            nightEndHour: eH,
+            nightEndMinute: eM
+        )
+        return profile == .night ? (nLow, nHigh, .night) : (dLow, dHigh, .day)
+    }
+
+    /// True only when the active profile is night AND the new per-profile data
+    /// is present (so we don't show a moon glyph on legacy-fallback activities
+    /// whose schedule data we don't have).
+    var nightProfileActive: Bool {
+        let resolved = effectiveAlarmThresholds(at: Date())
+        return resolved.profile == .night && context.nightStartHour != nil
+    }
+
     func isAlarm(glucose: any Glucose) -> Bool {
-        glucose.glucoseValue < context.alarmLow || glucose.glucoseValue > context.alarmHigh
+        let resolved = effectiveAlarmThresholds(at: Date())
+        return glucose.glucoseValue < resolved.low || glucose.glucoseValue > resolved.high
     }
 
     func getGlucoseColor(glucose: any Glucose) -> Color {
@@ -254,6 +291,15 @@ struct GlucoseActivityView: View, GlucoseStatusContext {
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .widgetBackground(backgroundView: WidgetColors.dosBlack)
+        .overlay(alignment: .topTrailing) {
+            if nightProfileActive {
+                Image(systemName: "moon.fill")
+                    .font(.system(size: 10))
+                    .foregroundStyle(WidgetColors.amberDark)
+                    .padding(6)
+                    .accessibilityHidden(true)
+            }
+        }
     }
 }
 
