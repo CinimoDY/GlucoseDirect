@@ -100,14 +100,31 @@ func directReducer(state: inout DirectState, action: DirectAction) {
     case .selectView(viewTag: let viewTag):
         state.selectedView = viewTag
         
-    case .setAlarmHigh(upperLimit: let upperLimit):
-        state.alarmHigh = upperLimit
-        
-    case .setAlarmLow(lowerLimit: let lowerLimit):
-        state.alarmLow = lowerLimit
-        
-    case .setAlarmVolume(volume: let volume):
-        state.alarmVolume = volume
+    case .setDayAlarmHigh(value: let value):
+        state.dayAlarmHigh = value
+
+    case .setDayAlarmLow(value: let value):
+        state.dayAlarmLow = value
+
+    case .setDayAlarmVolume(value: let value):
+        state.dayAlarmVolume = value
+
+    case .setNightAlarmHigh(value: let value):
+        state.nightAlarmHigh = value
+
+    case .setNightAlarmLow(value: let value):
+        state.nightAlarmLow = value
+
+    case .setNightAlarmVolume(value: let value):
+        state.nightAlarmVolume = value
+
+    case .setNightScheduleStart(hour: let hour, minute: let minute):
+        state.nightStartHour = hour
+        state.nightStartMinute = minute
+
+    case .setNightScheduleEnd(hour: let hour, minute: let minute):
+        state.nightEndHour = hour
+        state.nightEndMinute = minute
         
     case .setAlarmSnoozeUntil(untilDate: let untilDate, autosnooze: let autosnooze):
         if let untilDate = untilDate {

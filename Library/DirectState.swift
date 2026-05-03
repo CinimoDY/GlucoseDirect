@@ -13,11 +13,21 @@ protocol DirectState {
     var appIsBusy: Bool { get set }
     var appSerial: String { get }
     var appState: ScenePhase { get set }
-    var alarmHigh: Int { get set }
-    var alarmLow: Int { get set }
+    var alarmHigh: Int { get }
+    var alarmLow: Int { get }
     var alarmSnoozeUntil: Date? { get set }
     var alarmSnoozeKind: Alarm? { get set }
-    var alarmVolume: Float { get set }
+    var alarmVolume: Float { get }
+    var dayAlarmHigh: Int { get set }
+    var dayAlarmLow: Int { get set }
+    var dayAlarmVolume: Float { get set }
+    var nightAlarmHigh: Int { get set }
+    var nightAlarmLow: Int { get set }
+    var nightAlarmVolume: Float { get set }
+    var nightStartHour: Int { get set }
+    var nightStartMinute: Int { get set }
+    var nightEndHour: Int { get set }
+    var nightEndMinute: Int { get set }
     var appleCalendarExport: Bool { get set }
     var appleHealthExport: Bool { get set }
     var appleHealthImport: Bool { get set }
@@ -128,6 +138,30 @@ protocol DirectState {
 }
 
 extension DirectState {
+    // MARK: Day/Night alarm profile
+
+    var activeAlarmProfile: AlarmProfile {
+        resolveActiveAlarmProfile(
+            at: Date(),
+            nightStartHour: nightStartHour,
+            nightStartMinute: nightStartMinute,
+            nightEndHour: nightEndHour,
+            nightEndMinute: nightEndMinute
+        )
+    }
+
+    var alarmHigh: Int {
+        activeAlarmProfile == .night ? nightAlarmHigh : dayAlarmHigh
+    }
+
+    var alarmLow: Int {
+        activeAlarmProfile == .night ? nightAlarmLow : dayAlarmLow
+    }
+
+    var alarmVolume: Float {
+        activeAlarmProfile == .night ? nightAlarmVolume : dayAlarmVolume
+    }
+
     var hasConnectionAlarm: Bool {
         connectionAlarmSound != .none
     }

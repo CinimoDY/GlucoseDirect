@@ -43,7 +43,7 @@ struct AlarmSettingsView: View {
                     HStack {
                         Text("Alarm volume")
                         Spacer()
-                        Text((store.state.alarmVolume * 100).asPercent())
+                        Text((store.state.dayAlarmVolume * 100).asPercent())
                     }
                     
                     Slider(value: alarmVolume, in: 0...1, step: 0.05)
@@ -80,10 +80,10 @@ struct AlarmSettingsView: View {
     
     private var alarmVolume: Binding<Float> {
         Binding(
-            get: { store.state.alarmVolume },
+            get: { store.state.dayAlarmVolume },
             set: {
-                store.dispatch(.setAlarmVolume(volume: $0))
-                
+                store.dispatch(.setDayAlarmVolume(value: $0))
+
                 if DirectNotifications.shared.isPlaying() {
                     DirectNotifications.shared.setVolume(volume: $0)
                 } else {
