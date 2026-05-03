@@ -12,7 +12,7 @@ private func dateAt(hour: Int, minute: Int) -> Date {
     components.hour = hour
     components.minute = minute
     components.second = 0
-    return Calendar.current.date(from: components)!
+    return Calendar.current.date(from: components) ?? Date()
 }
 
 @Suite("AlarmProfile resolution")

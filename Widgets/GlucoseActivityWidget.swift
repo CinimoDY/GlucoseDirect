@@ -297,7 +297,7 @@ struct GlucoseActivityView: View, GlucoseStatusContext {
                     .font(.system(size: 10))
                     .foregroundStyle(WidgetColors.amberDark)
                     .padding(6)
-                    .accessibilityHidden(true)
+                    .accessibilityLabel("Night profile active")
             }
         }
     }

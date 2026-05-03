@@ -221,7 +221,7 @@ struct GlucoseView: View {
                     .font(.system(size: 10))
                     .foregroundStyle(WidgetColors.amberDark)
                     .padding(4)
-                    .accessibilityHidden(true)
+                    .accessibilityLabel("Night profile active")
             }
         }
     }

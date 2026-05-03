@@ -1076,7 +1076,7 @@ extension UserDefaults {
             if object(forKey: Keys.dayAlarmVolume.rawValue) != nil {
                 return float(forKey: Keys.dayAlarmVolume.rawValue)
             }
-            return 0.5
+            return 0.2
         }
         set {
             set(newValue, forKey: Keys.dayAlarmVolume.rawValue)
@@ -1112,7 +1112,7 @@ extension UserDefaults {
             if object(forKey: Keys.nightAlarmVolume.rawValue) != nil {
                 return float(forKey: Keys.nightAlarmVolume.rawValue)
             }
-            return 0.5
+            return 0.2
         }
         set {
             set(newValue, forKey: Keys.nightAlarmVolume.rawValue)

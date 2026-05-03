@@ -125,12 +125,14 @@ private func widgetCenterMiddleware(service: LazyService<ActivityGlucoseService>
                 service.value.update(alarmLow: state.dayAlarmLow, alarmHigh: state.dayAlarmHigh, sensorState: state.sensor?.state, connectionState: state.connectionState, glucose: state.latestSensorGlucose, glucoseUnit: state.glucoseUnit, profile: state.liveActivityAlarmProfilePayload)
             }
 
-        case .setDayAlarmHigh, .setDayAlarmLow, .setDayAlarmVolume,
-             .setNightAlarmHigh, .setNightAlarmLow, .setNightAlarmVolume,
+        case .setDayAlarmHigh, .setDayAlarmLow,
+             .setNightAlarmHigh, .setNightAlarmLow,
              .setNightScheduleStart, .setNightScheduleEnd:
             // Push the schedule + per-profile thresholds into the in-flight Live
             // Activity ContentState so users see settings changes without waiting
-            // for the next sensor tick.
+            // for the next sensor tick. Volume setters are intentionally excluded —
+            // volume isn't rendered on the lock screen, and slider drags would
+            // burn the ActivityKit push budget without user-visible benefit.
             guard state.glucoseLiveActivity, service.value.isActivated, !service.value.startRequired else {
                 break
             }

@@ -45,8 +45,15 @@ func resolveActiveAlarmProfile(
     nightEndHour: Int,
     nightEndMinute: Int
 ) -> AlarmProfile {
-    let startMinute = (nightStartHour * 60) + nightStartMinute
-    let endMinute = (nightEndHour * 60) + nightEndMinute
+    // Clamp inputs to valid ranges so a corrupted UserDefaults state can't produce
+    // nonsense schedules. DatePicker can't surface out-of-range values; this guards
+    // against direct manipulation or future code paths.
+    let sH = max(0, min(23, nightStartHour))
+    let sM = max(0, min(59, nightStartMinute))
+    let eH = max(0, min(23, nightEndHour))
+    let eM = max(0, min(59, nightEndMinute))
+    let startMinute = (sH * 60) + sM
+    let endMinute = (eH * 60) + eM
 
     if startMinute == endMinute {
         return .day

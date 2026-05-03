@@ -61,8 +61,11 @@ struct AppState: DirectState {
             UserDefaults.standard.nightAlarmHigh = legacyHigh ?? 180
             UserDefaults.standard.dayAlarmLow = legacyLow ?? 80
             UserDefaults.standard.nightAlarmLow = legacyLow ?? 80
-            UserDefaults.standard.dayAlarmVolume = legacyVolume ?? 0.5
-            UserDefaults.standard.nightAlarmVolume = legacyVolume ?? 0.5
+            // Match the legacy implicit default (0.2) so users who never customised
+            // volume don't experience a 2.5x volume jump after upgrade. Plan promised
+            // "observable behavior unchanged"; the migration must preserve that.
+            UserDefaults.standard.dayAlarmVolume = legacyVolume ?? 0.2
+            UserDefaults.standard.nightAlarmVolume = legacyVolume ?? 0.2
             UserDefaults.standard.nightStartHour = 22
             UserDefaults.standard.nightStartMinute = 0
             UserDefaults.standard.nightEndHour = 7

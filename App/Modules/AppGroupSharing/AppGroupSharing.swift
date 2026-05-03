@@ -19,6 +19,13 @@ private func appGroupSharingMiddleware(service: LazyService<AppGroupSharingServi
         case .startup:
             service.value.clearAll()
             service.value.setApp(app: DirectConfig.appName, appVersion: "\(DirectConfig.appVersion) (\(DirectConfig.appBuild))")
+            // Seed alarm profile data into the App Group on launch so the widget
+            // resolves against the user's configured thresholds before the first
+            // sensor tick lands. Without this, WidgetAlarmProfileSnapshot.resolve()
+            // would hit its 8-key all-or-nothing guard and fall back to legacy
+            // shared keys (which are never written, so render against hardcoded
+            // 80/180 defaults).
+            service.value.writeAlarmProfileData(state: state)
 
         case .selectConnection(id: _, connection: _):
             service.value.clearAll()
@@ -100,14 +107,19 @@ private func appGroupSharingMiddleware(service: LazyService<AppGroupSharingServi
 
             service.value.writeAlarmProfileData(state: state)
 
-        case .setDayAlarmHigh, .setDayAlarmLow, .setDayAlarmVolume,
-             .setNightAlarmHigh, .setNightAlarmLow, .setNightAlarmVolume,
+        case .setDayAlarmHigh, .setDayAlarmLow,
+             .setNightAlarmHigh, .setNightAlarmLow,
              .setNightScheduleStart, .setNightScheduleEnd:
             // Mirror profile data to the App Group suite so widget + Live Activity
             // see settings changes without waiting for the next 5-min sensor tick.
             // Reload widget timelines explicitly — GlucoseWidget's TimelineProvider
             // schedules a 15-minute reload by default; without an explicit kick the
             // user wouldn't see threshold/schedule edits until that interval expires.
+            //
+            // Volume setters (.setDay/NightAlarmVolume) are intentionally excluded:
+            // volume is not rendered on the widget or Live Activity, and slider drags
+            // dispatch many setter calls per second — mirroring on volume changes
+            // burns the ActivityKit push budget without any user-visible benefit.
             service.value.writeAlarmProfileData(state: state)
             WidgetCenter.shared.reloadAllTimelines()
 
