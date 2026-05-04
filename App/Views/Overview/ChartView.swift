@@ -831,7 +831,11 @@ struct ChartView: View {
     }
 
     private func scaledHR(_ bpm: Double) -> Double {
-        ((bpm - 40) / (200 - 40)) * (chartMinimum - alarmHigh) + alarmHigh
+        // Plot the actual BPM on the same Y axis the glucose line uses, so
+        // an HR of 80 lands at the same height as a glucose of 80 mg/dL.
+        // For mmol/L users, convert through the same path the glucose values
+        // take (80 mg/dL → 4.4 mmol/L) so the line stays on the visible axis.
+        convertToRequired(mgdLValue: Int(bpm.rounded()))
     }
 
 private var startMarker: Date? {

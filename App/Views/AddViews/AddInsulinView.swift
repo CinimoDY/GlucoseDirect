@@ -17,13 +17,18 @@ struct AddInsulinView: View {
     var addCallback: (_ starts: Date, _ ends: Date, _ units: Double, _ insulinType: InsulinType) -> Void
 
     private var currentIOB: Double {
+        // Stacking warning for correction boluses considers only rapid-acting
+        // (meal/snack/correction) IOB — not basal. A user adding a correction
+        // is reasoning about how much *fast* insulin is already on board to
+        // bring glucose down; long-acting basal is the steady-state baseline
+        // and isn't part of the correction-stacking decision.
         let bolusModel = ExponentialInsulinModel.bolus(preset: store.state.bolusInsulinPreset)
         let basalModel = ExponentialInsulinModel.basal(diaMinutes: store.state.basalDIAMinutes)
         return computeIOB(
             deliveries: store.state.iobDeliveries,
             bolusModel: bolusModel,
             basalModel: basalModel
-        ).total
+        ).mealSnackIOB
     }
 
     var body: some View {

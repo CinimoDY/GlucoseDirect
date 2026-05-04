@@ -117,8 +117,6 @@ struct IOBResult {
 
 // MARK: - IOB Computation
 
-private let basalSegmentDelta: TimeInterval = 5 * 60 // 5-minute chunks
-
 /// Compute IOB from a list of insulin deliveries at a given point in time.
 func computeIOB(
     deliveries: [InsulinDelivery],
@@ -133,14 +131,16 @@ func computeIOB(
         // Skip future deliveries entirely — insulin not yet delivered has zero IOB
         guard date.timeIntervalSince(delivery.starts) >= 0 else { continue }
 
-        let iob: Double
-
-        if delivery.type == .basal {
-            iob = computeBasalIOB(delivery: delivery, model: basalModel, at: date)
-        } else {
-            let elapsed = date.timeIntervalSince(delivery.starts)
-            iob = delivery.units * bolusModel.percentEffectRemaining(at: elapsed)
-        }
+        let elapsed = date.timeIntervalSince(delivery.starts)
+        let model = delivery.type == .basal ? basalModel : bolusModel
+        let iob = delivery.units * model.percentEffectRemaining(at: elapsed)
+        // Basal is treated as a point dose at `starts` decaying over the
+        // basal model's DIA — the same shape as bolus, with the long-acting
+        // model's curve. The previous segmented-infusion approach extended
+        // observable IOB to ~2× DIA (e.g. a 24h basal still showing IOB at
+        // hour 36 because the last segment hadn't decayed yet), which doesn't
+        // match how users think about once-a-day Tresiba/Lantus injections.
+        // The point-dose interpretation makes "24h DIA = fade in 24h" hold.
 
         // Bucketing reflects insulin TYPE (rapid-acting vs long-acting), not
         // the user's intent for the dose. Meal/snack/correction boluses are
@@ -171,39 +171,3 @@ func computeIOB(
     )
 }
 
-/// Compute IOB for a basal delivery using continuous infusion segmentation.
-/// Segments the basal entry into 5-min chunks, each decayed independently.
-private func computeBasalIOB(
-    delivery: InsulinDelivery,
-    model: ExponentialInsulinModel,
-    at date: Date
-) -> Double {
-    let totalDuration = delivery.ends.timeIntervalSince(delivery.starts)
-
-    // Guard against zero-duration basal (treat as bolus)
-    guard totalDuration > 0 else {
-        let elapsed = date.timeIntervalSince(delivery.starts)
-        return delivery.units * model.percentEffectRemaining(at: elapsed)
-    }
-
-    var iob: Double = 0
-    var segmentStart: TimeInterval = 0
-
-    while segmentStart < totalDuration {
-        let segmentEnd = min(segmentStart + basalSegmentDelta, totalDuration)
-        let segmentDuration = segmentEnd - segmentStart
-        let segmentDose = delivery.units * segmentDuration / totalDuration
-        let segmentMidpoint = delivery.starts.addingTimeInterval(segmentStart + segmentDuration / 2)
-        let elapsed = date.timeIntervalSince(segmentMidpoint)
-
-        // Only count segments that have already been delivered (elapsed > 0)
-        if elapsed > 0 {
-            iob += segmentDose * model.percentEffectRemaining(at: elapsed)
-        }
-        // Future segments (not yet infused) are skipped — no IOB from undelivered insulin
-
-        segmentStart = segmentEnd
-    }
-
-    return iob
-}

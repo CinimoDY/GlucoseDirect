@@ -252,17 +252,34 @@ struct IOBComputationTests {
         #expect(result.total < 3.0) // Less than full sum since 1h decayed
     }
 
-    @Test("Basal entry decays via segmented integration")
+    @Test("Basal entry decays from `starts` over the basal model's DIA")
     func basalDecay() {
         let twoHoursAgo = now.addingTimeInterval(-2 * 60 * 60)
         let delivery = InsulinDelivery(
             id: UUID(), starts: twoHoursAgo, ends: now, units: 2.0, type: .basal
         )
         let result = computeIOB(deliveries: [delivery], bolusModel: bolusModel, basalModel: basalModel, at: now)
-        // Basal spread over 2 hours, partially decayed — should be significant but less than 2.0
+        // Basal is treated as a point dose at `starts` decaying over the
+        // basal model's DIA (6h in this test setup). At t=2h, partial decay.
         #expect(result.total > 0.5)
         #expect(result.total < 2.0)
         #expect(result.correctionBasalIOB > 0.5) // Basal goes to correction+basal bucket
+    }
+
+    @Test("24h-DIA basal fades to zero at t=24h (no segmentation tail past DIA)")
+    func basalFadesAtDIA() {
+        // Regression guard for the previous segmented-infusion behavior, which
+        // extended observable IOB to ~2× DIA because each segment decayed
+        // independently from its midpoint. Users entering once-a-day Tresiba
+        // expect "24h DIA = fade in 24h," and that's what the point-dose
+        // interpretation guarantees.
+        let basal24h = ExponentialInsulinModel.basal(diaMinutes: 24 * 60)
+        let twentyFourHoursAgo = now.addingTimeInterval(-24 * 60 * 60)
+        let delivery = InsulinDelivery(
+            id: UUID(), starts: twentyFourHoursAgo, ends: now, units: 12.0, type: .basal
+        )
+        let result = computeIOB(deliveries: [delivery], bolusModel: bolusModel, basalModel: basal24h, at: now)
+        #expect(result.total < 0.05) // below the 0.05U zero threshold
     }
 
     @Test("Snack bolus goes to mealSnack bucket")
