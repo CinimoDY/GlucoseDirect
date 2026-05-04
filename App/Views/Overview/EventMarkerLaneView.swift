@@ -88,7 +88,8 @@ struct EventMarkerLaneView: View {
         if group.isSingle, let m = group.markers.first {
             switch m.type {
             case .meal: return "Meal at \(m.time.toLocalTime())"
-            case .bolus: return "Insulin at \(m.time.toLocalTime())"
+            case .bolus: return "Bolus at \(m.time.toLocalTime())"
+            case .basal: return "Basal at \(m.time.toLocalTime())"
             case .exercise: return "Exercise at \(m.time.toLocalTime())"
             }
         }
@@ -160,6 +161,17 @@ private struct FlagView: View {
             result.append(ChipRow(type: .bolus, label: label, color: AmberTheme.amber))
         }
 
+        let basal = group.markers.filter { $0.type == .basal }
+        if !basal.isEmpty {
+            let total = basal.reduce(0.0) { $0 + $1.rawValue }
+            // Append a "b" suffix so the user can distinguish basal from bolus
+            // even though the chip lives in the same insulin row position.
+            let label = basal.count > 1
+                ? "\(formatUnits(total))b×\(basal.count)"
+                : "\(formatUnits(total))b"
+            result.append(ChipRow(type: .basal, label: label, color: AmberTheme.amberDark))
+        }
+
         let meals = group.markers.filter { $0.type == .meal }
         if !meals.isEmpty {
             let total = meals.reduce(0.0) { $0 + $1.rawValue }
@@ -188,6 +200,8 @@ private struct FlagView: View {
             AppleIcon().frame(width: 11, height: 11)
         case .bolus:
             Image(systemName: "syringe.fill").font(.system(size: 11))
+        case .basal:
+            Image(systemName: "syringe").font(.system(size: 11))
         case .exercise:
             Image(systemName: "figure.run").font(.system(size: 11))
         }

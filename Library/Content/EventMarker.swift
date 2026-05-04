@@ -13,12 +13,14 @@ import SwiftUI
 enum EventMarkerType: Hashable {
     case meal
     case bolus
+    case basal
     case exercise
 
     var icon: String {
         switch self {
         case .meal: return "apple.logo"
         case .bolus: return "syringe.fill"
+        case .basal: return "syringe"  // outline variant signals long-acting / steady-state
         case .exercise: return "figure.run"
         }
     }
@@ -27,6 +29,7 @@ enum EventMarkerType: Hashable {
         switch self {
         case .meal: return AmberTheme.cgaGreen
         case .bolus: return AmberTheme.amber
+        case .basal: return AmberTheme.amberDark
         case .exercise: return AmberTheme.cgaCyan
         }
     }

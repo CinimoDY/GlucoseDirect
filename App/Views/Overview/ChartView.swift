@@ -1073,11 +1073,11 @@ private var startMarker: Date? {
             ))
         }
 
-        for insulin in store.state.insulinDeliveryValues where insulin.type != .basal {
+        for insulin in store.state.insulinDeliveryValues {
             allMarkers.append(EventMarker(
                 id: "insulin-\(insulin.id.uuidString)",
                 time: insulin.starts,
-                type: .bolus,
+                type: insulin.type == .basal ? .basal : .bolus,
                 label: insulin.units.asInsulin(),
                 rawValue: insulin.units,
                 sourceID: insulin.id

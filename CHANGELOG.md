@@ -7,6 +7,16 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 90] — 2026-05-04
+
+### Changed
+- Heart-rate overlay now uses the same Y axis as the glucose line. An HR of 80 lands at the same height as a glucose of 80 mg/dL (or the equivalent mmol/L), so the line shows where the heart rate actually is rather than being squeezed into the top of the chart.
+- Basal insulin IOB now decays from the entry's start time over the basal model's DIA. A 24-hour basal is fully gone by hour 24 (previously the segmented-infusion model extended observable IOB to ~48 hours past injection because each delivery segment decayed independently from its midpoint).
+- Correction-bolus stacking warning in Add Insulin now shows only rapid-acting (meal/snack/correction) IOB. Long-acting basal is the steady-state baseline and isn't part of the correction-stacking decision.
+
+### Added
+- Basal insulin entries now appear in the chart event-marker badges and the entry-detail overlay alongside boluses, with a distinguishing outline-syringe icon and a `b` suffix on the chip label (e.g., `12Ub`). Tapping a badge that contains basal entries opens the same detail flow as for bolus entries.
+
 ## [Build 89] — 2026-05-04
 
 ### Changed
