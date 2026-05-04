@@ -7,6 +7,9 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+### Changed
+- Hero-row chrome is hidden when both the screen-lock prevention and an alarm snooze are inactive. Active states now carry text labels — `Screen lock off` (with a strike-through lock icon) and `Snoozed until <time>` — so the icons no longer require interpretation. Tapping the snooze label still extends the snooze by 30 minutes; the ✕ button still clears it. Screen-lock prevention has moved to Settings → Additional settings (`Keep screen awake`) since the hero-row entry path is no longer visible when the feature is off.
+
 ## [Build 88] — 2026-05-03
 
 ### Added

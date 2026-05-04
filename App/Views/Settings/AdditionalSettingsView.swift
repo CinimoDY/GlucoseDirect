@@ -16,12 +16,20 @@ struct AdditionalSettingsView: View {
                 if DirectConfig.showSmoothedGlucose {
                     Toggle("Show smoothed glucose", isOn: showSmoothedGlucose).toggleStyle(SwitchToggleStyle(tint: AmberTheme.amber))
                 }
-                
+
                 if DirectConfig.showInsulinInput {
                     Toggle("Show insulin input", isOn: showInsulinInput).toggleStyle(SwitchToggleStyle(tint: AmberTheme.amber))
                 }
 
                 Toggle("CRT scanline overlay", isOn: showScanlines).toggleStyle(SwitchToggleStyle(tint: AmberTheme.amber))
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Toggle("Keep screen awake", isOn: preventScreenLock).toggleStyle(SwitchToggleStyle(tint: AmberTheme.amber))
+                    Text("Prevents the device from auto-locking while monitoring. Resets automatically when the app is backgrounded.")
+                        .font(DOSTypography.caption)
+                        .foregroundStyle(AmberTheme.amberDark)
+                }
+                .padding(.vertical, 4)
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Chart event markers")
@@ -40,6 +48,13 @@ struct AdditionalSettingsView: View {
             header: {
                 Label("Additional settings", systemImage: "gearshape")
             }
+        )
+    }
+
+    private var preventScreenLock: Binding<Bool> {
+        Binding(
+            get: { store.state.preventScreenLock },
+            set: { store.dispatch(.setPreventScreenLock(enabled: $0)) }
         )
     }
 

@@ -101,50 +101,50 @@ struct GlucoseView: View {
                 }
             }
 
-            HStack {
-                Button(action: {
-                    DirectNotifications.shared.hapticFeedback()
-                    store.dispatch(.setPreventScreenLock(enabled: !store.state.preventScreenLock))
-                }, label: {
+            // Active-state row: only renders when screen-lock prevention is on
+            // OR an alarm snooze is active. Each control carries a text label so
+            // its purpose is obvious; entry paths live elsewhere (Settings →
+            // Additional settings for screen lock; alarm notification "Snooze"
+            // action for snoozes).
+            if store.state.preventScreenLock || store.state.alarmSnoozeUntil != nil {
+                HStack {
                     if store.state.preventScreenLock {
-                        Image(systemName: "lock.slash")
-                        Text("No screen lock")
-                    } else {
-                        Text(verbatim: "")
-                        Image(systemName: "lock")
+                        Button(action: {
+                            DirectNotifications.shared.hapticFeedback()
+                            store.dispatch(.setPreventScreenLock(enabled: false))
+                        }, label: {
+                            Image(systemName: "lock.slash")
+                            Text("Screen lock off")
+                        })
                     }
-                }).opacity(store.state.preventScreenLock ? 1 : 0.5)
 
-                Spacer()
+                    Spacer()
 
-                if store.state.alarmSnoozeUntil != nil {
-                    Button(action: {
-                        DirectNotifications.shared.hapticFeedback()
-                        store.dispatch(.setAlarmSnoozeUntil(untilDate: nil))
-                    }, label: {
-                        Image(systemName: "delete.forward")
-                    }).padding(.trailing, 5)
-                }
-
-                Button(action: {
-                    let date = (store.state.alarmSnoozeUntil ?? Date()).toRounded(on: 1, .minute)
-                    let nextDate = Calendar.current.date(byAdding: .minute, value: 30, to: date)
-
-                    DirectNotifications.shared.hapticFeedback()
-                    store.dispatch(.setAlarmSnoozeUntil(untilDate: nextDate))
-                }, label: {
                     if let alarmSnoozeUntil = store.state.alarmSnoozeUntil {
-                        Text(verbatim: alarmSnoozeUntil.toLocalTime())
-                        Image(systemName: "speaker.slash")
-                    } else {
-                        Text(verbatim: "")
-                        Image(systemName: "speaker.wave.2")
+                        Button(action: {
+                            DirectNotifications.shared.hapticFeedback()
+                            store.dispatch(.setAlarmSnoozeUntil(untilDate: nil))
+                        }, label: {
+                            Image(systemName: "delete.forward")
+                        }).padding(.trailing, 5)
+
+                        Button(action: {
+                            // Tap the snooze label to extend by 30 minutes.
+                            let date = alarmSnoozeUntil.toRounded(on: 1, .minute)
+                            let nextDate = Calendar.current.date(byAdding: .minute, value: 30, to: date)
+
+                            DirectNotifications.shared.hapticFeedback()
+                            store.dispatch(.setAlarmSnoozeUntil(untilDate: nextDate))
+                        }, label: {
+                            Image(systemName: "speaker.slash")
+                            Text("Snoozed until \(alarmSnoozeUntil.toLocalTime())")
+                        })
                     }
-                }).opacity(store.state.alarmSnoozeUntil == nil ? 0.5 : 1)
+                }
+                .padding(.top, DOSSpacing.xs)
+                .disabled(store.state.latestSensorGlucose == nil)
+                .buttonStyle(.plain)
             }
-            .padding(.top, DOSSpacing.xs)
-            .disabled(store.state.latestSensorGlucose == nil)
-            .buttonStyle(.plain)
         }
         .onChange(of: store.state.iobDeliveries.count) { refreshIOB() }
         .onChange(of: store.state.latestSensorGlucose?.timestamp) { refreshIOB() }
