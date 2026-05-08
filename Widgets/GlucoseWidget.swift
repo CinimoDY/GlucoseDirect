@@ -295,6 +295,8 @@ struct GlucoseView: View {
                 HStack(alignment: .lastTextBaseline, spacing: 6) {
                     Text(verbatim: glucose.glucoseValue.asGlucose(glucoseUnit: glucoseUnit))
                         .font(WidgetFonts.glucoseHero)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)  // 3-digit mg/dL values shrink to fit alongside the trend column
                         .foregroundColor(glucoseColor)
                         .phosphorGlow(color: glucoseColor)
                         .opacity(staleness.glucoseOpacity)
@@ -342,6 +344,8 @@ struct GlucoseView: View {
                 if glucose.type != .high {
                     Text(verbatim: glucose.glucoseValue.asGlucose(glucoseUnit: glucoseUnit))
                         .font(WidgetFonts.glucoseLarge)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
                         .foregroundColor(glucoseColor)
                         .phosphorGlow(color: glucoseColor)
                         .opacity(staleness.glucoseOpacity)

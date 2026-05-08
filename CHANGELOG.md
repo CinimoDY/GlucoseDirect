@@ -7,6 +7,11 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 91] — 2026-05-08
+
+### Fixed
+- Home Screen widget glucose value now scales down to fit when the reading is three digits. The small + medium widget layouts both use `.minimumScaleFactor(0.6)` so a value like `123` shrinks to fit alongside the trend column instead of truncating to `1...`. Two-digit values keep the full hero size.
+
 ## [Build 90] — 2026-05-04
 
 ### Changed
