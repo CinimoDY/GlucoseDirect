@@ -32,7 +32,12 @@ struct StepperField: View {
 
                 ZStack {
                     if isFocused || value == nil {
-                        TextField("", value: $value, format: .number.precision(.fractionLength(1)))
+                        // Allow 0 to 2 fractional digits so the user can type
+                        // whole-number entries (e.g. "20") without the field
+                        // forcing a "2.0" reformat after the first digit. The
+                        // user types the decimal separator themselves when
+                        // they need a fractional value (e.g. "2.5").
+                        TextField("", value: $value, format: .number.precision(.fractionLength(0...2)))
                             .multilineTextAlignment(.center)
                             .keyboardType(.decimalPad)
                             .focused($isFocused)
@@ -40,7 +45,9 @@ struct StepperField: View {
                             .foregroundStyle(AmberTheme.amber)
                     } else if let v = value {
                         HStack(alignment: .firstTextBaseline, spacing: 4) {
-                            Text(String(format: "%.1f", v))
+                            // Drop the trailing ".0" for whole numbers so the
+                            // display matches what the user typed.
+                            Text(v == v.rounded() ? String(Int(v)) : String(format: "%.1f", v))
                                 .font(.system(size: 24, weight: .semibold, design: .monospaced))
                                 .foregroundStyle(AmberTheme.amber)
                             if !unit.isEmpty {

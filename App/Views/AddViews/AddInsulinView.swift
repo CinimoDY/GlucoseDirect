@@ -56,6 +56,21 @@ struct AddInsulinView: View {
         }
         .background(Color.black.ignoresSafeArea())
         .preferredColorScheme(.dark)
+        // Auto-set ENDS to 24 hours after STARTS for basal entries — once-daily
+        // injections (Tresiba/Lantus/Levemir) are the dominant case and saving
+        // the manual date+time picker click on every entry is a meaningful win.
+        // Triggers when the user picks .basal as the type AND when they adjust
+        // the starts time while basal is selected.
+        .onChange(of: insulinType) { _, newType in
+            if newType == .basal {
+                ends = Calendar.current.date(byAdding: .hour, value: 24, to: starts) ?? starts.addingTimeInterval(24 * 60 * 60)
+            }
+        }
+        .onChange(of: starts) { _, newStarts in
+            if insulinType == .basal {
+                ends = Calendar.current.date(byAdding: .hour, value: 24, to: newStarts) ?? newStarts.addingTimeInterval(24 * 60 * 60)
+            }
+        }
     }
 
     // MARK: - Nav bar

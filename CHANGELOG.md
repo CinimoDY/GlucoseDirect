@@ -7,6 +7,12 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 92] — 2026-05-10
+
+### Changed
+- Insulin units field no longer forces a `.0` suffix while typing. Type `20` and the field shows `20`; the decimal separator is now yours to enter when you actually need a fractional value (e.g., `2.5`). Whole-number values display without a trailing `.0` even when the field isn't focused.
+- Add Insulin → Basal now auto-sets the ENDS date/time to 24 hours after STARTS. The duration updates whenever you change the type to basal or adjust the starts time, so the once-daily injection flow (the dominant case) doesn't require touching the date picker.
+
 ## [Build 91] — 2026-05-08
 
 ### Fixed
