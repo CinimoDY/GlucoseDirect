@@ -187,6 +187,7 @@ enum DirectAction {
     case setDailyDigestInsightError
     case setDailyDigestEvents(events: DailyDigestEvents)
     case setAIConsentDailyDigest(enabled: Bool)
+    case setDailyDigestReminderTime(hour: Int?, minute: Int?)
 
     case debugAlarm
     case debugNotification

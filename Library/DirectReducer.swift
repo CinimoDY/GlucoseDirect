@@ -503,6 +503,10 @@ func directReducer(state: inout DirectState, action: DirectAction) {
     case .setAIConsentDailyDigest(enabled: let enabled):
         state.aiConsentDailyDigest = enabled
 
+    case .setDailyDigestReminderTime(hour: let hour, minute: let minute):
+        state.dailyDigestReminderHour = hour
+        state.dailyDigestReminderMinute = minute
+
     // MARK: Update + Delete Actions — optimistic in-memory mutation so chart
     // markers and entry rows refresh in the same runloop tick as the dispatch.
     // The middleware-triggered .load*Values round-trip will subsequently

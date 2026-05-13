@@ -121,6 +121,8 @@ struct AppState: DirectState {
         self.appOpenCount = UserDefaults.standard.appOpenCount
         self.appOpenCountFirstRecordedAt = UserDefaults.standard.appOpenCountFirstRecordedAt
         self.aiConsentDailyDigest = UserDefaults.standard.aiConsentDailyDigest
+        self.dailyDigestReminderHour = UserDefaults.standard.dailyDigestReminderHour
+        self.dailyDigestReminderMinute = UserDefaults.standard.dailyDigestReminderMinute
         self.claudeAPIKeyValid = UserDefaults.standard.claudeAPIKeyValid
         self.thumbCalibrationMM = UserDefaults.standard.thumbCalibrationMM
         // Persist defaults on first launch so UUIDs are stable
@@ -292,4 +294,6 @@ struct AppState: DirectState {
     var dailyDigestInsightLoading: Bool = false
     var dailyDigestEvents: DailyDigestEvents?
     var aiConsentDailyDigest: Bool { didSet { UserDefaults.standard.aiConsentDailyDigest = aiConsentDailyDigest } }
+    var dailyDigestReminderHour: Int? { didSet { UserDefaults.standard.dailyDigestReminderHour = dailyDigestReminderHour } }
+    var dailyDigestReminderMinute: Int? { didSet { UserDefaults.standard.dailyDigestReminderMinute = dailyDigestReminderMinute } }
 }

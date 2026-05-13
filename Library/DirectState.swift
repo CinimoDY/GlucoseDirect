@@ -134,6 +134,12 @@ protocol DirectState {
     var dailyDigestLoading: Bool { get set }
     var dailyDigestInsightLoading: Bool { get set }
     var dailyDigestEvents: DailyDigestEvents? { get set }
+    /// Daily-digest reminder time. nil hour OR nil minute = reminder is off.
+    /// Two stored ints rather than a Date so the value is locale-independent
+    /// and survives time-zone changes cleanly (same shape the night-window
+    /// schedule uses — see `nightStartHour`).
+    var dailyDigestReminderHour: Int? { get set }
+    var dailyDigestReminderMinute: Int? { get set }
     var aiConsentDailyDigest: Bool { get set }
 }
 

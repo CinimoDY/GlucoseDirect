@@ -166,10 +166,16 @@ extension DOSBTSAppDelegate: UNUserNotificationCenterDelegate {
             store.dispatch(.showTreatmentPrompt(alarmFiredAt: alarmFiredAt))
 
         case UNNotificationDefaultActionIdentifier:
-            // Body tap — keep existing 30-minute snooze behavior
-            if let action = response.notification.request.content.userInfo["action"] as? String, action == "snooze" {
+            // Body tap — route by userInfo "action"
+            let userAction = response.notification.request.content.userInfo["action"] as? String
+            switch userAction {
+            case "snooze":
                 store.dispatch(.selectView(viewTag: DirectConfig.overviewViewTag))
                 store.dispatch(.setAlarmSnoozeUntil(untilDate: Date().addingTimeInterval(30 * 60).toRounded(on: 1, .minute)))
+            case "openDailyDigest":
+                store.dispatch(.selectView(viewTag: DirectConfig.digestViewTag))
+            default:
+                break
             }
 
         default:
@@ -193,7 +199,6 @@ private func createSimulatorAppStore() -> DirectStore {
 
     var middlewares = [
         logMiddleware(),
-        dataStoreMigrationMiddleware(),
         bloodGlucoseStoreMiddleware(),
         sensorGlucoseStoreMiddleware(),
         sensorErrorStoreMiddleware(),
@@ -201,6 +206,7 @@ private func createSimulatorAppStore() -> DirectStore {
         iobMiddleware(),
         mealImpactStoreMiddleware(),
         dailyDigestMiddleware(),
+        dailyDigestReminderMiddleware(),
         mealEntryStoreMiddleware(),
         favoriteFoodStoreMiddleware(),
         foodCorrectionStoreMiddleware(),
@@ -242,7 +248,6 @@ private func createAppStore() -> DirectStore {
 
     var middlewares = [
         logMiddleware(),
-        dataStoreMigrationMiddleware(),
         bloodGlucoseStoreMiddleware(),
         sensorGlucoseStoreMiddleware(),
         sensorErrorStoreMiddleware(),
@@ -250,6 +255,7 @@ private func createAppStore() -> DirectStore {
         iobMiddleware(),
         mealImpactStoreMiddleware(),
         dailyDigestMiddleware(),
+        dailyDigestReminderMiddleware(),
         mealEntryStoreMiddleware(),
         favoriteFoodStoreMiddleware(),
         foodCorrectionStoreMiddleware(),

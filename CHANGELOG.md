@@ -7,6 +7,14 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 95] — 2026-05-13
+
+### Added
+- Daily digest reminder. Optional local notification fires once a day at a user-configured time and opens the Daily Digest tab when tapped. Toggle + time picker live in Settings → Additional settings; default time when first enabled is 20:00. Disabling the toggle clears the scheduled notification. Notification permission is requested on first enable — DMNC-691.
+
+### Removed
+- Internal Gen1/Gen2 freshInstall migration scaffolding. The middleware no longer dispatches once-only first-launch reset code that hasn't applied to a real user install in over a year. No user-visible behavior change; clears four deprecation warnings — DMNC-927.
+
 ## [Build 94] — 2026-05-13
 
 ### Added

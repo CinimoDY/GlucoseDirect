@@ -91,6 +91,10 @@ private enum Keys: String {
     case nightEndHour = "libre-direct.settings.night-end-hour"
     case nightEndMinute = "libre-direct.settings.night-end-minute"
 
+    // Daily digest reminder
+    case dailyDigestReminderHour = "libre-direct.settings.daily-digest-reminder-hour"
+    case dailyDigestReminderMinute = "libre-direct.settings.daily-digest-reminder-minute"
+
     // Widget shared data (App Group)
     case sharedTIR = "glucosedirect--tir"
     case sharedIOB = "glucosedirect--iob"
@@ -1164,6 +1168,38 @@ extension UserDefaults {
         }
         set {
             set(newValue, forKey: Keys.nightEndMinute.rawValue)
+        }
+    }
+
+    // MARK: Daily digest reminder
+
+    /// nil = reminder is off. Both hour AND minute must be present for the
+    /// middleware to schedule the notification.
+    var dailyDigestReminderHour: Int? {
+        get {
+            guard object(forKey: Keys.dailyDigestReminderHour.rawValue) != nil else { return nil }
+            return integer(forKey: Keys.dailyDigestReminderHour.rawValue)
+        }
+        set {
+            if let newValue = newValue {
+                set(newValue, forKey: Keys.dailyDigestReminderHour.rawValue)
+            } else {
+                removeObject(forKey: Keys.dailyDigestReminderHour.rawValue)
+            }
+        }
+    }
+
+    var dailyDigestReminderMinute: Int? {
+        get {
+            guard object(forKey: Keys.dailyDigestReminderMinute.rawValue) != nil else { return nil }
+            return integer(forKey: Keys.dailyDigestReminderMinute.rawValue)
+        }
+        set {
+            if let newValue = newValue {
+                set(newValue, forKey: Keys.dailyDigestReminderMinute.rawValue)
+            } else {
+                removeObject(forKey: Keys.dailyDigestReminderMinute.rawValue)
+            }
         }
     }
 
