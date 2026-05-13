@@ -7,6 +7,11 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 93] — 2026-05-13
+
+### Fixed
+- Meal and insulin markers appear on the chart in the same frame the entry is added or edited (previously took 100-500 ms — sometimes longer — to show up). Root cause: the data store ran synchronous GRDB writes on the main thread, which blocked SwiftUI's runloop and stalled the chart's `.onChange` observers until the write+read round-trip completed. Writes are now async via `dbQueue.asyncWrite`, and edits/deletes hit an optimistic in-memory path in the reducer so the chart re-renders without waiting on the database — DMNC-905.
+
 ## [Build 92] — 2026-05-10
 
 ### Changed
