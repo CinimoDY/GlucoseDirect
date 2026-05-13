@@ -1,7 +1,7 @@
 ---
 title: "feat: Low Glucose Treatment Workflow (Rule of 15)"
 type: feat
-status: active
+status: completed
 date: 2026-04-15
 origin: docs/brainstorms/2026-04-15-hypo-treatment-workflow-requirements.md
 ---

@@ -1,7 +1,7 @@
 ---
 title: "feat: Libre-style event marker lane above glucose chart"
 type: feat
-status: active
+status: completed
 date: 2026-04-18
 origin: docs/brainstorms/2026-04-18-event-marker-lane-requirements.md
 ---

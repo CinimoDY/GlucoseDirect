@@ -1,7 +1,7 @@
 ---
 title: "chore: Audit DOOMBTS changes for backport to DOSBTS"
 type: refactor
-status: active
+status: completed
 date: 2026-04-18
 ---
 

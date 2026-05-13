@@ -1,7 +1,7 @@
 ---
 title: "feat: Meal impact overlay with personal glycemic response tracking"
 type: feat
-status: active
+status: completed
 date: 2026-04-18
 origin: docs/brainstorms/2026-04-18-meal-impact-overlay-requirements.md
 ---

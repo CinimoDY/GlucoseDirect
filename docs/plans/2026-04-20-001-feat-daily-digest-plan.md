@@ -1,7 +1,7 @@
 ---
 title: "feat: Daily Digest — End-of-Day Summary with AI Insight"
 type: feat
-status: active
+status: completed
 date: 2026-04-20
 origin: docs/brainstorms/2026-04-19-daily-digest-requirements.md
 ---

@@ -1,7 +1,7 @@
 ---
 title: "feat: Insulin-on-Board (IOB) decay model with stacking warnings"
 type: feat
-status: active
+status: completed
 date: 2026-04-17
 origin: docs/brainstorms/2026-04-17-iob-decay-model-requirements.md
 ---

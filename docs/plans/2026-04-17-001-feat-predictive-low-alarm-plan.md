@@ -1,7 +1,7 @@
 ---
 title: "feat: Predictive Low Alarm (Trend-Based Early Warning)"
 type: feat
-status: active
+status: completed
 date: 2026-04-17
 origin: docs/brainstorms/2026-04-17-predictive-low-alarm-requirements.md
 ---
