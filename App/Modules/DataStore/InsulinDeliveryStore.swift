@@ -21,25 +21,21 @@ func insulinDeliveryStoreMiddleware() -> Middleware<DirectState, DirectAction> {
             guard !insulinDeliveryValues.isEmpty else {
                 break
             }
-
-            DataStore.shared.insertInsulinDelivery(insulinDeliveryValues)
-
-            return Just(DirectAction.loadInsulinDeliveryValues)
-                .setFailureType(to: DirectError.self)
+            // Async write — emit .loadInsulinDeliveryValues from the completion.
+            // The reducer already did an optimistic in-memory append so the
+            // chart marker shows immediately; the reload is a defensive re-sync.
+            return DataStore.shared.insertInsulinDelivery(insulinDeliveryValues)
+                .map { _ in DirectAction.loadInsulinDeliveryValues }
                 .eraseToAnyPublisher()
 
         case .deleteInsulinDelivery(insulinDelivery: let insulinDelivery):
-            DataStore.shared.deleteInsulinDelivery(insulinDelivery)
-
-            return Just(DirectAction.loadInsulinDeliveryValues)
-                .setFailureType(to: DirectError.self)
+            return DataStore.shared.deleteInsulinDelivery(insulinDelivery)
+                .map { _ in DirectAction.loadInsulinDeliveryValues }
                 .eraseToAnyPublisher()
 
         case .updateInsulinDelivery(insulinDelivery: let insulinDelivery):
-            DataStore.shared.updateInsulinDelivery(insulinDelivery)
-
-            return Just(DirectAction.loadInsulinDeliveryValues)
-                .setFailureType(to: DirectError.self)
+            return DataStore.shared.updateInsulinDelivery(insulinDelivery)
+                .map { _ in DirectAction.loadInsulinDeliveryValues }
                 .eraseToAnyPublisher()
 
         case .setSelectedDate(selectedDate: _):
@@ -119,53 +115,68 @@ private extension DataStore {
         }
     }
 
-    func deleteInsulinDelivery(_ value: InsulinDelivery) {
-        if let dbQueue = dbQueue {
-            do {
-                try dbQueue.write { db in
-                    do {
-                        try InsulinDelivery.deleteOne(db, id: value.id)
-                    } catch {
-                        DirectLog.error("\(error)")
-                    }
-                }
-            } catch {
-                DirectLog.error("\(error)")
+    /// Async-write variants — DMNC-905. The previous sync `dbQueue.write` calls
+    /// blocked the dispatch thread (main) for the full duration of the GRDB
+    /// write, which stalled SwiftUI's runloop and made the reducer's optimistic
+    /// state update invisible to `.onChange` observers until the write returned.
+    /// Returning a Future lets the middleware emit `.loadInsulinDeliveryValues`
+    /// from the completion handler without blocking the dispatch thread.
+    func deleteInsulinDelivery(_ value: InsulinDelivery) -> Future<Void, DirectError> {
+        return Future { promise in
+            guard let dbQueue = self.dbQueue else {
+                promise(.success(()))
+                return
             }
+            dbQueue.asyncWrite({ db in
+                try InsulinDelivery.deleteOne(db, id: value.id)
+            }, completion: { _, result in
+                switch result {
+                case .success: promise(.success(()))
+                case .failure(let error):
+                    DirectLog.error("\(error)")
+                    promise(.failure(.withError(error)))
+                }
+            })
         }
     }
 
-    func updateInsulinDelivery(_ value: InsulinDelivery) {
-        if let dbQueue = dbQueue {
-            do {
-                try dbQueue.write { db in
-                    do {
-                        try value.update(db)
-                    } catch {
-                        DirectLog.error("\(error)")
-                    }
-                }
-            } catch {
-                DirectLog.error("\(error)")
+    func updateInsulinDelivery(_ value: InsulinDelivery) -> Future<Void, DirectError> {
+        return Future { promise in
+            guard let dbQueue = self.dbQueue else {
+                promise(.success(()))
+                return
             }
+            dbQueue.asyncWrite({ db in
+                try value.update(db)
+            }, completion: { _, result in
+                switch result {
+                case .success: promise(.success(()))
+                case .failure(let error):
+                    DirectLog.error("\(error)")
+                    promise(.failure(.withError(error)))
+                }
+            })
         }
     }
 
-    func insertInsulinDelivery(_ values: [InsulinDelivery]) {
-        if let dbQueue = dbQueue {
-            do {
-                try dbQueue.write { db in
-                    values.forEach { value in
-                        do {
-                            try value.insert(db)
-                        } catch {
-                            DirectLog.error("\(error)")
-                        }
-                    }
-                }
-            } catch {
-                DirectLog.error("\(error)")
+    func insertInsulinDelivery(_ values: [InsulinDelivery]) -> Future<Void, DirectError> {
+        return Future { promise in
+            guard let dbQueue = self.dbQueue else {
+                promise(.success(()))
+                return
             }
+            dbQueue.asyncWrite({ db in
+                for value in values {
+                    try value.insert(db)
+                }
+            }, completion: { _, result in
+                switch result {
+                case .success: promise(.success(()))
+                case .failure(let error):
+                    DirectLog.error("\(error)")
+                    promise(.failure(.withError(error)))
+                }
+            })
         }
     }
 

@@ -503,9 +503,30 @@ func directReducer(state: inout DirectState, action: DirectAction) {
     case .setAIConsentDailyDigest(enabled: let enabled):
         state.aiConsentDailyDigest = enabled
 
-    // MARK: Update Actions (DMNC-848)
-    case .updateMealEntry, .updateInsulinDelivery:
-        break  // no-op; middleware persists and triggers .load*Values round-trip
+    // MARK: Update + Delete Actions — optimistic in-memory mutation so chart
+    // markers and entry rows refresh in the same runloop tick as the dispatch.
+    // The middleware-triggered .load*Values round-trip will subsequently
+    // re-sync from GRDB (defensive) but the UI no longer waits on the
+    // write+read latency for the marker to appear / update / disappear (DMNC-905).
+    case .updateMealEntry(mealEntry: let updated):
+        if let idx = state.mealEntryValues.firstIndex(where: { $0.id == updated.id }) {
+            state.mealEntryValues[idx] = updated
+        } else {
+            state.mealEntryValues.append(updated)
+        }
+
+    case .updateInsulinDelivery(insulinDelivery: let updated):
+        if let idx = state.insulinDeliveryValues.firstIndex(where: { $0.id == updated.id }) {
+            state.insulinDeliveryValues[idx] = updated
+        } else {
+            state.insulinDeliveryValues.append(updated)
+        }
+
+    case .deleteMealEntry(mealEntry: let toDelete):
+        state.mealEntryValues.removeAll(where: { $0.id == toDelete.id })
+
+    case .deleteInsulinDelivery(insulinDelivery: let toDelete):
+        state.insulinDeliveryValues.removeAll(where: { $0.id == toDelete.id })
 
     default:
         break

@@ -521,28 +521,65 @@ struct DailyDigestStateTests {
 
 // MARK: - Update Action Reducer Tests
 
-@Suite("Update Actions (DMNC-848)")
+@Suite("Update + Delete Actions — optimistic state (DMNC-905)")
 struct UpdateActionReducerTests {
 
-    @Test("updateMealEntry does not mutate state directly (handled by middleware)")
-    func updateMealEntryNoOp() {
+    @Test("updateMealEntry replaces the matching entry by id")
+    func updateMealEntryReplacesById() {
         var state: DirectState = makeState()
         let original = MealEntry(timestamp: Date(), mealDescription: "Old", carbsGrams: 30, analysisSessionId: nil)
         state.mealEntryValues = [original]
         let updated = MealEntry(id: original.id, timestamp: original.timestamp, mealDescription: "New", carbsGrams: 45, analysisSessionId: nil)
         reduce(&state, .updateMealEntry(mealEntry: updated))
-        // Reducer is a no-op; middleware persists and dispatches setMealEntryValues
-        #expect(state.mealEntryValues == [original])
+        #expect(state.mealEntryValues.count == 1)
+        #expect(state.mealEntryValues.first?.id == original.id)
+        #expect(state.mealEntryValues.first?.mealDescription == "New")
+        #expect(state.mealEntryValues.first?.carbsGrams == 45)
     }
 
-    @Test("updateInsulinDelivery does not mutate state directly")
-    func updateInsulinDeliveryNoOp() {
+    @Test("updateMealEntry appends when no entry with matching id exists (resilience)")
+    func updateMealEntryAppendsIfMissing() {
+        var state: DirectState = makeState()
+        let existing = MealEntry(timestamp: Date(), mealDescription: "Other", carbsGrams: 20, analysisSessionId: nil)
+        state.mealEntryValues = [existing]
+        let novel = MealEntry(timestamp: Date(), mealDescription: "Novel", carbsGrams: 50, analysisSessionId: nil)
+        reduce(&state, .updateMealEntry(mealEntry: novel))
+        #expect(state.mealEntryValues.count == 2)
+        #expect(state.mealEntryValues.contains(where: { $0.id == novel.id }))
+    }
+
+    @Test("updateInsulinDelivery replaces the matching entry by id")
+    func updateInsulinDeliveryReplacesById() {
         var state: DirectState = makeState()
         let original = InsulinDelivery(starts: Date(), ends: Date(), units: 4.5, type: .mealBolus)
         state.insulinDeliveryValues = [original]
         let updated = InsulinDelivery(id: original.id, starts: original.starts, ends: original.ends, units: 5.0, type: original.type)
         reduce(&state, .updateInsulinDelivery(insulinDelivery: updated))
-        #expect(state.insulinDeliveryValues == [original])
+        #expect(state.insulinDeliveryValues.count == 1)
+        #expect(state.insulinDeliveryValues.first?.id == original.id)
+        #expect(state.insulinDeliveryValues.first?.units == 5.0)
+    }
+
+    @Test("deleteMealEntry removes the matching entry by id")
+    func deleteMealEntryRemovesById() {
+        var state: DirectState = makeState()
+        let keep = MealEntry(timestamp: Date(), mealDescription: "Keep", carbsGrams: 20, analysisSessionId: nil)
+        let toDelete = MealEntry(timestamp: Date(), mealDescription: "Delete me", carbsGrams: 50, analysisSessionId: nil)
+        state.mealEntryValues = [keep, toDelete]
+        reduce(&state, .deleteMealEntry(mealEntry: toDelete))
+        #expect(state.mealEntryValues.count == 1)
+        #expect(state.mealEntryValues.first?.id == keep.id)
+    }
+
+    @Test("deleteInsulinDelivery removes the matching entry by id")
+    func deleteInsulinDeliveryRemovesById() {
+        var state: DirectState = makeState()
+        let keep = InsulinDelivery(starts: Date(), ends: Date(), units: 2.0, type: .mealBolus)
+        let toDelete = InsulinDelivery(starts: Date(), ends: Date(), units: 12.0, type: .basal)
+        state.insulinDeliveryValues = [keep, toDelete]
+        reduce(&state, .deleteInsulinDelivery(insulinDelivery: toDelete))
+        #expect(state.insulinDeliveryValues.count == 1)
+        #expect(state.insulinDeliveryValues.first?.id == keep.id)
     }
 }
 
