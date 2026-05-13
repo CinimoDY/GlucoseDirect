@@ -69,7 +69,10 @@ func insulinDeliveryStoreMiddleware() -> Middleware<DirectState, DirectAction> {
     }
 }
 
-private extension DataStore {
+// `internal` (not `private`) so the App Intents in App/Intents/ can call
+// insertInsulinDelivery directly when Siri invokes them outside the
+// Redux dispatch path (DMNC-633).
+extension DataStore {
     func createInsulinDeliveryTable() {
         if let dbQueue = dbQueue {
             do {

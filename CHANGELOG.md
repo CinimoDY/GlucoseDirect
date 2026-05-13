@@ -7,6 +7,11 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 94] — 2026-05-13
+
+### Added
+- Siri voice logging for insulin and meals. Trigger via "Hey Siri, log insulin in DOSBTS" or "Hey Siri, log a meal in DOSBTS" — Siri prompts for the missing values (units / type / carbs / description) and writes the entry directly to the log without opening the app. Discoverable in the Shortcuts app and on Siri search results once the app has been opened once after upgrade. Defaults: insulin type = snack bolus, meal description = "meal", basal entries get a 24h ENDS automatically — DMNC-633, DMNC-634.
+
 ## [Build 93] — 2026-05-13
 
 ### Fixed

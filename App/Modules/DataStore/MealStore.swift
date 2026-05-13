@@ -71,7 +71,10 @@ func mealEntryStoreMiddleware() -> Middleware<DirectState, DirectAction> {
     }
 }
 
-private extension DataStore {
+// `internal` (not `private`) so the App Intents in App/Intents/ can call
+// insertMealEntry directly when Siri invokes them outside the Redux
+// dispatch path (DMNC-634).
+extension DataStore {
     func createMealEntryTable() {
         if let dbQueue = dbQueue {
             do {
