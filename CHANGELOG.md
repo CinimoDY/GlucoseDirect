@@ -7,6 +7,11 @@ Versions below correspond to `CURRENT_PROJECT_VERSION` (TestFlight build numbers
 
 ## [Unreleased]
 
+## [Build 96] — 2026-05-14
+
+### Added
+- Explicit Delete button in the meal/insulin edit sheet (the sheet that opens when you tap "edit" on a chart marker). Shows as **Delete Meal**, **Delete Insulin**, or **Delete Both** depending on what's in the entry, with a confirm dialog. Previously the only way to delete from this sheet was the non-obvious "clear description + zero carbs and Save" path.
+
 ## [Build 95] — 2026-05-13
 
 ### Added

@@ -24,6 +24,7 @@ struct CombinedEntryEditView: View {
     @State private var units: Double? = nil
     @State private var expandedItemID: UUID? = nil
     @State private var showDiscardConfirm: Bool = false
+    @State private var showDeleteConfirm: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -34,6 +35,10 @@ struct CombinedEntryEditView: View {
                     insulinSection
                     Divider().background(AmberTheme.amberDark.opacity(0.5))
                     timeSection
+                    if originalMealEntry != nil || originalInsulinDelivery != nil {
+                        Divider().background(AmberTheme.amberDark.opacity(0.5))
+                        deleteSection
+                    }
                 }
             }
             .navigationTitle(navTitle)
@@ -55,6 +60,16 @@ struct CombinedEntryEditView: View {
         ) {
             Button("Discard", role: .destructive) { dismiss() }
             Button("Keep editing", role: .cancel) { }
+        }
+        .confirmationDialog(
+            deleteConfirmTitle,
+            isPresented: $showDeleteConfirm,
+            titleVisibility: .visible
+        ) {
+            Button(deleteButtonLabel, role: .destructive) { performDelete() }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("This cannot be undone.")
         }
     }
 
@@ -297,5 +312,46 @@ struct CombinedEntryEditView: View {
             }
         }
         .padding(DOSSpacing.md)
+    }
+
+    private var deleteSection: some View {
+        Button(role: .destructive) {
+            showDeleteConfirm = true
+        } label: {
+            HStack(spacing: DOSSpacing.sm) {
+                Image(systemName: "trash")
+                Text(deleteButtonLabel)
+                    .font(DOSTypography.body)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, DOSSpacing.sm)
+            .foregroundStyle(AmberTheme.cgaRed)
+        }
+        .padding(DOSSpacing.md)
+        .accessibilityLabel(deleteButtonLabel)
+    }
+
+    private var deleteButtonLabel: String {
+        if originalMealEntry != nil && originalInsulinDelivery != nil {
+            return "Delete Both"
+        } else if originalMealEntry != nil {
+            return "Delete Meal"
+        } else {
+            return "Delete Insulin"
+        }
+    }
+
+    private var deleteConfirmTitle: String {
+        "\(deleteButtonLabel)?"
+    }
+
+    private func performDelete() {
+        if let m = originalMealEntry {
+            store.dispatch(.deleteMealEntry(mealEntry: m))
+        }
+        if let i = originalInsulinDelivery {
+            store.dispatch(.deleteInsulinDelivery(insulinDelivery: i))
+        }
+        dismiss()
     }
 }
